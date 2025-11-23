@@ -28,7 +28,7 @@
       </p>
 
       <div class="mx-auto mb-12 grid max-w-4xl gap-8 px-4 sm:px-6 md:grid-cols-2">
-        {#each resourceOrgs as org}
+        {#each resourceOrgs as org (org.websiteUrl)}
           <OrganizationCard
             name={org.name}
             description={org.description}

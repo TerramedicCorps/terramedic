@@ -6,8 +6,6 @@
 
   export let form;
 
-  const images = ['/images/2025GenerationsStripes.jpg', '/images/20252024ReviewGlobal.jpg'];
-
   // Modal state
   let showModal = false;
   let modalImage = '/images/2025GenerationsStripes.jpg';

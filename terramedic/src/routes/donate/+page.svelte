@@ -29,7 +29,7 @@
       </p>
 
       <div class="mx-auto grid max-w-4xl gap-6 px-4 sm:px-6 md:grid-cols-2">
-        {#each donationOrganizations as org}
+        {#each donationOrganizations as org (org.websiteUrl)}
           <OrganizationCard
             name={org.name}
             description={org.description}

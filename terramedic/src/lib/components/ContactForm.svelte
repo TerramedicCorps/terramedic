@@ -88,11 +88,14 @@
   });
 
   let successTimer;
+  /* eslint-disable svelte/infinite-reactive-loop */
   $: if (isSuccess) {
+    clearTimeout(successTimer);
     successTimer = setTimeout(() => {
       isSuccess = false;
     }, 8000); // Reset after 8 seconds
   }
+  /* eslint-enable svelte/infinite-reactive-loop */
 </script>
 
 <div class="contact-form-container mx-auto max-w-2xl">

@@ -1,6 +1,10 @@
 [build]
+  base = "terramedic"
   command = "yarn build"
   publish = "build"
+
+[build.environment]
+  NODE_VERSION = "20"
 
 [forms.newsletter-signup.actions]
   [forms.newsletter-signup.actions.email]
@@ -11,3 +15,8 @@
   [forms.contact-form.actions.email]
     to = "info@terramedic.org"
     subject = "New Contact Form Submission"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
