@@ -1,25 +1,12 @@
 <script>
   import Logo from './Logo.svelte';
-  import {
-    Navbar,
-    NavBrand,
-    NavLi,
-    NavUl,
-    NavHamburger,
-    Dropdown,
-    DropdownItem
-  } from 'flowbite-svelte';
+  import { Navbar, NavBrand, NavLi, NavUl, NavHamburger } from 'flowbite-svelte';
 
   let activeUrl = '';
 
   // Get current path
   if (typeof window !== 'undefined') {
     activeUrl = window.location.pathname;
-  }
-
-  // Toggle mobile menu
-  function toggleMenu() {
-    isMenuOpen = !isMenuOpen;
   }
 </script>
 

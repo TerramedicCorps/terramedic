@@ -4,12 +4,10 @@
   import Footer from '$lib/components/Footer.svelte';
   import HeroImage from '$lib/components/HeroImage.svelte';
   import ImageModal from '$lib/components/ImageModal.svelte';
-  import { Card, Heading, A, Button } from 'flowbite-svelte';
+  import { A, Button } from 'flowbite-svelte';
   import { ArrowRightOutline } from 'flowbite-svelte-icons';
 
   export let form;
-
-  const images = ['/images/2025GenerationsStripes.jpg', '/images/20252024ReviewGlobal.jpg'];
 
   // Modal state
   let showModal = false;

@@ -73,11 +73,14 @@
   });
 
   let successTimer;
+  /* eslint-disable svelte/infinite-reactive-loop */
   $: if (isSuccess) {
+    clearTimeout(successTimer);
     successTimer = setTimeout(() => {
       isSuccess = false;
     }, 5000); // Reset after 5 seconds
   }
+  /* eslint-enable svelte/infinite-reactive-loop */
 </script>
 
 <div class="signup-form-container">

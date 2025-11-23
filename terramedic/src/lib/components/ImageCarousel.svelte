@@ -45,7 +45,7 @@
 <div class="carousel relative h-96 w-full overflow-hidden rounded-lg bg-gray-100 md:h-[32rem]">
   <!-- Images -->
   {#if images.length > 0}
-    {#each images as image, index}
+    {#each images as image, index (image)}
       <img
         src={image}
         alt="Carousel Image {index + 1}"

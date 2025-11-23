@@ -1,5 +1,5 @@
 <script>
-  import { Card, Badge, Button } from 'flowbite-svelte';
+  import { Card, Button } from 'flowbite-svelte';
   import { trackEvent } from '$lib/utils/analytics';
 
   export let name = '';
@@ -40,7 +40,7 @@
 
   {#if tags.length > 0}
     <div class="mb-3 flex flex-wrap gap-1.5">
-      {#each tags as tag}
+      {#each tags as tag (tag)}
         <span
           class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {tagStyle.bg} {tagStyle.text} {tagStyle.hover} transition-colors duration-200"
         >
