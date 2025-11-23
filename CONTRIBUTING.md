@@ -20,7 +20,7 @@ This project adheres to a Code of Conduct that all contributors are expected to 
 
 ### Reporting Bugs
 
-- Check if the bug has already been reported in [Issues](https://github.com/lhadjchikh/terramedic/issues)
+- Check if the bug has already been reported in [Issues](https://github.com/terramediccorps/terramedic/issues)
 - If not, create a new issue using the bug report template
 - Include as much detail as possible: steps to reproduce, expected vs actual behavior, screenshots, etc.
 
@@ -53,6 +53,10 @@ This project adheres to a Code of Conduct that all contributors are expected to 
 ```bash
 # Clone your fork
 git clone https://github.com/YOUR_USERNAME/terramedic.git
+cd terramedic/terramedic
+
+# Or clone the main repo
+git clone https://github.com/terramediccorps/terramedic.git
 cd terramedic/terramedic
 
 # Install dependencies
