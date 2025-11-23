@@ -25,9 +25,7 @@ jobs:
         uses: ./.github/actions/setup-node-yarn
 
       - name: Install Playwright browsers
-        working-directory: terramedic
         run: npx playwright install --with-deps
 
       - name: Run tests
-        working-directory: terramedic
         run: yarn test
