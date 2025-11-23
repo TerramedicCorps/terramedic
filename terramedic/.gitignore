@@ -23,4 +23,7 @@ Thumbs.db
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
+# Logs
 *storybook.log
+yarn-error.log
+npm-debug.log*
