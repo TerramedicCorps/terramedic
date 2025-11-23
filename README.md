@@ -80,9 +80,56 @@ To add or update organizations, edit the data files in:
 - `src/lib/data/donation-orgs.js` - For donation options
 - `src/lib/data/resource-orgs.js` - For resources available to climate advocates
 
+## Contributing
+
+We welcome contributions from the community! Whether you're fixing bugs, adding features, improving documentation, or helping with testing, your contributions are valued.
+
+### How to Contribute
+
+1. Read our [Contributing Guide](CONTRIBUTING.md) for detailed guidelines
+2. Check out our [Code of Conduct](CODE_OF_CONDUCT.md)
+3. Browse [open issues](https://github.com/terramediccorps/terramedic/issues) or create a new one
+4. Fork the repository and create a feature branch
+5. Make your changes following our coding guidelines
+6. Submit a pull request
+
+### Development Workflow
+
+```bash
+# Fork and clone the repository
+git clone https://github.com/YOUR_USERNAME/terramedic.git
+cd terramedic/terramedic
+
+# Install dependencies
+yarn install
+
+# Start development server
+yarn dev
+
+# Run tests
+yarn test
+
+# Check linting
+yarn lint
+
+# Format code
+yarn format
+```
+
+### Need Help?
+
+- 📖 Read the [Contributing Guide](CONTRIBUTING.md)
+- 🤖 Check [CLAUDE.md](CLAUDE.md) for AI-assisted development tips
+- 💬 Join discussions in [GitHub Discussions](https://github.com/terramediccorps/terramedic/discussions)
+- 🐛 Report bugs via [Issues](https://github.com/terramediccorps/terramedic/issues)
+
+## Security
+
+If you discover a security vulnerability, please review our [Security Policy](SECURITY.md) for responsible disclosure guidelines. Send reports to [security@terramedic.org](mailto:security@terramedic.org).
+
 ## License
 
-This project is licensed under the GNU General Public License v3.0 for code and the Creative Commons Attribution 4.0 International License (CC BY 4.0) for non-code content. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0 for code and the Creative Commons Attribution 4.0 International License (CC BY 4.0) for non-code content. See the [LICENSE](LICENSE.md) file for details.
 
 ## Acknowledgements
 
