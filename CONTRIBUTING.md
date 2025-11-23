@@ -1,6 +1,7 @@
 # Contributing to Terramedic
 
-Thank you for your interest in contributing to Terramedic! This project aims to provide resources and opportunities for climate action, and we welcome contributions from everyone who shares this mission.
+Thank you for your interest in contributing to Terramedic! This project aims to provide resources and opportunities
+for climate action, and we welcome contributions from everyone who shares this mission.
 
 ## Table of Contents
 
@@ -14,7 +15,8 @@ Thank you for your interest in contributing to Terramedic! This project aims to 
 
 ## Code of Conduct
 
-This project adheres to a Code of Conduct that all contributors are expected to follow. Please read [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before contributing.
+This project adheres to a Code of Conduct that all contributors are expected to follow.
+Please read [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before contributing.
 
 ## How Can I Contribute?
 

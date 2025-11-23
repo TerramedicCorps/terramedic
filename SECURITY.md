@@ -11,7 +11,8 @@ The Terramedic team takes security vulnerabilities seriously. We appreciate your
 Instead, please report security vulnerabilities by:
 
 1. **Email**: Send details to [security@terramedic.org](mailto:security@terramedic.org)
-2. **GitHub Security Advisories**: Use the [Security Advisories](https://github.com/terramediccorps/terramedic/security/advisories) feature
+2. **GitHub Security Advisories**: Use the
+   [Security Advisories](https://github.com/terramediccorps/terramedic/security/advisories) feature
 
 ### What to Include
 
@@ -59,7 +60,8 @@ This project follows security best practices including:
 
 ## Bug Bounty
 
-Currently, we do not offer a paid bug bounty program. However, we deeply appreciate security researchers who help make Terramedic safer for everyone.
+Currently, we do not offer a paid bug bounty program. However, we deeply appreciate security researchers
+who help make Terramedic safer for everyone.
 
 ## Disclosure Policy
 

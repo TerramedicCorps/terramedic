@@ -1,6 +1,7 @@
 # Claude.md - AI-Assisted Development Guide
 
-This file provides context and guidelines for AI assistants (like Claude, ChatGPT, GitHub Copilot, etc.) working on the Terramedic project.
+This file provides context and guidelines for AI assistants (like Claude, ChatGPT, GitHub Copilot, etc.)
+working on the Terramedic project.
 
 ## Project Overview
 
@@ -75,9 +76,11 @@ terramedic/
 
 ### Known Issues & Gotchas
 
-1. **Test Configuration**: The project uses Vitest workspace mode with separate configurations for client (jsdom) and server (node) environments. SvelteKit modules are marked as external dependencies to avoid mocking issues.
+1. **Test Configuration**: The project uses Vitest workspace mode with separate configurations for client (jsdom)
+   and server (node) environments. SvelteKit modules are marked as external dependencies to avoid mocking issues.
 
-2. **Database Migration**: The project is transitioning from hardcoded organization data to a database. Don't add new hardcoded organization data.
+2. **Database Migration**: The project is transitioning from hardcoded organization data to a database.
+   Don't add new hardcoded organization data.
 
 3. **Tailwind v4**: The project uses Tailwind CSS v4, which has some syntax differences from v3.
 
@@ -141,7 +144,8 @@ yarn storybook        # Launch Storybook
 
 ### Warming Stripes
 
-The project's core educational content centers around "warming stripes" - visualizations showing temperature change over time created by climate scientist Ed Hawkins.
+The project's core educational content centers around "warming stripes" - visualizations showing temperature change
+over time created by climate scientist Ed Hawkins.
 
 ### License
 
