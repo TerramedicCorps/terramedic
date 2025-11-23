@@ -25,7 +25,7 @@ Terramedic is a SvelteKit-powered climate action platform that provides:
 
 ## Project Structure
 
-```
+```text
 terramedic/
 ├── src/
 │   ├── routes/          # SvelteKit pages and routes

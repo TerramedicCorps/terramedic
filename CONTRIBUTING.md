@@ -127,7 +127,7 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/) specifica
 
 ### Format
 
-```
+```text
 <type>(<scope>): <subject>
 
 <body>
@@ -147,7 +147,7 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/) specifica
 
 ### Examples
 
-```
+```text
 feat(search): add filter functionality for organizations
 
 Implemented client-side filtering for volunteer opportunities
@@ -156,7 +156,7 @@ with support for keyword search and category filters.
 Closes #123
 ```
 
-```
+```text
 fix(navigation): correct mobile menu behavior
 
 The mobile navigation was not closing after selecting a link.
