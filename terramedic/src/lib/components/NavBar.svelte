@@ -3,10 +3,15 @@
   import { Navbar, NavBrand, NavLi, NavUl, NavHamburger } from 'flowbite-svelte';
 
   let activeUrl = '';
+  let hidden = true;
 
   // Get current path
   if (typeof window !== 'undefined') {
     activeUrl = window.location.pathname;
+  }
+
+  function toggle() {
+    hidden = !hidden;
   }
 </script>
 
@@ -18,7 +23,7 @@
     ></div>
 
     <div class="container-narrow relative z-10">
-      <Navbar let:hidden let:toggle navClass="px-0 py-2 my-0 bg-transparent !border-0">
+      <Navbar navClass="px-0 py-2 my-0 bg-transparent !border-0">
         <NavBrand href="/">
           <div class="rounded-md bg-white p-1">
             <Logo size="small" />
