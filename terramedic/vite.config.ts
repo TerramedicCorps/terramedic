@@ -19,7 +19,7 @@ export default defineConfig({
         external: ['@sveltejs/kit']
       }
     },
-    workspace: [
+    projects: [
       {
         extends: './vite.config.ts',
         plugins: [svelteTesting()],
