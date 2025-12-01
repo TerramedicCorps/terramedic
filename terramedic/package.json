@@ -54,7 +54,7 @@
     "prettier-plugin-svelte": "^3.4.0",
     "prettier-plugin-tailwindcss": "^0.7.1",
     "storybook": "^10.0.8",
-    "svelte": "^5.43.14",
+    "svelte": "^5.45.2",
     "svelte-check": "^4.3.4",
     "tailwindcss": "^4.1.17",
     "typescript": "^5.9.3",
@@ -65,7 +65,7 @@
   "dependencies": {
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "flowbite": "^4.0.1",
-    "flowbite-svelte": "^1.28.1",
+    "flowbite-svelte": "^1.29.1",
     "flowbite-svelte-icons": "^3.0.0"
   }
 }
