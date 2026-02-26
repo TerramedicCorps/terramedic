@@ -5,15 +5,23 @@ test.describe('Navbar visibility on desktop', () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto('/');
 
-    // Check that nav links are visible
-    const homeLink = page.locator('nav a:has-text("Home")');
-    await expect(homeLink).toBeVisible();
+    // Check that all nav links are visible
+    const navLinks = [
+      'Home',
+      'About',
+      'Volunteer',
+      'Donate',
+      'Other Actions',
+      'Resources',
+      'Contact'
+    ];
+    for (const linkText of navLinks) {
+      await expect(page.locator(`nav a:has-text("${linkText}")`)).toBeVisible();
+    }
 
-    const aboutLink = page.locator('nav a:has-text("About")');
-    await expect(aboutLink).toBeVisible();
-
-    // Check that nav links are on the same row as the logo (not stacked below)
+    // Check that a nav link is on the same row as the logo (not stacked below)
     const logoBox = await page.locator('[data-testid="nav-logo"]').boundingBox();
+    const aboutLink = page.locator('nav a:has-text("About")');
     const linkBox = await aboutLink.boundingBox();
 
     expect(logoBox).not.toBeNull();
@@ -21,7 +29,8 @@ test.describe('Navbar visibility on desktop', () => {
 
     // Links should be vertically overlapping with the logo (same row)
     const logoVerticalCenter = logoBox!.y + logoBox!.height / 2;
-    expect(linkBox!.y).toBeLessThan(logoVerticalCenter + logoBox!.height);
-    expect(linkBox!.y + linkBox!.height).toBeGreaterThan(logoVerticalCenter - logoBox!.height);
+    const tolerance = logoBox!.height / 2;
+    expect(linkBox!.y).toBeLessThan(logoVerticalCenter + tolerance);
+    expect(linkBox!.y + linkBox!.height).toBeGreaterThan(logoVerticalCenter - tolerance);
   });
 });

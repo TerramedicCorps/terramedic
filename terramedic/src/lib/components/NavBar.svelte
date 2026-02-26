@@ -18,7 +18,7 @@
     ></div>
 
     <div class="container-narrow relative z-10">
-      <Navbar navClass="px-0 py-2 my-0 bg-transparent !border-0">
+      <Navbar navClass="px-0 py-2 my-0 bg-transparent !border-0" breakpoint="lg">
         <NavBrand href="/">
           <div class="rounded-md bg-white p-1" data-testid="nav-logo">
             <Logo size="small" />
@@ -28,7 +28,7 @@
         <NavHamburger class="text-white focus:ring-0" />
 
         <NavUl
-          ulClass="flex flex-col p-4 mt-4 bg-[#1a2a38]/95 border border-slate-700/30 rounded-lg md:flex-row md:space-x-4 md:mt-0 md:text-sm md:font-medium md:border-0 md:bg-transparent"
+          ulClass="flex flex-col p-4 mt-4 bg-[#1a2a38]/95 border border-slate-700/30 rounded-lg lg:flex-row lg:space-x-4 lg:mt-0 lg:text-sm lg:font-medium lg:border-0 lg:bg-transparent"
           class="nav-menu-wrapper mt-0"
         >
           <NavLi href="/" active={activeUrl === '/'} class="nav-item">
@@ -76,7 +76,7 @@
     font-weight: 600;
     font-size: 0.875rem;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
-    padding: 0.5rem 0.5rem;
+    padding: 0.5rem;
     border-radius: 0.25rem;
     transition: all 0.2s ease;
     white-space: nowrap;
@@ -96,7 +96,7 @@
   }
 
   /* Media query for mobile menu items */
-  @media (max-width: 768px) {
+  @media (max-width: 1023px) {
     :global(.navbar-background .nav-item) {
       padding: 0.25rem 0;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -121,20 +121,16 @@
 
   /* Override Flowbite navbar background */
   :global(.navbar-background nav) {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
+    background: transparent;
+    border: none;
+    box-shadow: none;
   }
 
-  /* Tailwind v4's utility ordering causes base utilities (hidden, w-full,
-     flex-col) to override responsive variants (md:block, md:w-auto, md:flex-row).
-     Force correct desktop layout for the nav menu. */
-  @media (min-width: 768px) {
-    /* Prevent navbar items from wrapping to a second row */
-    :global(.navbar-background nav .flex) {
-      flex-wrap: nowrap !important;
-    }
-
+  /* Flowbite's theme applies hidden, w-full, and flex-col as base classes.
+     Tailwind v4's responsive variants (lg:block, lg:w-auto, lg:flex-row)
+     don't reliably override these base utilities in production builds.
+     Force correct desktop layout. */
+  @media (min-width: 1024px) {
     :global(.nav-menu-wrapper) {
       display: block !important;
       width: auto !important;
@@ -142,14 +138,10 @@
 
     :global(.nav-menu-wrapper ul) {
       flex-direction: row !important;
-      margin-top: 0 !important;
-      padding: 0 !important;
-      border: none !important;
-      background: transparent !important;
     }
 
     :global(.navbar-background .nav-item) {
-      width: auto !important;
+      width: auto;
     }
   }
 </style>

@@ -9,3 +9,6 @@ bun.lockb
 .svelte-kit
 .netlify
 build
+
+# Test artifacts
+test-results
