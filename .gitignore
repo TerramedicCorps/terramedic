@@ -7,8 +7,8 @@ node_modules
 .vercel
 .netlify
 .wrangler
-/terramedic/.svelte-kit
-/terramedic/build
+.svelte-kit
+build
 
 # OS
 .DS_Store
