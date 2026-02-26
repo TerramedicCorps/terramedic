@@ -63,7 +63,7 @@
     &#8592;
   </button>
   <button
-    class="absolute top-1/2 right-0 -translate-y-1/2 transform rounded-full bg-white p-2 text-black shadow-md"
+    class="absolute top-1/2 right-8 -translate-y-1/2 transform rounded-full bg-white p-2 text-black shadow-md"
     on:click={nextImage}
   >
     &#8594;

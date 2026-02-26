@@ -35,7 +35,7 @@
   }
 </script>
 
-<Card img="" class="h-full border border-gray-200 transition-all duration-300 hover:shadow-lg">
+<Card img="" class="h-full border border-gray-200 p-5 transition-all duration-300 hover:shadow-lg">
   <h3 class="text-terra-dark-blue mb-2 text-xl font-bold tracking-tight">{name}</h3>
 
   {#if tags.length > 0}
