@@ -1,4 +1,5 @@
 test-results
+screenshots
 node_modules
 
 # Output
@@ -6,8 +7,8 @@ node_modules
 .vercel
 .netlify
 .wrangler
-/.svelte-kit
-/build
+/terramedic/.svelte-kit
+/terramedic/build
 
 # OS
 .DS_Store
@@ -18,6 +19,9 @@ Thumbs.db
 .env.*
 !.env.example
 !.env.test
+
+# TypeScript
+*.tsbuildinfo
 
 # Vite
 vite.config.js.timestamp-*
