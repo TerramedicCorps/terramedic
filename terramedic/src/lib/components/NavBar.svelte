@@ -20,7 +20,7 @@
     <div class="container-narrow relative z-10">
       <Navbar navClass="px-0 py-2 my-0 bg-transparent !border-0">
         <NavBrand href="/">
-          <div class="rounded-md bg-white p-1">
+          <div class="rounded-md bg-white p-1" data-testid="nav-logo">
             <Logo size="small" />
           </div>
         </NavBrand>

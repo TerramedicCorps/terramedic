@@ -13,7 +13,7 @@ test.describe('Navbar visibility on desktop', () => {
     await expect(aboutLink).toBeVisible();
 
     // Check that nav links are on the same row as the logo (not stacked below)
-    const logoBox = await page.locator('.navbar-background a[href="/"]').first().boundingBox();
+    const logoBox = await page.locator('[data-testid="nav-logo"]').boundingBox();
     const linkBox = await aboutLink.boundingBox();
 
     expect(logoBox).not.toBeNull();
