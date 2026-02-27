@@ -99,18 +99,18 @@
     background-color: rgba(255, 255, 255, 0.1);
   }
 
-  /* Below the lg breakpoint, enforce mobile layout. SSR generates md: classes
-     due to Flowbite's $effect context bug, so md:block would show the nav at
-     768px+ even when the menu is closed. Override to keep it hidden until the
-     hamburger is clicked (which removes the .hidden class). */
+  /* Below the lg breakpoint, enforce mobile layout. Flowbite v1.31.0 sets
+     breakpoint context inside $effect (not during SSR), so prerendered HTML
+     gets md: classes regardless of the breakpoint="lg" prop. These overrides
+     correct the breakpoint behavior. Unlayered styles beat Tailwind's layered
+     utilities without needing !important (CSS cascade layer rules). */
   @media (max-width: 1023px) {
     :global(.nav-menu-wrapper.hidden) {
-      display: none !important;
+      display: none;
     }
 
-    /* SSR generates md:hidden on hamburger — force visible below lg */
     :global(.navbar-background button[aria-label='Open main menu']) {
-      display: inline-flex !important;
+      display: inline-flex;
     }
 
     :global(.navbar-background .nav-item) {
@@ -142,33 +142,27 @@
     box-shadow: none;
   }
 
-  /* Flowbite's theme applies hidden, w-full, flex-wrap, and flex-col as base
-     classes. Tailwind v4's responsive variants don't reliably override these
-     in production builds. Also, Flowbite v1.31.0 sets the breakpoint context
-     inside $effect (not during SSR), so prerendered HTML always gets md:
-     breakpoint classes regardless of the breakpoint prop.
-     Force correct desktop layout. */
+  /* Force correct desktop layout above the lg breakpoint. */
   @media (min-width: 1024px) {
     :global(.navbar-background nav > div) {
-      flex-wrap: nowrap !important;
+      flex-wrap: nowrap;
     }
 
     :global(.nav-menu-wrapper) {
-      display: block !important;
-      width: auto !important;
+      display: block;
+      width: auto;
     }
 
     :global(.nav-menu-wrapper ul) {
-      flex-direction: row !important;
+      flex-direction: row;
     }
 
     :global(.navbar-background .nav-item) {
       width: auto;
     }
 
-    /* Hide hamburger on desktop */
     :global(.navbar-background button[aria-label='Open main menu']) {
-      display: none !important;
+      display: none;
     }
   }
 </style>
