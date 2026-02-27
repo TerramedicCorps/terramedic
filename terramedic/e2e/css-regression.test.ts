@@ -15,13 +15,14 @@ test.describe('Navbar responsive layout', () => {
       'Resources',
       'Contact'
     ];
+    const nav = page.locator('nav');
     for (const linkText of navLinks) {
-      await expect(page.locator(`nav a:has-text("${linkText}")`)).toBeVisible();
+      await expect(nav.getByRole('link', { name: linkText, exact: true })).toBeVisible();
     }
 
     // Check that a nav link is on the same row as the logo (not stacked below)
     const logoBox = await page.locator('[data-testid="nav-logo"]').boundingBox();
-    const aboutLink = page.locator('nav a:has-text("About")');
+    const aboutLink = nav.getByRole('link', { name: 'About', exact: true });
     const linkBox = await aboutLink.boundingBox();
 
     expect(logoBox).not.toBeNull();
