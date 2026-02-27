@@ -19,7 +19,7 @@
 
     <div class="container-narrow relative z-10">
       <Navbar
-        class="my-0 !border-0 bg-transparent px-0 py-2"
+        class="my-0 border-0 bg-transparent px-0 py-2"
         breakpoint="lg"
         navContainerClass="lg:flex-nowrap"
       >
