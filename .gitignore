@@ -1,14 +1,14 @@
-/terramedic/test-results
-/terramedic/screenshots
+test-results
+screenshots
 node_modules
 
 # Output
-/terramedic/.output
-/terramedic/.vercel
-/terramedic/.netlify
-/terramedic/.wrangler
-/terramedic/.svelte-kit
-/terramedic/build
+.output
+.vercel
+.netlify
+.wrangler
+.svelte-kit
+build
 
 # OS
 .DS_Store
