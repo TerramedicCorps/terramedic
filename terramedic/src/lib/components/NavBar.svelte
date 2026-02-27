@@ -18,7 +18,11 @@
     ></div>
 
     <div class="container-narrow relative z-10">
-      <Navbar navClass="px-0 py-2 my-0 bg-transparent !border-0" breakpoint="lg">
+      <Navbar
+        class="my-0 !border-0 bg-transparent px-0 py-2"
+        breakpoint="lg"
+        navContainerClass="lg:flex-nowrap"
+      >
         <NavBrand href="/">
           <div class="rounded-md bg-white p-1" data-testid="nav-logo">
             <Logo size="small" />
@@ -126,11 +130,17 @@
     box-shadow: none;
   }
 
-  /* Flowbite's theme applies hidden, w-full, and flex-col as base classes.
-     Tailwind v4's responsive variants (lg:block, lg:w-auto, lg:flex-row)
-     don't reliably override these base utilities in production builds.
+  /* Flowbite's theme applies hidden, w-full, flex-wrap, and flex-col as base
+     classes. Tailwind v4's responsive variants don't reliably override these
+     in production builds. Also, Flowbite v1.31.0 sets the breakpoint context
+     inside $effect (not during SSR), so prerendered HTML always gets md:
+     breakpoint classes regardless of the breakpoint prop.
      Force correct desktop layout. */
   @media (min-width: 1024px) {
+    :global(.navbar-background nav > div) {
+      flex-wrap: nowrap !important;
+    }
+
     :global(.nav-menu-wrapper) {
       display: block !important;
       width: auto !important;
