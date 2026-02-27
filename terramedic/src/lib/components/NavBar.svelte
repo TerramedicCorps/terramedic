@@ -99,8 +99,20 @@
     background-color: rgba(255, 255, 255, 0.1);
   }
 
-  /* Media query for mobile menu items */
+  /* Below the lg breakpoint, enforce mobile layout. SSR generates md: classes
+     due to Flowbite's $effect context bug, so md:block would show the nav at
+     768px+ even when the menu is closed. Override to keep it hidden until the
+     hamburger is clicked (which removes the .hidden class). */
   @media (max-width: 1023px) {
+    :global(.nav-menu-wrapper.hidden) {
+      display: none !important;
+    }
+
+    /* SSR generates md:hidden on hamburger — force visible below lg */
+    :global(.navbar-background button[aria-label='Open main menu']) {
+      display: inline-flex !important;
+    }
+
     :global(.navbar-background .nav-item) {
       padding: 0.25rem 0;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -152,6 +164,11 @@
 
     :global(.navbar-background .nav-item) {
       width: auto;
+    }
+
+    /* Hide hamburger on desktop */
+    :global(.navbar-background button[aria-label='Open main menu']) {
+      display: none !important;
     }
   }
 </style>

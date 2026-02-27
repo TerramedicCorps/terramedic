@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test.describe('Navbar visibility on desktop', () => {
+test.describe('Navbar responsive layout', () => {
   test('nav links should be visible and inline on desktop', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto('/');
@@ -32,5 +32,18 @@ test.describe('Navbar visibility on desktop', () => {
     const tolerance = logoBox!.height / 2;
     expect(linkBox!.y).toBeLessThan(logoVerticalCenter + tolerance);
     expect(linkBox!.y + linkBox!.height).toBeGreaterThan(logoVerticalCenter - tolerance);
+  });
+
+  test('nav links should be hidden behind hamburger below lg breakpoint', async ({ page }) => {
+    await page.setViewportSize({ width: 768, height: 900 });
+    await page.goto('/');
+
+    // Nav links should not be visible below the lg breakpoint (1024px)
+    const aboutLink = page.locator('nav').getByRole('link', { name: 'About', exact: true });
+    await expect(aboutLink).not.toBeVisible();
+
+    // Hamburger button should be visible
+    const hamburger = page.locator('nav button').first();
+    await expect(hamburger).toBeVisible();
   });
 });
