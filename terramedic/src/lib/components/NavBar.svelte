@@ -3,15 +3,10 @@
   import { Navbar, NavBrand, NavLi, NavUl, NavHamburger } from 'flowbite-svelte';
 
   let activeUrl = '';
-  let hidden = true;
 
   // Get current path
   if (typeof window !== 'undefined') {
     activeUrl = window.location.pathname;
-  }
-
-  function toggle() {
-    hidden = !hidden;
   }
 </script>
 
@@ -23,19 +18,22 @@
     ></div>
 
     <div class="container-narrow relative z-10">
-      <Navbar navClass="px-0 py-2 my-0 bg-transparent !border-0">
+      <Navbar
+        class="my-0 border-0 bg-transparent px-0 py-2"
+        breakpoint="lg"
+        navContainerClass="lg:flex-nowrap"
+      >
         <NavBrand href="/">
-          <div class="rounded-md bg-white p-1">
+          <div class="rounded-md bg-white p-1" data-testid="nav-logo">
             <Logo size="small" />
           </div>
         </NavBrand>
 
-        <NavHamburger on:click={toggle} class="text-white focus:ring-0" />
+        <NavHamburger class="text-white focus:ring-0" />
 
         <NavUl
-          {hidden}
-          ulClass="flex flex-col p-4 mt-4 bg-[#1a2a38]/95 border border-slate-700/30 rounded-lg md:flex-row md:space-x-4 md:mt-0 md:text-sm md:font-medium md:border-0 md:bg-transparent"
-          divClass="w-full md:block md:w-auto mt-0"
+          ulClass="flex flex-col p-4 mt-4 bg-[#1a2a38]/95 border border-slate-700/30 rounded-lg lg:flex-row lg:space-x-4 lg:mt-0 lg:text-sm lg:font-medium lg:border-0 lg:bg-transparent"
+          class="nav-menu-wrapper mt-0"
         >
           <NavLi href="/" active={activeUrl === '/'} class="nav-item">
             <span class="nav-link">Home</span>
@@ -80,9 +78,9 @@
   :global(.navbar-background .nav-link) {
     color: white;
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 0.875rem;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
-    padding: 0.5rem 0.75rem;
+    padding: 0.5rem;
     border-radius: 0.25rem;
     transition: all 0.2s ease;
     white-space: nowrap;
@@ -101,8 +99,20 @@
     background-color: rgba(255, 255, 255, 0.1);
   }
 
-  /* Media query for mobile menu items */
-  @media (max-width: 768px) {
+  /* Below the lg breakpoint, enforce mobile layout. Flowbite v1.31.0 sets
+     breakpoint context inside $effect (not during SSR), so prerendered HTML
+     gets md: classes regardless of the breakpoint="lg" prop. These overrides
+     correct the breakpoint behavior. Unlayered styles beat Tailwind's layered
+     utilities without needing !important (CSS cascade layer rules). */
+  @media (max-width: 1023px) {
+    :global(.nav-menu-wrapper.hidden) {
+      display: none;
+    }
+
+    :global(.navbar-background button[aria-label='Open main menu']) {
+      display: inline-flex;
+    }
+
     :global(.navbar-background .nav-item) {
       padding: 0.25rem 0;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -127,8 +137,32 @@
 
   /* Override Flowbite navbar background */
   :global(.navbar-background nav) {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  /* Force correct desktop layout above the lg breakpoint. */
+  @media (min-width: 1024px) {
+    :global(.navbar-background nav > div) {
+      flex-wrap: nowrap;
+    }
+
+    :global(.nav-menu-wrapper) {
+      display: block;
+      width: auto;
+    }
+
+    :global(.nav-menu-wrapper ul) {
+      flex-direction: row;
+    }
+
+    :global(.navbar-background .nav-item) {
+      width: auto;
+    }
+
+    :global(.navbar-background button[aria-label='Open main menu']) {
+      display: none;
+    }
   }
 </style>

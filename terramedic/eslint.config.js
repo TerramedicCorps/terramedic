@@ -7,10 +7,13 @@ import { fileURLToPath } from 'node:url';
 import ts from 'typescript-eslint';
 import svelteConfig from './svelte.config.js';
 
-const gitignorePath = fileURLToPath(new URL('./.gitignore', import.meta.url));
+const gitignorePath = fileURLToPath(new URL('../.gitignore', import.meta.url));
 
 export default ts.config(
   includeIgnoreFile(gitignorePath),
+  // .gitignore paths are relative to repo root, not this config's directory,
+  // so build artifacts need explicit ignores here as well
+  { ignores: ['build/', '.netlify/', '.svelte-kit/', 'test-results/'] },
   js.configs.recommended,
   ...ts.configs.recommended,
   ...svelte.configs.recommended,

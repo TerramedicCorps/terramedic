@@ -52,7 +52,7 @@
       <div class="mb-16 rounded-lg bg-white p-8 shadow-sm">
         <div class="flex flex-col items-center md:flex-row">
           <!-- Image on the left -->
-          <div class="relative mb-16 flex w-full justify-center md:mr-8 md:mb-8 md:w-1/3">
+          <div class="relative mb-6 flex w-full justify-center md:mr-8 md:mb-0 md:w-1/3">
             <img
               src="/images/terramedic-globe.svg"
               alt="Terramedic Globe"
@@ -162,7 +162,7 @@
               </p>
             </div>
           </div>
-          <div class="mb-16 flex w-full items-center p-8 md:w-1/2 md:justify-start md:text-left">
+          <div class="flex w-full items-center p-8 md:w-1/2 md:justify-start md:text-left">
             <div>
               <h2 class="text-terra-dark-blue mx-auto mb-4 text-2xl font-bold md:mx-0 md:text-3xl">
                 The Science<br />Behind&nbsp;the Stripes
