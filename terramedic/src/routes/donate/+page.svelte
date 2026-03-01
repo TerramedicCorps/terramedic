@@ -28,7 +28,7 @@
         powerful solutions. Every contribution makes a difference.
       </p>
 
-      <div class="mx-auto grid max-w-4xl gap-6 px-4 sm:px-6 md:grid-cols-2">
+      <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {#each donationOrganizations as org (org.websiteUrl)}
           <OrganizationCard
             name={org.name}

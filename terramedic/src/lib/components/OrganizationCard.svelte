@@ -58,7 +58,7 @@
 
 <Card
   img=""
-  class="!bg-navy h-full border border-white/10 p-5 transition-all duration-300 hover:shadow-lg"
+  class="!bg-navy h-full !max-w-none border border-white/10 p-5 transition-all duration-300 hover:shadow-lg"
 >
   <h3 class="mb-2 text-xl font-bold tracking-tight text-white">{name}</h3>
 
