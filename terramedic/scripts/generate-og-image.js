@@ -33,18 +33,18 @@ await page.evaluate(() => {
   // Hide tagline and description paragraphs
   document.querySelectorAll('.hero-content p').forEach((p) => (p.style.display = 'none'));
 
-  // Hide CTA button container
+  // Hide CTA button container and restyle hero content
   const heroContent = document.querySelector('.hero-content');
+  if (!heroContent) return;
+
   const divs = heroContent.querySelectorAll(':scope > div');
   if (divs.length) divs[divs.length - 1].style.display = 'none';
 
   // Center text over the dark space above the earth horizon
-  if (heroContent) {
-    heroContent.style.padding = '0 1rem 25%';
-    heroContent.style.display = 'flex';
-    heroContent.style.alignItems = 'center';
-    heroContent.style.justifyContent = 'center';
-  }
+  heroContent.style.padding = '0 1rem 25%';
+  heroContent.style.display = 'flex';
+  heroContent.style.alignItems = 'center';
+  heroContent.style.justifyContent = 'center';
 
   // Scale up the heading
   const h1 = heroContent.querySelector('h1');
