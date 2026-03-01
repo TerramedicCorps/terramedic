@@ -99,10 +99,10 @@
 </script>
 
 <div class="contact-form-container mx-auto max-w-2xl">
-  <h2 class="text-terra-dark-blue mb-6 text-center text-2xl font-bold md:text-3xl">Contact Form</h2>
+  <h2 class="mb-6 text-center text-2xl font-bold text-white md:text-3xl">Contact Form</h2>
 
   {#if isSuccess}
-    <div class="success-message mb-4 rounded-md bg-green-100 p-6 text-center text-green-800">
+    <div class="success-message mb-4 rounded-md bg-green-900/30 p-6 text-center text-green-400">
       <h3 class="mb-2 text-xl font-bold">Thank You for Your Message!</h3>
       <p>
         We've received your message and will respond as soon as possible. Thank you for reaching
@@ -116,7 +116,7 @@
       method="POST"
       data-netlify="true"
       netlify-honeypot="bot-field"
-      class="space-y-4 rounded-lg bg-white p-6 shadow-sm"
+      class="bg-navy space-y-4 rounded-lg p-6 shadow-sm"
     >
       <!-- Hidden inputs required by Netlify Forms -->
       <input type="hidden" name="form-name" value="contact-form" />
@@ -129,7 +129,7 @@
       <!-- Name fields -->
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
-          <Label for="firstName" class="mb-1 block text-sm text-gray-700">First Name</Label>
+          <Label for="firstName" class="mb-1 block text-sm text-gray-400">First Name</Label>
           <Input
             id="firstName"
             name="firstName"
@@ -137,11 +137,11 @@
             bind:value={firstName}
             required
             placeholder="First name"
-            class="w-full bg-white text-gray-800"
+            class="bg-deep-navy w-full text-white"
           />
         </div>
         <div>
-          <Label for="lastName" class="mb-1 block text-sm text-gray-700">Last Name</Label>
+          <Label for="lastName" class="mb-1 block text-sm text-gray-400">Last Name</Label>
           <Input
             id="lastName"
             name="lastName"
@@ -149,14 +149,14 @@
             bind:value={lastName}
             required
             placeholder="Last name"
-            class="w-full bg-white text-gray-800"
+            class="bg-deep-navy w-full text-white"
           />
         </div>
       </div>
 
       <!-- Email field -->
       <div>
-        <Label for="email" class="mb-1 block text-sm text-gray-700">Email Address</Label>
+        <Label for="email" class="mb-1 block text-sm text-gray-400">Email Address</Label>
         <Input
           id="email"
           name="email"
@@ -164,15 +164,15 @@
           bind:value={email}
           required
           placeholder="you@example.com"
-          class="w-full bg-white text-gray-800"
+          class="bg-deep-navy w-full text-white"
         />
       </div>
 
       <!-- Organization field (optional) -->
       <div>
-        <Label for="organization" class="mb-1 flex items-center text-sm text-gray-700">
+        <Label for="organization" class="mb-1 flex items-center text-sm text-gray-400">
           Organization Name
-          <span class="ml-1 text-xs text-gray-500 italic">(optional)</span>
+          <span class="ml-1 text-xs text-gray-400 italic">(optional)</span>
         </Label>
         <Input
           id="organization"
@@ -180,13 +180,13 @@
           type="text"
           bind:value={organization}
           placeholder="Your organization (if applicable)"
-          class="w-full bg-white text-gray-800"
+          class="bg-deep-navy w-full text-white"
         />
       </div>
 
       <!-- Subject field -->
       <div>
-        <Label for="subject" class="mb-1 block text-sm text-gray-700">Subject</Label>
+        <Label for="subject" class="mb-1 block text-sm text-gray-400">Subject</Label>
         <Input
           id="subject"
           name="subject"
@@ -194,13 +194,13 @@
           bind:value={subject}
           required
           placeholder="Message subject"
-          class="w-full bg-white text-gray-800"
+          class="bg-deep-navy w-full text-white"
         />
       </div>
 
       <!-- Message field -->
       <div>
-        <Label for="message" class="mb-1 block text-sm text-gray-700">Message</Label>
+        <Label for="message" class="mb-1 block text-sm text-gray-400">Message</Label>
         <Textarea
           id="message"
           name="message"
@@ -208,19 +208,24 @@
           required
           placeholder="Your message"
           rows="5"
-          class="w-full bg-white text-gray-800"
+          class="bg-deep-navy w-full text-white"
         />
       </div>
 
       <!-- Submit button -->
       <div>
-        <Button type="submit" disabled={isSubmitting} color="blue" class="w-full">
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          color="none"
+          class="bg-btn-blue w-full text-white transition-colors hover:bg-[#0d47a1]"
+        >
           {isSubmitting ? 'Sending...' : 'Send Message'}
         </Button>
       </div>
 
       {#if errorMessage}
-        <div class="error-message text-sm text-red-500">
+        <div class="error-message text-sm text-red-400">
           {errorMessage}
         </div>
       {/if}

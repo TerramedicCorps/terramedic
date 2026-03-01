@@ -12,11 +12,6 @@
 
 <div class="sticky top-0 z-50">
   <div class="navbar-background relative overflow-hidden shadow-md">
-    <!-- Center blur overlay - edges stay clear -->
-    <div
-      class="blur-container pointer-events-none absolute top-0 bottom-0 left-1/2 -translate-x-1/2"
-    ></div>
-
     <div class="container-narrow relative z-10">
       <Navbar
         class="my-0 border-0 bg-transparent px-0 py-2"
@@ -24,7 +19,7 @@
         navContainerClass="lg:flex-nowrap"
       >
         <NavBrand href="/">
-          <div class="rounded-md bg-white p-1" data-testid="nav-logo">
+          <div data-testid="nav-logo">
             <Logo size="small" />
           </div>
         </NavBrand>
@@ -32,7 +27,7 @@
         <NavHamburger class="text-white focus:ring-0" />
 
         <NavUl
-          ulClass="flex flex-col p-4 mt-4 bg-[#1a2a38]/95 border border-slate-700/30 rounded-lg lg:flex-row lg:space-x-4 lg:mt-0 lg:text-sm lg:font-medium lg:border-0 lg:bg-transparent"
+          ulClass="flex flex-col p-4 mt-4 bg-[#0f1829]/95 border border-white/10 rounded-lg lg:flex-row lg:space-x-4 lg:mt-0 lg:text-sm lg:font-medium lg:border-0 lg:bg-transparent"
           class="nav-menu-wrapper mt-0"
         >
           <NavLi href="/" active={activeUrl === '/'} class="nav-item">
@@ -60,16 +55,11 @@
       </Navbar>
     </div>
   </div>
+  <!-- Warming stripes accent strip -->
+  <div class="warming-stripes-strip h-[5px] w-full"></div>
 </div>
 
 <style>
-  /* Center blur container with clear edges */
-  .blur-container {
-    width: 70%;
-    backdrop-filter: blur(5px);
-    z-index: 5;
-  }
-
   /* Override Flowbite styles */
   :global(.navbar-background .nav-item) {
     width: 100%;
@@ -79,7 +69,6 @@
     color: white;
     font-weight: 600;
     font-size: 0.875rem;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
     padding: 0.5rem;
     border-radius: 0.25rem;
     transition: all 0.2s ease;
@@ -127,12 +116,24 @@
     }
   }
 
-  /* Background image for the navbar */
+  /* Solid dark navbar background */
   .navbar-background {
-    background-image: url('/images/WarmingStripes-1850-2024.png');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    background-color: var(--color-deep-navy);
+  }
+
+  /* Warming stripes accent strip */
+  .warming-stripes-strip {
+    background: linear-gradient(
+      90deg,
+      #08306b 0%,
+      #2171b5 15%,
+      #6baed6 25%,
+      #fed976 40%,
+      #fd8d3c 55%,
+      #e31a1c 70%,
+      #bd0026 85%,
+      #800026 100%
+    );
   }
 
   /* Override Flowbite navbar background */

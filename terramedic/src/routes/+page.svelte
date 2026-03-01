@@ -36,47 +36,35 @@
 </script>
 
 <svelte:head>
-  <title>Terramedic | Climate Action Hub</title>
+  <title>Terramedic | Heal the Earth</title>
   <meta
     name="description"
-    content="Learn about warming stripes and how you can help address climate change through volunteering or donations."
+    content="Learn about warming stripes and discover how you can help heal our planet through volunteering, donations, or daily actions."
   />
 </svelte:head>
 
-<div class="flex min-h-screen flex-col bg-gray-50">
+<div class="bg-space-black flex min-h-screen flex-col">
   <NavBar />
 
   <main class="flex-grow">
     <!-- Hero Section -->
     <section class="relative">
       <HeroImage
-        src="/images/hero.svg"
-        alt="Anyone can become a terramedic"
-        size="large"
-        title="Ready&nbsp;to&nbsp;take&nbsp;action?"
-        description="Move beyond awareness and join our community of climate advocates helping to heal our planet and preserve our world for future generations."
+        tagline=""
+        title="Anyone can be a"
+        titleBrand="erramedic"
+        description="It doesn't take much to start healing our planet."
       />
-
-      <!-- Subtle divider -->
-      <div
-        class="absolute right-0 bottom-0 left-0 z-20 h-6 bg-gradient-to-b from-transparent to-gray-50"
-      ></div>
     </section>
 
     <!-- Main Content Section -->
     <section class="section container-narrow">
-      <h2 class="section-title text-terra-dark-blue">Climate Crisis: Our Shared Challenge</h2>
+      <h2 class="section-title text-white">Mother Earth is hurting.<br />But you can help.</h2>
 
       <!-- Take Action Section -->
       <div id="take-action" class="mt-16 mb-16 scroll-mt-20 pt-4">
         <div class="mb-10 px-4 text-center md:mb-12">
-          <h2 class="text-terra-dark-blue mb-4 text-2xl font-bold md:text-3xl">
-            Choose Your Path to Climate Action
-          </h2>
-          <p class="mx-auto max-w-2xl text-base text-gray-700 md:text-lg">
-            Become a terramedic and start healing our planet today. Even if your time or money is
-            limited, you can make a difference.
-          </p>
+          <h2 class="mb-4 text-2xl font-bold text-white md:text-3xl">Choose Your Path</h2>
         </div>
 
         <!-- Action Cards -->
@@ -88,9 +76,9 @@
         <div class="mt-10 px-4 text-center md:mt-12">
           <A
             href="/resources"
-            class="text-terra-dark-blue hover:text-terra-blue inline-flex flex-wrap items-center justify-center text-lg font-medium transition-colors md:text-xl"
+            class="text-terra-green inline-flex flex-wrap items-center justify-center text-lg font-medium transition-colors hover:text-green-400 md:text-xl"
           >
-            <span class="mr-1">Already a climate advocate? Find resources here</span>
+            <span class="mr-1">Already taking action? Find resources here</span>
             <ArrowRightOutline class="h-5 w-5" />
           </A>
         </div>
@@ -98,22 +86,26 @@
     </section>
 
     <section class="section container-narrow">
-      <div class="overflow-hidden rounded-xl bg-white shadow-sm">
+      <div class="bg-navy overflow-hidden rounded-xl shadow-sm">
         <div class="flex flex-col md:flex-row">
           <div
             class="flex w-full items-center justify-center p-6 text-center md:w-1/2 md:justify-start md:p-10 md:text-left"
           >
             <div>
-              <h3 class="text-terra-dark-blue mx-auto mb-4 text-2xl font-bold md:mx-0 md:text-3xl">
+              <h3 class="mx-auto mb-4 text-2xl font-bold text-white md:mx-0 md:text-3xl">
                 Understanding Warming Stripes
               </h3>
-              <p class="mx-auto text-base text-gray-700 md:text-lg">
-                The warming stripes (a.k.a. climate stripes) show our planet's rising temperatures
-                over time. Each stripe is one year, red for warmer-than-average, blue for cooler.
-                The shift to red tells the story of climate change.
+              <p class="mx-auto text-base text-gray-400 md:text-lg">
+                The warming stripes show our planet's rising temperatures over time. Each stripe is
+                one year, red for warmer-than-average, blue for cooler. The shift to red tells the
+                story of a warming world.
               </p>
               <div class="mt-6 flex justify-center md:justify-start">
-                <Button href="/about" color="blue" class="font-medium">
+                <Button
+                  href="/about"
+                  color="none"
+                  class="bg-btn-blue font-medium text-white hover:bg-[#0d47a1]"
+                >
                   <span>Learn more about warming stripes</span>
                   <ArrowRightOutline class="ml-1 h-4 w-4" />
                 </Button>
@@ -124,9 +116,6 @@
             class="from-terra-blue to-terra-dark-blue w-full bg-gradient-to-br p-6 md:w-1/2 md:p-8"
           >
             <div class="relative flex h-[250px] items-center justify-center md:h-full">
-              <div
-                class="absolute inset-0 bg-[url('/images/WarmingStripes-1850-2024.png')] bg-cover bg-center opacity-10"
-              ></div>
               <!-- Clickable image that opens modal -->
               <button
                 class="relative z-10 mx-auto w-full max-w-md cursor-pointer overflow-hidden rounded-lg shadow-lg transition-transform hover:scale-[1.02]"

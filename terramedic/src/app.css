@@ -1,18 +1,61 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Pacifico&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&display=swap');
-
 @import 'tailwindcss';
 @plugin 'flowbite/plugin';
 @custom-variant dark (&:where(.dark, .dark *));
 @source '../node_modules/flowbite-svelte/dist';
 @source '../node_modules/flowbite-svelte-icons/dist';
 
+/* Register custom design tokens so Tailwind v4 generates utility classes
+   (e.g. bg-navy, text-terra-green, font-sans). */
+@theme {
+  --color-abyss: #060a12;
+  --color-space-black: #0a0e17;
+  --color-deep-navy: #0f1829;
+  --color-navy: #162033;
+  --color-terra-green: #2ecc71;
+  --color-terra-dark-green: #1a9c54;
+  --color-terra-blue: #2196f3;
+  --color-terra-dark-blue: #0f1829;
+  --color-sunrise-gold: #f39c12;
+  --color-btn-blue: #1565c0;
+  --color-btn-blue-hover: #0d47a1;
+  --color-btn-green: #15803d;
+  --color-btn-green-hover: #116630;
+  --color-btn-gold: #a16207;
+  --color-btn-gold-hover: #7d4e06;
+  --color-btn-purple: #7c3aed;
+  --color-btn-purple-hover: #6d28d9;
+  --color-text-secondary: #b0bec5;
+  --font-sans: 'Inter', sans-serif;
+}
+
+/* Self-hosted fonts (latin subset, no external CDN dependency) */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/inter-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/montserrat-700.woff2') format('woff2');
+}
+
+/* Aliases for component inline styles (reference @theme tokens to stay in sync). */
 @layer base {
   :root {
-    --terra-blue-color: #4682b5;
-    --terra-green-color: #76c268;
-    --terra-dark-blue-color: #2c3e50;
-    --terra-dark-green-color: #4e7a46;
+    --btn-blue: var(--color-btn-blue);
+    --btn-blue-hover: var(--color-btn-blue-hover);
+    --btn-green: var(--color-btn-green);
+    --btn-green-hover: var(--color-btn-green-hover);
+    --btn-gold: var(--color-btn-gold);
+    --btn-gold-hover: var(--color-btn-gold-hover);
+    --btn-purple: var(--color-btn-purple);
+    --btn-purple-hover: var(--color-btn-purple-hover);
   }
 
   html {
@@ -20,8 +63,9 @@
   }
 
   body {
-    @apply font-sans text-gray-800 antialiased;
-    background-color: #fafafa;
+    @apply font-sans antialiased;
+    background-color: #0a0e17;
+    color: #ffffff;
   }
 
   h1,
@@ -49,7 +93,7 @@
   }
 
   .section-title {
-    @apply mb-8 text-center text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl;
+    @apply mb-8 text-center text-3xl font-bold tracking-tight text-white md:text-4xl lg:text-5xl;
   }
 
   .card-hover {
@@ -57,13 +101,14 @@
   }
 }
 
-/* Override any dark mode styling */
+/* Override any dark mode styling for dark theme cards */
 :global(.card) {
-  @apply bg-white text-gray-800;
+  @apply text-gray-200;
+  background-color: #162033;
 }
 
 :global(.card p) {
-  @apply text-gray-700;
+  @apply text-gray-400;
 }
 
 :global(.card h1),
@@ -72,5 +117,5 @@
 :global(.card h4),
 :global(.card h5),
 :global(.card h6) {
-  @apply text-gray-900;
+  @apply text-white;
 }

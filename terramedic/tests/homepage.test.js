@@ -6,24 +6,27 @@ test('homepage has correct title and buttons', async ({ page }) => {
   // Check title
   await expect(page).toHaveTitle(/Terramedic/);
 
-  // Check that main heading exists
-  await expect(page.locator('h1:has-text("Climate Crisis")')).toBeVisible();
+  // Check that main heading contains brand name
+  const heading = page.locator('h1');
+  await expect(heading).toBeVisible();
+  await expect(heading).toContainText('erramedic');
 
-  // Check that warming stripes visualization is visible
-  await expect(page.locator('.warming-stripes')).toBeVisible();
+  // Check that action pathways section is visible
+  await expect(page.locator('#take-action')).toBeVisible();
 
-  // Check that both call-to-action buttons exist
-  await expect(page.locator('a:has-text("I have time to spare")')).toBeVisible();
-  await expect(page.locator('a:has-text("I have money to spare")')).toBeVisible();
+  // Check that action cards exist with question titles
+  await expect(page.locator('a:has-text("Have time to")')).toBeVisible();
+  await expect(page.locator('a:has-text("Have money to")')).toBeVisible();
+  await expect(page.locator('a:has-text("No time?")')).toBeVisible();
 
   // Test navigation to volunteer page
-  await page.click('a:has-text("I have time to spare")');
+  await page.click('a:has-text("Have time to")');
   await expect(page).toHaveURL(/.*volunteer/);
 
   // Go back to home page
   await page.goto('/');
 
   // Test navigation to donate page
-  await page.click('a:has-text("I have money to spare")');
+  await page.click('a:has-text("Have money to")');
   await expect(page).toHaveURL(/.*donate/);
 });

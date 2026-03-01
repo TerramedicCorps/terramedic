@@ -1,6 +1,7 @@
 test-results
 screenshots
 node_modules
+mockups
 
 # Output
 .output

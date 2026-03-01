@@ -36,42 +36,38 @@
   <title>About Warming Stripes | Terramedic</title>
   <meta
     name="description"
-    content="Learn about warming stripes, what they represent, and why they are an important visualization of climate change."
+    content="Learn about warming stripes, what they represent, and why they are an important visualization of rising global temperatures."
   />
 </svelte:head>
 
-<div class="flex min-h-screen flex-col bg-gray-50">
+<div class="bg-space-black flex min-h-screen flex-col">
   <NavBar />
 
   <main class="flex-grow">
     <div class="container-narrow py-12">
-      <h1 class="text-terra-dark-blue mb-12 text-center text-3xl font-bold md:text-4xl lg:text-5xl">
+      <h1 class="mb-12 text-center text-3xl font-bold text-white md:text-4xl lg:text-5xl">
         Terramedic and Warming Stripes
       </h1>
 
-      <div class="mb-16 rounded-lg bg-white p-8 shadow-sm">
+      <div class="bg-navy mb-16 rounded-lg p-8 shadow-sm">
         <div class="flex flex-col items-center md:flex-row">
           <!-- Image on the left -->
           <div class="relative mb-6 flex w-full justify-center md:mr-8 md:mb-0 md:w-1/3">
-            <img
-              src="/images/terramedic-globe.svg"
-              alt="Terramedic Globe"
-              class="h-auto max-w-full"
-            />
+            <img src="/images/logo.svg" alt="Terramedic Logo" class="h-auto w-48 md:w-64" />
           </div>
 
           <!-- Text block -->
           <div class="w-full md:w-2/3">
-            <h2 class="text-terra-dark-blue mb-4 text-xl font-bold md:text-2xl">What We Do</h2>
-            <p class="mb-4">
-              Terramedic turns awareness into action by connecting people who want to solve climate
-              change with meaningful ways to heal our planet.
+            <h2 class="mb-4 text-xl font-bold text-white md:text-2xl">What We Do</h2>
+            <p class="mb-4 text-gray-300">
+              Terramedic turns awareness into action by connecting people who want to heal our
+              planet with meaningful ways to make a difference.
             </p>
           </div>
         </div>
       </div>
 
-      <div class="mb-16 rounded-lg bg-white shadow-sm">
+      <div class="bg-navy mb-16 rounded-lg shadow-sm">
         <div class="flex flex-col md:flex-row">
           <!-- Button image on the top for mobile, right for larger screens -->
           <div class="order-1 flex w-full items-center justify-center p-8 md:order-2 md:w-1/3">
@@ -80,23 +76,21 @@
             >
               <img
                 src="/images/warming-stripes-button.png"
-                alt="Climate warming stripes button"
+                alt="Warming stripes button"
                 class="h-auto w-full"
               />
-              <div class="absolute inset-0 rounded-lg ring-1 ring-gray-300/30"></div>
+              <div class="absolute inset-0 rounded-lg ring-1 ring-white/10"></div>
             </div>
           </div>
 
           <!-- Text content on the bottom for mobile, left for larger screens -->
           <div class="order-2 w-full p-8 md:order-1 md:w-2/3">
-            <h2 class="text-terra-dark-blue mb-4 text-xl font-bold md:text-2xl">
-              What are Warming Stripes?
-            </h2>
-            <p class="mb-4">
+            <h2 class="mb-4 text-xl font-bold text-white md:text-2xl">What are Warming Stripes?</h2>
+            <p class="mb-4 text-gray-300">
               Terramedic promotes warming stripes everywhere we go because they communicate the
-              story of climate change so powerfully and simply.
+              story of a warming world so powerfully and simply.
             </p>
-            <p class="mb-4">
+            <p class="mb-4 text-gray-300">
               Created by climate scientist Ed Hawkins in 2018, warming stripes represent the average
               temperature for individual years, relative to the average temperature over a baseline
               period, typically 1961-2010. Red stripes represent years that were warmer than the
@@ -104,7 +98,7 @@
               stripes show the same for cooler years. Together, they paint the picture of a warming
               planet.
             </p>
-            <p class="mb-4">
+            <p class="mb-4 text-gray-300">
               The stripes buttons at Terramedic events help people get involved. The first step is
               wearing one and telling people what it means. The second step is up to you.
             </p>
@@ -112,13 +106,10 @@
         </div>
       </div>
 
-      <div class="mb-16 overflow-hidden rounded-xl bg-white shadow-sm">
+      <div class="bg-navy mb-16 overflow-hidden rounded-xl shadow-sm">
         <div class="flex flex-col md:flex-row">
           <div class="from-terra-blue to-terra-dark-blue w-full bg-gradient-to-br p-8 md:w-1/2">
             <div class="relative flex h-[250px] flex-col items-center justify-center md:h-full">
-              <div
-                class="absolute inset-0 bg-[url('/images/WarmingStripes-1850-2024.png')] bg-cover bg-center opacity-10"
-              ></div>
               <!-- Clickable image that opens modal -->
               <button
                 class="relative z-10 mx-auto w-full max-w-md cursor-pointer overflow-hidden rounded-lg shadow-lg transition-transform hover:scale-[1.02]"
@@ -156,7 +147,7 @@
                 </div>
               </button>
               <!-- Credit text -->
-              <p class="mt-4 text-center text-xs text-gray-600">
+              <p class="mt-4 text-center text-xs text-gray-400">
                 Graphics and lead scientist: Ed Hawkins, NCAS, UoR. Data: Berkeley Earth &
                 ERA5-Land, NOAA, UK Met Office, MeteoSwiss, DWD, SMHI, UoR & ZAMG.
               </p>
@@ -164,10 +155,10 @@
           </div>
           <div class="flex w-full items-center p-8 md:w-1/2 md:justify-start md:text-left">
             <div>
-              <h2 class="text-terra-dark-blue mx-auto mb-4 text-2xl font-bold md:mx-0 md:text-3xl">
+              <h2 class="mx-auto mb-4 text-2xl font-bold text-white md:mx-0 md:text-3xl">
                 The Science<br />Behind&nbsp;the Stripes
               </h2>
-              <p class="mb-4">
+              <p class="mb-4 text-gray-300">
                 The data used to create warming stripes comes from multiple scientific sources,
                 including: NASA's Goddard Institute for Space Studies, NOAA's National Centers for
                 Environmental Information, UK Met Office Hadley Centre, and the Berkeley Earth
@@ -181,25 +172,37 @@
         </div>
       </div>
 
-      <div class="mb-16 rounded-lg bg-white p-6 shadow-sm">
+      <div class="bg-navy mb-16 rounded-lg p-6 shadow-sm">
         <div class="flex flex-col md:flex-row">
           <div class="w-full pr-0 md:w-3/5 md:pr-8">
-            <h2 class="text-terra-dark-blue mb-4 text-xl font-bold md:text-2xl">Take Action Now</h2>
-            <p class="mb-4">
-              You can help address climate change right now by volunteering your time or supporting
-              climate organizations. Every contribution matters. Choose a path here to get started.
+            <h2 class="mb-4 text-xl font-bold text-white md:text-2xl">Take Action Now</h2>
+            <p class="mb-4 text-gray-300">
+              You can help heal our planet right now by volunteering your time or supporting
+              organizations making a difference. Every contribution matters. Choose a path here to
+              get started.
             </p>
           </div>
 
           <div class="mt-2 w-full md:mt-0 md:w-2/5">
             <div class="flex flex-col gap-4">
-              <ActionButton text="Volunteer Your Time" href="/volunteer" type="primary" />
               <ActionButton
-                text="Donate to Climate Organizations"
+                text="Volunteer Your Time"
+                href="/volunteer"
+                type="primary"
+                icon="clock"
+              />
+              <ActionButton
+                text="Donate to Make a Difference"
                 href="/donate"
                 type="secondary"
+                icon="banknotes"
               />
-              <ActionButton text="Explore Other Ways to Help" href="/other-actions" type="purple" />
+              <ActionButton
+                text="Explore Other Ways to Help"
+                href="/other-actions"
+                type="purple"
+                icon="bolt"
+              />
             </div>
           </div>
         </div>
@@ -210,7 +213,7 @@
           href="https://showyourstripes.info/"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-terra-blue inline-block hover:underline"
+          class="text-terra-green inline-block hover:underline"
         >
           Visit ShowYourStripes.info for more information →
         </a>
