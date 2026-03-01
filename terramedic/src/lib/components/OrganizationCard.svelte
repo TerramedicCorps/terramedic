@@ -13,12 +13,12 @@
 
   // Map tag colors to dark theme values
   const tagColorMap = {
-    blue: { bg: 'bg-blue-900/30', text: 'text-blue-400', hover: 'hover:bg-blue-900/50' },
-    green: { bg: 'bg-green-900/30', text: 'text-green-400', hover: 'hover:bg-green-900/50' },
-    purple: { bg: 'bg-purple-900/30', text: 'text-purple-400', hover: 'hover:bg-purple-900/50' },
-    orange: { bg: 'bg-orange-900/30', text: 'text-orange-400', hover: 'hover:bg-orange-900/50' },
-    red: { bg: 'bg-red-900/30', text: 'text-red-400', hover: 'hover:bg-red-900/50' },
-    gray: { bg: 'bg-gray-800/30', text: 'text-gray-400', hover: 'hover:bg-gray-800/50' }
+    blue: { bg: 'bg-blue-900/60', text: 'text-blue-400', hover: 'hover:bg-blue-900/70' },
+    green: { bg: 'bg-green-900/60', text: 'text-green-400', hover: 'hover:bg-green-900/70' },
+    purple: { bg: 'bg-purple-900/60', text: 'text-purple-400', hover: 'hover:bg-purple-900/70' },
+    orange: { bg: 'bg-orange-900/60', text: 'text-orange-400', hover: 'hover:bg-orange-900/70' },
+    red: { bg: 'bg-red-900/60', text: 'text-red-400', hover: 'hover:bg-red-900/70' },
+    gray: { bg: 'bg-gray-800/60', text: 'text-gray-400', hover: 'hover:bg-gray-800/70' }
   };
 
   // Default to blue if no valid color is provided
