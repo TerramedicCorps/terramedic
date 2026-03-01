@@ -98,10 +98,6 @@
     @apply mb-8 text-center text-3xl font-bold tracking-tight text-white md:text-4xl lg:text-5xl;
   }
 
-  .text-balance {
-    text-wrap: balance;
-  }
-
   .card-hover {
     @apply transition-all duration-300 hover:scale-[1.02] hover:shadow-lg;
   }
