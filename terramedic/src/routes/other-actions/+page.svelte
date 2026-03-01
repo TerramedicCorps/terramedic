@@ -9,7 +9,7 @@
 </script>
 
 <svelte:head>
-  <title>Other Ways to Help | Terramedic</title>
+  <title>Start Where You Are | Terramedic</title>
   <meta
     name="description"
     content="Learn about other ways to make a difference even without spare time or money."
@@ -22,7 +22,7 @@
   <main class="flex-grow">
     <div class="container-narrow py-12">
       <h1 class="mb-4 text-center text-3xl font-bold text-white md:text-4xl lg:text-5xl">
-        Other Ways to Make a Difference
+        Start Where You Are
       </h1>
       <p class="mx-auto mb-10 max-w-2xl text-center text-lg text-gray-400">
         Even if you don't have spare time or money right now, there are still meaningful ways you

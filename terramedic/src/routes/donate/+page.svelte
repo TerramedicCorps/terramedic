@@ -21,11 +21,11 @@
   <main class="flex-grow">
     <div class="container-narrow py-12">
       <h1 class="mb-4 text-center text-3xl font-bold text-white md:text-4xl lg:text-5xl">
-        Support the Mission
+        Power Civic Action
       </h1>
       <p class="mx-auto mb-10 max-w-2xl text-center text-lg text-gray-400">
-        Your financial support enables these organizations to scale their impact and implement
-        powerful solutions. Every contribution makes a difference.
+        From voter mobilization to grassroots advocacy, these organizations make it easy for
+        everyday people to push for a healthier planet. Your donation keeps that work going.
       </p>
 
       <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
