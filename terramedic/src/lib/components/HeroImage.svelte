@@ -64,10 +64,14 @@
     <div class="hero-scrim"></div>
 
     <!-- Content overlay (absolutely positioned via .hero-content in <style>) -->
-    <div class="hero-content z-10 flex flex-col items-center justify-center text-center">
+    <div
+      class="hero-content z-10 flex flex-col items-center justify-center text-center"
+      data-og-hero
+    >
       {#if tagline}
         <p
           class="text-terra-green mb-4 text-sm font-semibold tracking-widest uppercase md:text-base"
+          data-og-hide
         >
           {tagline}
         </p>
@@ -77,7 +81,7 @@
         <h1 class="mx-auto mb-6 max-w-3xl font-bold text-white">
           <span class="block text-2xl md:text-4xl lg:text-5xl">{title}</span>
           {#if titleBrand}
-            <span class="block text-5xl md:text-7xl lg:text-8xl"
+            <span class="block text-3xl whitespace-nowrap sm:text-4xl md:text-7xl lg:text-8xl"
               ><svg
                 class="hero-logo-t"
                 viewBox={GREEN_CROSS.viewBox}
@@ -102,18 +106,22 @@
           class="mx-auto max-w-2xl text-base text-gray-200 md:text-lg lg:text-xl"
           class:mb-8={!description2}
           class:mb-2={description2}
+          data-og-hide
         >
           {description}
         </p>
       {/if}
 
       {#if description2}
-        <p class="mx-auto mb-8 max-w-2xl text-base text-gray-200 md:text-lg lg:text-xl">
+        <p
+          class="mx-auto mb-8 max-w-2xl text-base text-gray-200 md:text-lg lg:text-xl"
+          data-og-hide
+        >
           {description2}
         </p>
       {/if}
 
-      <div class="flex flex-col gap-4 sm:flex-row">
+      <div class="flex flex-col gap-4 sm:flex-row" data-og-hide>
         <a
           href="#take-action"
           class="bg-terra-green inline-flex items-center rounded-md px-6 py-3 text-base font-semibold text-[#0a0e17] shadow-lg transition-colors hover:bg-green-400"
