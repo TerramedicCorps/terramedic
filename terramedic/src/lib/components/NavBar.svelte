@@ -118,7 +118,7 @@
 
   /* Solid dark navbar background */
   .navbar-background {
-    background-color: #0f1829;
+    background-color: var(--color-deep-navy);
   }
 
   /* Warming stripes accent strip */
