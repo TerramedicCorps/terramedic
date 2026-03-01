@@ -56,6 +56,7 @@
     --btn-gold-hover: var(--color-btn-gold-hover);
     --btn-purple: var(--color-btn-purple);
     --btn-purple-hover: var(--color-btn-purple-hover);
+    --navbar-height: 3.75rem;
   }
 
   html {
