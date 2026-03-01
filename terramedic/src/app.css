@@ -32,35 +32,17 @@
   --font-mono: 'Courier New', monospace;
 }
 
+/* Aliases for component inline styles (reference @theme tokens to stay in sync). */
 @layer base {
   :root {
-    --terra-blue-color: #2196f3;
-    --terra-green-color: #2ecc71;
-    --terra-dark-blue-color: #0f1829;
-    --terra-dark-green-color: #1a9c54;
-    --space-black: #0a0e17;
-    --deep-navy: #0f1829;
-    --navy: #162033;
-    --sunrise-gold: #f39c12;
-    --btn-blue: #1565c0;
-    --btn-blue-hover: #0d47a1;
-    --btn-green: #15803d;
-    --btn-green-hover: #116630;
-    --btn-gold: #a16207;
-    --btn-gold-hover: #7d4e06;
-    --btn-purple: #7c3aed;
-    --btn-purple-hover: #6d28d9;
-    --warming-stripes-gradient: linear-gradient(
-      90deg,
-      #08306b 0%,
-      #2171b5 15%,
-      #6baed6 25%,
-      #fed976 40%,
-      #fd8d3c 55%,
-      #e31a1c 70%,
-      #bd0026 85%,
-      #800026 100%
-    );
+    --btn-blue: var(--color-btn-blue);
+    --btn-blue-hover: var(--color-btn-blue-hover);
+    --btn-green: var(--color-btn-green);
+    --btn-green-hover: var(--color-btn-green-hover);
+    --btn-gold: var(--color-btn-gold);
+    --btn-gold-hover: var(--color-btn-gold-hover);
+    --btn-purple: var(--color-btn-purple);
+    --btn-purple-hover: var(--color-btn-purple-hover);
   }
 
   html {
