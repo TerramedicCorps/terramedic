@@ -172,7 +172,7 @@
       <div>
         <Label for="organization" class="mb-1 flex items-center text-sm text-gray-400">
           Organization Name
-          <span class="ml-1 text-xs text-gray-500 italic">(optional)</span>
+          <span class="ml-1 text-xs text-gray-400 italic">(optional)</span>
         </Label>
         <Input
           id="organization"
