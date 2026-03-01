@@ -142,11 +142,10 @@ and other decorative uses.
 
 ### Font Stack
 
-| Role     | Font         | Weight  | CSS                           |
-| -------- | ------------ | ------- | ----------------------------- |
-| Headings | Montserrat   | 700-800 | `font-[Montserrat] font-bold` |
-| Body     | Inter        | 300-600 | `font-sans` (default)         |
-| Serif    | Merriweather | 300-900 | `font-serif`                  |
+| Role     | Font       | Weight  | CSS                           |
+| -------- | ---------- | ------- | ----------------------------- |
+| Headings | Montserrat | 700     | `font-[Montserrat] font-bold` |
+| Body     | Inter      | 400-700 | `font-sans` (default)         |
 
 ### Type Scale
 
@@ -410,9 +409,7 @@ logo.
 
 ### Font Loading
 
-Fonts are loaded via Google Fonts in `src/app.css`:
+Fonts are self-hosted as woff2 files in `static/fonts/` (latin subset):
 
-- **Inter** (300-800): Body text, UI elements (`font-sans`)
-- **Montserrat** (100-900): Headings, brand text
-- **Merriweather** (300-900): Serif accent (`font-serif`)
-- **Pacifico**: Decorative script (available, rarely used)
+- **Inter** (variable, 400-700): Body text, UI elements (`font-sans`)
+- **Montserrat** (700): Headings, brand text
