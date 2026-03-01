@@ -41,6 +41,7 @@
     letter-spacing: -0.02em;
     color: white;
     line-height: 1;
+    white-space: nowrap;
   }
 
   .logo-t {
