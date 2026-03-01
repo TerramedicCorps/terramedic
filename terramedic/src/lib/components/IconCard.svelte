@@ -1,7 +1,9 @@
 <script>
   export let title = '';
   export let description = '';
+  /** @type {import('svelte').ComponentType | undefined} */
   export let icon = undefined;
+  /** @type {'blue' | 'gold' | 'green' | 'purple'} */
   export let color = 'purple';
 
   const colorClasses = {
@@ -15,11 +17,11 @@
 </script>
 
 <div class="bg-navy grid grid-cols-[auto_1fr] gap-4 rounded-lg p-5">
-  <div class="flex aspect-square items-center justify-center rounded-xl {colors.bg}">
-    {#if icon}
+  {#if icon}
+    <div class="flex aspect-square w-12 items-center justify-center rounded-xl {colors.bg}">
       <svelte:component this={icon} class="h-9 w-9 {colors.text}" />
-    {/if}
-  </div>
+    </div>
+  {/if}
   <div>
     <h3 class="mb-1 text-base font-semibold text-white md:text-lg">{title}</h3>
     <p class="text-sm text-gray-300">{description}</p>
