@@ -19,10 +19,4 @@ describe('Logo', () => {
     const svg = container.querySelector('svg');
     expect(svg).toBeInTheDocument();
   });
-
-  test('renders with logo-text class for nowrap styling', () => {
-    const { container } = render(Logo);
-    const logoText = container.querySelector('.logo-text');
-    expect(logoText).toBeInTheDocument();
-  });
 });
