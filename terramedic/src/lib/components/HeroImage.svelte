@@ -86,7 +86,7 @@
                 xmlns="http://www.w3.org/2000/svg"
                 role="img"
                 aria-label="Terramedic logo"
-                >{#each GREEN_CROSS.arms as arm}<rect
+                >{#each GREEN_CROSS.arms as arm (arm.x)}<rect
                     x={arm.x}
                     y={arm.y}
                     width={arm.width}

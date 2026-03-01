@@ -10,10 +10,10 @@ export type IconName = keyof typeof ICON_PATHS;
 
 // Green cross logo — two rect arms (viewBox "7 7 26 26" for cross-only)
 export const GREEN_CROSS = {
-	viewBox: '7 7 26 26',
-	fill: '#2ecc71',
-	arms: [
-		{ x: 15, y: 7, width: 10, height: 26, rx: 1.5 },
-		{ x: 7, y: 15, width: 26, height: 10, rx: 1.5 }
-	]
+  viewBox: '7 7 26 26',
+  fill: '#2ecc71',
+  arms: [
+    { x: 15, y: 7, width: 10, height: 26, rx: 1.5 },
+    { x: 7, y: 15, width: 26, height: 10, rx: 1.5 }
+  ]
 } as const;

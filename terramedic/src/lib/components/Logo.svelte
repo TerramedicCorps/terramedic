@@ -19,7 +19,7 @@
       role="img"
       aria-label="Terramedic logo"
     >
-      {#each GREEN_CROSS.arms as arm}
+      {#each GREEN_CROSS.arms as arm (arm.x)}
         <rect
           x={arm.x}
           y={arm.y}
