@@ -19,4 +19,16 @@ describe('Logo', () => {
     const svg = container.querySelector('svg');
     expect(svg).toBeInTheDocument();
   });
+
+  test('applies small font size', () => {
+    const { container } = render(Logo, { props: { size: 'small' } });
+    const logoText = container.querySelector('span');
+    expect(logoText).toHaveStyle('font-size: 1.125rem');
+  });
+
+  test('applies large font size', () => {
+    const { container } = render(Logo, { props: { size: 'large' } });
+    const logoText = container.querySelector('span');
+    expect(logoText).toHaveStyle('font-size: 2rem');
+  });
 });
