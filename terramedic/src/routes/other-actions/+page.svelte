@@ -109,7 +109,7 @@
             text="Explore Volunteer Options"
             href="/volunteer"
             type="primary"
-            icon="clock"
+            icon="heart"
           />
           <ActionButton
             text="Consider Donation Options"
