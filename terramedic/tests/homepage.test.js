@@ -6,8 +6,10 @@ test('homepage has correct title and buttons', async ({ page }) => {
   // Check title
   await expect(page).toHaveTitle(/Terramedic/);
 
-  // Check that main heading exists
-  await expect(page.locator('h1')).toBeVisible();
+  // Check that main heading contains brand name
+  const heading = page.locator('h1');
+  await expect(heading).toBeVisible();
+  await expect(heading).toContainText('erramedic');
 
   // Check that action pathways section is visible
   await expect(page.locator('#take-action')).toBeVisible();
