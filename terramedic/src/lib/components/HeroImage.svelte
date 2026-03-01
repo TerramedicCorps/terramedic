@@ -171,7 +171,10 @@
   .hero-content {
     position: absolute;
     inset: 0;
-    /* Top: clear sticky navbar + gap. Bottom: keep text above earth horizon */
+    /* Top: clear sticky navbar + gap.
+       Bottom: keep text above earth horizon — preferred pad shrinks on
+       wider screens (50vh - 5vw), clamped to 42vh max on narrow phones
+       and 30vh min on ultrawide displays. */
     padding: calc(var(--navbar-height) + 2rem) 1rem clamp(30vh, 50vh - 5vw, 42vh);
   }
 
