@@ -6,6 +6,7 @@
 
   const colorClasses = {
     blue: { bg: 'bg-blue-500/15', text: 'text-blue-400' },
+    gold: { bg: 'bg-amber-500/15', text: 'text-amber-400' },
     green: { bg: 'bg-green-500/15', text: 'text-green-400' },
     purple: { bg: 'bg-purple-500/15', text: 'text-purple-400' }
   };

@@ -56,4 +56,10 @@ describe('IconCard', () => {
     const iconWrapper = container.querySelector('.bg-blue-500\\/15');
     expect(iconWrapper).toBeInTheDocument();
   });
+
+  test('gold color scheme applies amber classes', () => {
+    const { container } = render(IconCard, { props: { ...baseProps, color: 'gold' } });
+    const iconWrapper = container.querySelector('.bg-amber-500\\/15');
+    expect(iconWrapper).toBeInTheDocument();
+  });
 });

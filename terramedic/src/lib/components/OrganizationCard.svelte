@@ -15,6 +15,7 @@
   const tagColorMap = {
     blue: { bg: 'bg-blue-900/60', text: 'text-blue-400', hover: 'hover:bg-blue-900/70' },
     green: { bg: 'bg-green-900/60', text: 'text-green-400', hover: 'hover:bg-green-900/70' },
+    gold: { bg: 'bg-amber-900/60', text: 'text-amber-400', hover: 'hover:bg-amber-900/70' },
     purple: { bg: 'bg-purple-900/60', text: 'text-purple-400', hover: 'hover:bg-purple-900/70' },
     orange: { bg: 'bg-orange-900/60', text: 'text-orange-400', hover: 'hover:bg-orange-900/70' },
     red: { bg: 'bg-red-900/60', text: 'text-red-400', hover: 'hover:bg-red-900/70' },
@@ -34,6 +35,11 @@
     green: {
       bg: 'background-color: var(--btn-green)',
       hover: 'org-btn-green',
+      text: 'text-white'
+    },
+    gold: {
+      bg: 'background-color: var(--btn-gold)',
+      hover: 'org-btn-gold',
       text: 'text-white'
     },
     purple: {
@@ -98,6 +104,10 @@
 
   :global(.org-btn-green:hover) {
     background-color: var(--btn-green-hover) !important;
+  }
+
+  :global(.org-btn-gold:hover) {
+    background-color: var(--btn-gold-hover) !important;
   }
 
   :global(.org-btn-purple:hover) {
