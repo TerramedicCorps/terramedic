@@ -12,7 +12,7 @@
   export let fullWidth = false; // Whether the button should stretch full width
   export let icon = ''; // Optional icon: 'clock', 'banknotes', or 'bolt'
 
-  $: iconPath = icon && icon in ICON_PATHS ? ICON_PATHS[icon] : '';
+  $: iconPath = icon && Object.hasOwn(ICON_PATHS, icon) ? ICON_PATHS[icon] : '';
 
   // Create style objects for different button types
   const primaryStyle = `
