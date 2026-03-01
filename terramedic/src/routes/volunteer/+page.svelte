@@ -11,21 +11,21 @@
   <title>Volunteer Opportunities | Terramedic</title>
   <meta
     name="description"
-    content="Find opportunities to volunteer your time and skills to organizations fighting climate change."
+    content="Find opportunities to volunteer your time and skills to organizations making the world cleaner, safer, and healthier."
   />
 </svelte:head>
 
-<div class="flex min-h-screen flex-col bg-gray-50">
+<div class="bg-space-black flex min-h-screen flex-col">
   <NavBar />
 
   <main class="flex-grow">
     <div class="container-narrow py-12">
-      <h1 class="text-terra-dark-blue mb-4 text-center text-3xl font-bold md:text-4xl lg:text-5xl">
+      <h1 class="mb-4 text-center text-3xl font-bold text-white md:text-4xl lg:text-5xl">
         Volunteer Your Time
       </h1>
-      <p class="mx-auto mb-10 max-w-2xl text-center text-lg text-gray-600">
-        These organizations are making a real impact on climate change and need people like you.
-        Your time and skills can help build a sustainable future.
+      <p class="mx-auto mb-10 max-w-2xl text-center text-lg text-gray-400">
+        These organizations are making a real impact and need people like you. Your time and skills
+        can help build a healthier planet.
       </p>
 
       <div class="mx-auto grid max-w-5xl gap-6 px-4 sm:px-6 md:grid-cols-2 lg:grid-cols-3">
@@ -41,21 +41,19 @@
         {/each}
       </div>
 
-      <div class="mt-12 rounded-lg bg-white p-6 shadow-sm">
-        <h2 class="text-terra-dark-blue mb-4 text-center text-xl font-bold md:text-2xl">
-          Why Volunteer for Climate Action?
-        </h2>
-        <p class="mb-3">
-          Volunteering your time to climate organizations is one of the most effective ways to
-          create change. When you volunteer, you:
+      <div class="bg-navy mt-12 rounded-lg p-6 shadow-sm">
+        <h2 class="mb-4 text-center text-xl font-bold text-white md:text-2xl">Why Volunteer?</h2>
+        <p class="mb-3 text-gray-300">
+          Volunteering your time to these organizations is one of the most effective ways to create
+          change. When you volunteer, you:
         </p>
-        <ul class="mb-4 list-disc space-y-2 pl-6">
+        <ul class="mb-4 list-disc space-y-2 pl-6 text-gray-300">
           <li>Amplify your impact beyond individual actions</li>
           <li>Build community with like-minded individuals</li>
           <li>Develop new skills and knowledge</li>
-          <li>Help create systemic change needed to address the climate crisis</li>
+          <li>Help create systemic change needed to build a healthier planet</li>
         </ul>
-        <p>
+        <p class="text-gray-300">
           Even just a few hours a month can make a significant difference when combined with the
           efforts of others.
         </p>
