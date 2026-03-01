@@ -22,7 +22,24 @@ Every color pairing must meet WCAG AA contrast requirements.
 
 ### The Green Cross
 
-A bold green cross on a white circle -- like the Red Cross, but green. Signals environmental first aid.
+A bold green cross -- like the Red Cross, but green. Signals environmental first aid.
+
+Two SVG variants exist:
+
+#### Cross-only mark (`static/images/logo.svg`)
+
+```text
+ViewBox: 7 7 26 26
+```
+
+| Element        | Attributes                                          |
+| -------------- | --------------------------------------------------- |
+| Vertical arm   | `x=15 y=7 width=10 height=26 rx=1.5 fill="#2ecc71"` |
+| Horizontal arm | `x=7 y=15 width=26 height=10 rx=1.5 fill="#2ecc71"` |
+
+#### Favicon variant (`static/favicon.svg`)
+
+Cross on a white circle background, for use at small sizes in browser tabs.
 
 ```text
 ViewBox: 0 0 40 40
@@ -33,8 +50,6 @@ ViewBox: 0 0 40 40
 | Background circle | `cx=20 cy=20 r=20 fill="white"`                     |
 | Vertical arm      | `x=15 y=7 width=10 height=26 rx=1.5 fill="#2ecc71"` |
 | Horizontal arm    | `x=7 y=15 width=26 height=10 rx=1.5 fill="#2ecc71"` |
-
-**SVG source**: `static/images/logo.svg`
 
 ### Sizing
 
