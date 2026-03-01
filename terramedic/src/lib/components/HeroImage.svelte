@@ -8,8 +8,14 @@
   export let description = '';
   export let description2 = '';
 
-  // Add smooth scrolling for anchor links
+  // Pause video for users who prefer reduced motion
   onMount(() => {
+    const video = document.querySelector('.earth-video');
+    if (video && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      video.pause();
+    }
+
+    // Add smooth scrolling for anchor links
     const smoothScrollLinks = document.querySelectorAll('a[href^="#"]');
 
     smoothScrollLinks.forEach((link) => {
@@ -54,6 +60,7 @@
         loop
         muted
         playsinline
+        aria-hidden="true"
         poster="/images/earth-hero-poster.jpg"
       >
         <source src="/videos/earth-hero.webm" type="video/webm" />
@@ -83,8 +90,7 @@
                 class="hero-logo-t"
                 viewBox={GREEN_CROSS.viewBox}
                 xmlns="http://www.w3.org/2000/svg"
-                role="img"
-                aria-label="Terramedic logo"
+                aria-hidden="true"
                 >{#each GREEN_CROSS.arms as arm (arm.x)}<rect
                     x={arm.x}
                     y={arm.y}
