@@ -34,6 +34,12 @@ describe('OrganizationCard', () => {
     expect(link.getAttribute('style')).toContain('--btn-purple');
   });
 
+  test('gold button uses btn-gold background color', () => {
+    render(OrganizationCard, { props: { ...baseProps, buttonColor: 'gold' } });
+    const link = screen.getByRole('link', { name: /Visit Website/i });
+    expect(link.getAttribute('style')).toContain('--btn-gold');
+  });
+
   test('button text is white, not dark', () => {
     render(OrganizationCard, { props: { ...baseProps, buttonColor: 'blue' } });
     const link = screen.getByRole('link', { name: /Visit Website/i });

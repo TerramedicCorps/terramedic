@@ -66,6 +66,7 @@
     @apply font-sans antialiased;
     background-color: #0a0e17;
     color: #ffffff;
+    text-wrap: pretty;
   }
 
   h1,
@@ -75,6 +76,7 @@
   h5,
   h6 {
     @apply font-[Montserrat] font-bold tracking-tight;
+    text-wrap: balance;
   }
 
   /* Link styling */
@@ -94,6 +96,10 @@
 
   .section-title {
     @apply mb-8 text-center text-3xl font-bold tracking-tight text-white md:text-4xl lg:text-5xl;
+  }
+
+  .subheading {
+    text-wrap: balance;
   }
 
   .card-hover {

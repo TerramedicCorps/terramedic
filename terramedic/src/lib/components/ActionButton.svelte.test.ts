@@ -67,6 +67,16 @@ describe('ActionButton', () => {
     expect(path?.getAttribute('d')).toBe(ICON_PATHS.bolt);
   });
 
+  test('renders heart icon when icon="heart"', () => {
+    const { container } = render(ActionButton, {
+      props: { text: 'Volunteer', href: '/volunteer', type: 'primary', icon: 'heart' }
+    });
+    const svg = container.querySelector('svg.action-icon');
+    expect(svg).toBeInTheDocument();
+    const path = svg?.querySelector('path');
+    expect(path?.getAttribute('d')).toBe(ICON_PATHS.heart);
+  });
+
   test('does not render action-icon when no icon prop is provided', () => {
     const { container } = render(ActionButton, {
       props: { text: 'Volunteer', href: '/volunteer', type: 'primary' }
