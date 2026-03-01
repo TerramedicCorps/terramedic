@@ -8,8 +8,8 @@
   export let imageUrl = '';
   export let actionText = 'Visit Website';
   export let tags = [];
-  export let tagColor = 'blue'; // Can be 'blue', 'green', or custom
-  export let buttonColor = 'blue'; // Can be 'blue', 'green', 'purple', or custom
+  export let tagColor = 'blue'; // 'blue', 'green', 'gold', 'purple', 'orange', 'red', 'gray'
+  export let buttonColor = 'blue'; // 'blue', 'green', 'gold', 'purple'
 
   // Map tag colors to dark theme values
   const tagColorMap = {
