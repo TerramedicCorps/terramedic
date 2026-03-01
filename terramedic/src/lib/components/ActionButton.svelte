@@ -18,19 +18,16 @@
   const primaryStyle = `
     background-color: var(--btn-blue);
     transition: background-color 0.2s ease-in-out;
-    width: 100%;
   `;
 
   const secondaryStyle = `
     background-color: var(--btn-green);
     transition: background-color 0.2s ease-in-out;
-    width: 100%;
   `;
 
   const purpleStyle = `
     background-color: var(--btn-purple);
     transition: background-color 0.2s ease-in-out;
-    width: 100%;
   `;
 
   // Set up the dynamic style attribute based on the type
@@ -60,7 +57,7 @@
   {href}
   color="none"
   {style}
-  class={`justify-center text-white ${customClass} ${fullWidth ? 'w-full' : 'w-full'}`}
+  class={`justify-center text-white ${customClass} ${fullWidth ? 'w-full' : ''}`}
   on:click={handleClick}
 >
   {#if iconPath}
