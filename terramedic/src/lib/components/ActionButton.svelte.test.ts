@@ -2,6 +2,7 @@ import { describe, test, expect, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/svelte';
 import ActionButton from './ActionButton.svelte';
+import { ICON_PATHS } from '$lib/icons';
 
 // Mock analytics
 vi.mock('$lib/utils/analytics', () => ({
@@ -42,9 +43,8 @@ describe('ActionButton', () => {
     });
     const svg = container.querySelector('svg.action-icon');
     expect(svg).toBeInTheDocument();
-    // Clock icon has a specific path with "12 6v6h4.5"
     const path = svg?.querySelector('path');
-    expect(path?.getAttribute('d')).toContain('12 6v6h4.5');
+    expect(path?.getAttribute('d')).toBe(ICON_PATHS.clock);
   });
 
   test('renders banknotes icon when icon="banknotes"', () => {
@@ -53,9 +53,8 @@ describe('ActionButton', () => {
     });
     const svg = container.querySelector('svg.action-icon');
     expect(svg).toBeInTheDocument();
-    // Banknotes icon has a specific path with "2.25 18.75"
     const path = svg?.querySelector('path');
-    expect(path?.getAttribute('d')).toContain('2.25 18.75');
+    expect(path?.getAttribute('d')).toBe(ICON_PATHS.banknotes);
   });
 
   test('renders bolt icon when icon="bolt"', () => {
@@ -64,9 +63,8 @@ describe('ActionButton', () => {
     });
     const svg = container.querySelector('svg.action-icon');
     expect(svg).toBeInTheDocument();
-    // Bolt icon has a specific path with "3.75 13.5"
     const path = svg?.querySelector('path');
-    expect(path?.getAttribute('d')).toContain('3.75 13.5');
+    expect(path?.getAttribute('d')).toBe(ICON_PATHS.bolt);
   });
 
   test('does not render action-icon when no icon prop is provided', () => {
