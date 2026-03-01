@@ -12,7 +12,7 @@
 
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { chromium } from '@playwright/test';
+import { chromium } from 'playwright';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUTPUT_PATH = join(__dirname, '..', 'static', 'images', 'og-image.png');
