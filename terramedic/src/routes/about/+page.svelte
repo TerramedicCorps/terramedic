@@ -88,7 +88,7 @@
             <h2 class="mb-4 text-xl font-bold text-white md:text-2xl">What are Warming Stripes?</h2>
             <p class="mb-4 text-gray-300">
               Terramedic promotes warming stripes everywhere we go because they communicate the
-              story of climate change so powerfully and simply.
+              story of a warming world so powerfully and simply.
             </p>
             <p class="mb-4 text-gray-300">
               Created by climate scientist Ed Hawkins in 2018, warming stripes represent the average

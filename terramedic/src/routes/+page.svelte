@@ -96,9 +96,9 @@
                 Understanding Warming Stripes
               </h3>
               <p class="mx-auto text-base text-gray-400 md:text-lg">
-                The warming stripes (a.k.a. climate stripes) show our planet's rising temperatures
-                over time. Each stripe is one year, red for warmer-than-average, blue for cooler.
-                The shift to red tells the story of climate change.
+                The warming stripes show our planet's rising temperatures over time. Each stripe is
+                one year, red for warmer-than-average, blue for cooler. The shift to red tells the
+                story of a warming world.
               </p>
               <div class="mt-6 flex justify-center md:justify-start">
                 <Button
