@@ -56,7 +56,10 @@ try {
   });
 
   // Wait for video frame to render
-  await page.waitForTimeout(1500);
+  await page.waitForFunction(() => {
+    const video = document.querySelector('.earth-video');
+    return video && video.readyState >= 2; // HAVE_CURRENT_DATA
+  });
 
   await page.screenshot({
     path: OUTPUT_PATH,
