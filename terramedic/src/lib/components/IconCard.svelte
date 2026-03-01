@@ -11,7 +11,7 @@
     purple: { bg: 'bg-purple-500/15', text: 'text-purple-400' }
   };
 
-  $: colors = colorClasses[color];
+  $: colors = colorClasses[color] ?? colorClasses.purple;
 </script>
 
 <div class="bg-navy grid grid-cols-[auto_1fr] gap-4 rounded-lg p-5">
