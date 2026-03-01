@@ -16,8 +16,7 @@
       class="logo-t"
       viewBox={GREEN_CROSS.viewBox}
       xmlns="http://www.w3.org/2000/svg"
-      role="img"
-      aria-label="Terramedic logo"
+      aria-hidden="true"
     >
       {#each GREEN_CROSS.arms as arm (arm.x)}
         <rect
