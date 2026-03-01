@@ -8,31 +8,13 @@
   export let description = '';
   export let description2 = '';
 
+  let videoEl;
+
   // Pause video for users who prefer reduced motion
   onMount(() => {
-    const video = document.querySelector('.earth-video');
-    if (video && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      video.pause();
+    if (videoEl && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      videoEl.pause();
     }
-
-    // Add smooth scrolling for anchor links
-    const smoothScrollLinks = document.querySelectorAll('a[href^="#"]');
-
-    smoothScrollLinks.forEach((link) => {
-      link.addEventListener('click', function (e) {
-        e.preventDefault();
-
-        const targetId = this.getAttribute('href');
-        const targetElement = document.querySelector(targetId);
-
-        if (targetElement) {
-          window.scrollTo({
-            top: targetElement.offsetTop - 80, // Offset for navbar height
-            behavior: 'smooth'
-          });
-        }
-      });
-    });
   });
 </script>
 
@@ -55,6 +37,7 @@
     <!-- Earth video -->
     <div class="earth">
       <video
+        bind:this={videoEl}
         class="earth-video"
         autoplay
         loop
