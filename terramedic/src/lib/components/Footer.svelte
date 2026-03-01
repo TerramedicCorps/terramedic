@@ -173,7 +173,7 @@
     </div>
 
     <div class="mt-12 border-t border-white/10 pt-6">
-      <p class="text-center text-sm text-gray-400">
+      <p class="text-center text-sm text-balance text-gray-400">
         © {new Date().getFullYear()} Terramedic Corps. Created for a healthier planet.
       </p>
     </div>
