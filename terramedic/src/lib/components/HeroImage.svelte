@@ -4,7 +4,6 @@
 
   export let tagline = 'Your planet needs you';
   export let title = '';
-  export let titleEmphasis = '';
   export let titleBrand = '';
   export let description = '';
   export let description2 = '';
