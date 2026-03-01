@@ -10,6 +10,7 @@
 /* Register custom design tokens so Tailwind v4 generates utility classes
    (e.g. bg-navy, text-terra-green, font-sans). */
 @theme {
+  --color-abyss: #060a12;
   --color-space-black: #0a0e17;
   --color-deep-navy: #0f1829;
   --color-navy: #162033;

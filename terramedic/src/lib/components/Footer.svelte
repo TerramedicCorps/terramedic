@@ -4,7 +4,7 @@
   export let form;
 </script>
 
-<footer class="mt-16 bg-[#060a12] pt-12 pb-8 text-gray-300">
+<footer class="bg-abyss mt-16 pt-12 pb-8 text-gray-300">
   <!-- Top warming stripes accent bar -->
   <div class="mb-8 h-1.5 w-full bg-gradient-to-r from-blue-500 via-yellow-400 to-red-600"></div>
 
