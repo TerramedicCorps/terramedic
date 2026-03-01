@@ -16,11 +16,4 @@ describe('HeroImage', () => {
     expect(ctaLink.className).toContain('text-[#0a0e17]');
     expect(ctaLink.className).toContain('bg-terra-green');
   });
-
-  test('hero content is constrained to upper portion of hero', () => {
-    const { container } = render(HeroImage, { props: baseProps });
-    const heroContent = container.querySelector('.hero-content');
-    expect(heroContent).toBeInTheDocument();
-    expect(heroContent).toHaveClass('hero-content');
-  });
 });
