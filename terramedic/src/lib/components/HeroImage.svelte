@@ -171,13 +171,8 @@
   .hero-content {
     position: absolute;
     inset: 0;
-    padding: 4rem 1rem 60%;
-  }
-
-  @media (min-width: 768px) {
-    .hero-content {
-      padding: 4rem 1rem 45%;
-    }
+    /* Top: clear sticky navbar + gap. Bottom: keep text above earth horizon */
+    padding: calc(var(--navbar-height) + 2rem) 1rem clamp(30vh, 50vh - 5vw, 42vh);
   }
 
   /* Green cross as the "t" in terramedic */
