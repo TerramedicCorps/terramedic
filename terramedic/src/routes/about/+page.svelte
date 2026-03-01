@@ -189,7 +189,7 @@
                 text="Volunteer Your Time"
                 href="/volunteer"
                 type="primary"
-                icon="clock"
+                icon="heart"
               />
               <ActionButton
                 text="Donate to Make a Difference"
