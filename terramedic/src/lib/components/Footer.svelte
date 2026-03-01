@@ -1,19 +1,22 @@
 <script>
   import SignupForm from './SignupForm.svelte';
+  import Logo from './Logo.svelte';
   export let form;
 </script>
 
-<footer class="bg-terra-dark-blue mt-16 pt-12 pb-8 text-gray-800">
+<footer class="mt-16 bg-[#060a12] pt-12 pb-8 text-gray-300">
   <!-- Top warming stripes accent bar -->
   <div class="mb-8 h-1.5 w-full bg-gradient-to-r from-blue-500 via-yellow-400 to-red-600"></div>
 
   <div class="container-narrow">
     <div class="grid grid-cols-1 gap-8 md:grid-cols-3 lg:gap-12">
       <div class="md:col-span-1">
-        <div class="text-terra-blue-dark mb-2 text-2xl font-bold">Terramedic</div>
-        <p class="mb-4 max-w-md text-gray-600">
-          Climate action starts with you. Join our community of change-makers dedicated to
-          addressing the climate crisis.
+        <div class="mb-2">
+          <Logo size="medium" />
+        </div>
+        <p class="mb-4 max-w-md text-gray-400">
+          Healing the Earth starts with you. Join our community of change-makers dedicated to
+          building a cleaner, healthier world.
         </p>
 
         <!-- Social Media Icons -->
@@ -21,18 +24,10 @@
           <!-- GitHub Icon -->
           <a
             href="https://github.com/lhadjchikh/terramedic"
-            class="text-gray-800 transition-colors hover:text-gray-800"
+            class="text-gray-400 transition-colors hover:text-white"
           >
-            <img src="/images/github-logo.svg" alt="GitHub" class="h-6 w-6" />
+            <img src="/images/github-logo.svg" alt="GitHub" class="h-6 w-6 invert" />
           </a>
-
-          <!-- Bluesky Icon -->
-          <!-- <a
-            href="https://bsky.app/profile/terramedic.bsky.social"
-            class="text-gray-800 transition-colors hover:text-gray-800"
-          >
-            <img src="/images/bluesky-logo.svg" alt="Bluesky" class="h-6 w-6" />
-          </a> -->
         </div>
       </div>
 
@@ -44,30 +39,29 @@
             </h3>
             <ul class="space-y-2">
               <li>
-                <a href="/" class="text-gray-600 transition-colors hover:text-gray-800">Home</a>
+                <a href="/" class="text-gray-400 transition-colors hover:text-white">Home</a>
               </li>
               <li>
-                <a href="/about" class="text-gray-600 transition-colors hover:text-gray-800"
+                <a href="/about" class="text-gray-400 transition-colors hover:text-white"
                   >About Warming Stripes</a
                 >
               </li>
               <li>
-                <a href="/volunteer" class="text-gray-600 transition-colors hover:text-gray-800"
+                <a href="/volunteer" class="text-gray-400 transition-colors hover:text-white"
                   >Volunteer</a
                 >
               </li>
               <li>
-                <a href="/donate" class="text-gray-600 transition-colors hover:text-gray-800"
-                  >Donate</a
+                <a href="/donate" class="text-gray-400 transition-colors hover:text-white">Donate</a
                 >
               </li>
               <li>
-                <a href="/other-actions" class="text-gray-600 transition-colors hover:text-gray-800"
+                <a href="/other-actions" class="text-gray-400 transition-colors hover:text-white"
                   >Other Ways to Help</a
                 >
               </li>
               <li>
-                <a href="/resources" class="text-gray-600 transition-colors hover:text-gray-800"
+                <a href="/resources" class="text-gray-400 transition-colors hover:text-white"
                   >Resources for Advocates</a
                 >
               </li>
@@ -84,7 +78,7 @@
                   href="https://showyourstripes.info/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="flex items-center text-gray-600 transition-colors hover:text-gray-800"
+                  class="flex items-center text-gray-400 transition-colors hover:text-white"
                 >
                   Show Your Stripes
                   <svg
@@ -108,7 +102,7 @@
                   href="https://climate.nasa.gov/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="flex items-center text-gray-600 transition-colors hover:text-gray-800"
+                  class="flex items-center text-gray-400 transition-colors hover:text-white"
                 >
                   NASA Climate
                   <svg
@@ -132,7 +126,7 @@
                   href="https://www.ipcc.ch/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="flex items-center text-gray-600 transition-colors hover:text-gray-800"
+                  class="flex items-center text-gray-400 transition-colors hover:text-white"
                 >
                   IPCC
                   <svg
@@ -160,13 +154,13 @@
                 Contact Us
               </h3>
               <ul class="space-y-2">
-                <li class="text-gray-600">
-                  <a href="mailto:info@terramedic.org" class="text-gray-600 hover:text-gray-800"
+                <li>
+                  <a href="mailto:info@terramedic.org" class="text-gray-400 hover:text-white"
                     >info@terramedic.org</a
                   >
                 </li>
                 <li>
-                  <a href="/contact-us" class="text-gray-600 hover:text-gray-800">Contact Form</a>
+                  <a href="/contact-us" class="text-gray-400 hover:text-white">Contact Form</a>
                 </li>
               </ul>
             </div>
@@ -178,15 +172,10 @@
       </div>
     </div>
 
-    <div class="mt-12 border-t border-gray-700 pt-6">
-      <div class="flex flex-col items-center justify-between md:flex-row">
-        <p class="text-sm text-gray-800">
-          © {new Date().getFullYear()} Terramedic Corps. Created for climate activism.
-        </p>
-        <p class="mt-2 text-sm text-gray-800 md:mt-0">
-          Data sourced from Show Your Stripes and climate science organizations.
-        </p>
-      </div>
+    <div class="mt-12 border-t border-white/10 pt-6">
+      <p class="text-center text-sm text-gray-400">
+        © {new Date().getFullYear()} Terramedic Corps. Created for a healthier planet.
+      </p>
     </div>
   </div>
 </footer>

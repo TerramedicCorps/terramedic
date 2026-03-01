@@ -89,8 +89,8 @@
   </h3>
 
   {#if isSuccess}
-    <div class="success-message mb-4 rounded-md bg-green-100 p-3 text-green-800">
-      Thank you for signing up! We'll keep you updated on climate action opportunities.
+    <div class="success-message mb-4 rounded-md bg-green-900/30 p-3 text-green-400">
+      Thank you for signing up! We'll keep you updated on opportunities to make a difference.
     </div>
   {:else}
     <form
@@ -111,7 +111,7 @@
 
       <!-- Email field -->
       <div>
-        <Label for="email" class="mb-1 block text-xs text-gray-600">Email Address</Label>
+        <Label for="email" class="mb-1 block text-xs text-gray-400">Email Address</Label>
         <Input
           id="email"
           name="email"
@@ -119,7 +119,7 @@
           bind:value={email}
           required
           placeholder="you@example.com"
-          class="w-full text-gray-800"
+          class="bg-deep-navy w-full text-white"
         />
       </div>
 
@@ -128,19 +128,19 @@
         <Button
           type="submit"
           disabled={isSubmitting}
-          class="bg-terra-blue hover:bg-terra-dark-blue w-full text-white transition-colors"
+          class="bg-terra-green w-full text-[#0a0e17] transition-colors hover:bg-green-400"
         >
           {isSubmitting ? 'Sending...' : 'Subscribe'}
         </Button>
       </div>
 
       {#if errorMessage}
-        <div class="error-message text-sm text-red-500">
+        <div class="error-message text-sm text-red-400">
           {errorMessage}
         </div>
       {/if}
 
-      <p class="mt-2 text-xs text-gray-500">We respect your privacy. Unsubscribe at any time.</p>
+      <p class="mt-2 text-xs text-gray-400">We respect your privacy. Unsubscribe at any time.</p>
     </form>
   {/if}
 </div>
