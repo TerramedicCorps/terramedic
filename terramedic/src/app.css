@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Pacifico&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300..800&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Pacifico&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&display=swap');
 
 @import 'tailwindcss';
@@ -7,12 +7,60 @@
 @source '../node_modules/flowbite-svelte/dist';
 @source '../node_modules/flowbite-svelte-icons/dist';
 
+/* Register custom design tokens so Tailwind v4 generates utility classes
+   (e.g. bg-navy, text-terra-green, font-sans). */
+@theme {
+  --color-space-black: #0a0e17;
+  --color-deep-navy: #0f1829;
+  --color-navy: #162033;
+  --color-terra-green: #2ecc71;
+  --color-terra-dark-green: #1a9c54;
+  --color-terra-blue: #2196f3;
+  --color-terra-dark-blue: #0f1829;
+  --color-sunrise-gold: #f39c12;
+  --color-btn-blue: #1565c0;
+  --color-btn-blue-hover: #0d47a1;
+  --color-btn-green: #15803d;
+  --color-btn-green-hover: #116630;
+  --color-btn-gold: #a16207;
+  --color-btn-gold-hover: #7d4e06;
+  --color-btn-purple: #7c3aed;
+  --color-btn-purple-hover: #6d28d9;
+  --color-text-secondary: #b0bec5;
+  --font-sans: 'Inter', sans-serif;
+  --font-serif: 'Merriweather', serif;
+  --font-mono: 'Courier New', monospace;
+}
+
 @layer base {
   :root {
-    --terra-blue-color: #4682b5;
-    --terra-green-color: #76c268;
-    --terra-dark-blue-color: #2c3e50;
-    --terra-dark-green-color: #4e7a46;
+    --terra-blue-color: #2196f3;
+    --terra-green-color: #2ecc71;
+    --terra-dark-blue-color: #0f1829;
+    --terra-dark-green-color: #1a9c54;
+    --space-black: #0a0e17;
+    --deep-navy: #0f1829;
+    --navy: #162033;
+    --sunrise-gold: #f39c12;
+    --btn-blue: #1565c0;
+    --btn-blue-hover: #0d47a1;
+    --btn-green: #15803d;
+    --btn-green-hover: #116630;
+    --btn-gold: #a16207;
+    --btn-gold-hover: #7d4e06;
+    --btn-purple: #7c3aed;
+    --btn-purple-hover: #6d28d9;
+    --warming-stripes-gradient: linear-gradient(
+      90deg,
+      #08306b 0%,
+      #2171b5 15%,
+      #6baed6 25%,
+      #fed976 40%,
+      #fd8d3c 55%,
+      #e31a1c 70%,
+      #bd0026 85%,
+      #800026 100%
+    );
   }
 
   html {
@@ -20,8 +68,9 @@
   }
 
   body {
-    @apply font-sans text-gray-800 antialiased;
-    background-color: #fafafa;
+    @apply font-sans antialiased;
+    background-color: #0a0e17;
+    color: #ffffff;
   }
 
   h1,
@@ -49,7 +98,7 @@
   }
 
   .section-title {
-    @apply mb-8 text-center text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl;
+    @apply mb-8 text-center text-3xl font-bold tracking-tight text-white md:text-4xl lg:text-5xl;
   }
 
   .card-hover {
@@ -57,13 +106,14 @@
   }
 }
 
-/* Override any dark mode styling */
+/* Override any dark mode styling for dark theme cards */
 :global(.card) {
-  @apply bg-white text-gray-800;
+  @apply text-gray-200;
+  background-color: #162033;
 }
 
 :global(.card p) {
-  @apply text-gray-700;
+  @apply text-gray-400;
 }
 
 :global(.card h1),
@@ -72,5 +122,5 @@
 :global(.card h4),
 :global(.card h5),
 :global(.card h6) {
-  @apply text-gray-900;
+  @apply text-white;
 }

@@ -6,13 +6,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        'terra-blue': '#4682b5',
-        'terra-green': '#76c268',
-        'terra-dark-blue': '#2c3e50',
-        'terra-dark-green': '#4e7a46'
+        'space-black': '#0a0e17',
+        'deep-navy': '#0f1829',
+        navy: '#162033',
+        'terra-green': '#2ecc71',
+        'terra-blue': '#2196f3',
+        'terra-dark-blue': '#0f1829',
+        'sunrise-gold': '#f39c12',
+        'text-secondary': '#b0bec5'
       },
       fontFamily: {
-        sans: ['Open Sans', 'sans-serif'],
+        sans: ['Inter', 'sans-serif'],
         serif: ['Merriweather', 'serif'],
         mono: ['Courier New', 'monospace']
       }
