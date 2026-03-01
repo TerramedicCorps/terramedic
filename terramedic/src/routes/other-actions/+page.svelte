@@ -1,4 +1,6 @@
 <script>
+  import { actionOrganizations } from '$lib/data/action-orgs.js';
+  import OrganizationCard from '$lib/components/OrganizationCard.svelte';
   import ActionButton from '$lib/components/ActionButton.svelte';
   import NavBar from '$lib/components/NavBar.svelte';
   import Footer from '$lib/components/Footer.svelte';
@@ -27,35 +29,19 @@
         can contribute to healing the planet.
       </p>
 
-      <div class="bg-navy mb-8 rounded-lg p-6 shadow-sm">
-        <h2 class="mb-4 text-xl font-bold text-white md:text-2xl">
-          Yale Climate Connections Solutions Hub
-        </h2>
-        <p class="mb-4 text-gray-300">
-          The <a
-            href="https://yaleclimateconnections.org/solutions/"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-sunrise-gold hover:underline">Yale Climate Connections Solutions Hub</a
-          > is an excellent resource for anyone looking to take meaningful action, regardless of their
-          circumstances. It provides:
-        </p>
-
-        <ul class="mb-4 list-disc space-y-2 pl-6 text-gray-300">
-          <li>Accessible information about solutions at different scales</li>
-          <li>Evidence-based approaches that make a meaningful difference</li>
-          <li>Options that fit diverse lifestyles, resources, and circumstances</li>
-          <li>Regular updates on news and developments</li>
-        </ul>
-
-        <div class="mt-6">
-          <ActionButton
-            text="Visit the Yale Climate Solutions Hub"
-            href="https://yaleclimateconnections.org/solutions/"
-            type="purple"
-            icon="bolt"
+      <div class="org-card-grid mx-auto mb-8 grid max-w-4xl gap-6 px-4 sm:px-6 md:grid-cols-2">
+        {#each actionOrganizations as org (org.websiteUrl)}
+          <OrganizationCard
+            name={org.name}
+            description={org.description}
+            websiteUrl={org.websiteUrl}
+            imageUrl={org.imageUrl}
+            tags={org.tags}
+            tagColor="purple"
+            buttonColor="purple"
+            actionText={org.actionText}
           />
-        </div>
+        {/each}
       </div>
 
       <div class="bg-navy mb-8 rounded-lg p-6 shadow-sm">
