@@ -50,4 +50,10 @@ describe('IconCard', () => {
     const iconWrapper = container.querySelector('.bg-purple-500\\/15');
     expect(iconWrapper).not.toBeInTheDocument();
   });
+
+  test('blue color scheme applies blue classes', () => {
+    const { container } = render(IconCard, { props: { ...baseProps, color: 'blue' } });
+    const iconWrapper = container.querySelector('.bg-blue-500\\/15');
+    expect(iconWrapper).toBeInTheDocument();
+  });
 });

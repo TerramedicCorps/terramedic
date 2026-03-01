@@ -5,6 +5,7 @@
   export let color = 'purple';
 
   const colorClasses = {
+    blue: { bg: 'bg-blue-500/15', text: 'text-blue-400' },
     green: { bg: 'bg-green-500/15', text: 'text-green-400' },
     purple: { bg: 'bg-purple-500/15', text: 'text-purple-400' }
   };

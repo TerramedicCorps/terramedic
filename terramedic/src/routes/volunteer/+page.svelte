@@ -1,8 +1,15 @@
 <script>
   import { volunteerOrganizations } from '$lib/data/volunteer-orgs.js';
   import OrganizationCard from '$lib/components/OrganizationCard.svelte';
+  import IconCard from '$lib/components/IconCard.svelte';
   import NavBar from '$lib/components/NavBar.svelte';
   import Footer from '$lib/components/Footer.svelte';
+  import {
+    ArrowsRepeatOutline,
+    UsersGroupOutline,
+    GraduationCapOutline,
+    GlobeOutline
+  } from 'flowbite-svelte-icons';
 
   export let form;
 </script>
@@ -23,7 +30,7 @@
       <h1 class="mb-4 text-center text-3xl font-bold text-white md:text-4xl lg:text-5xl">
         Volunteer Your Time
       </h1>
-      <p class="mx-auto mb-10 max-w-2xl text-center text-lg text-gray-400">
+      <p class="subheading mx-auto mb-10 max-w-2xl text-center text-lg text-gray-400">
         These organizations are making a real impact and need people like you. Your time and skills
         can help build a healthier planet.
       </p>
@@ -41,22 +48,39 @@
         {/each}
       </div>
 
-      <div class="bg-navy mt-12 rounded-lg p-6 shadow-sm">
-        <h2 class="mb-4 text-center text-xl font-bold text-white md:text-2xl">Why Volunteer?</h2>
-        <p class="mb-3 text-gray-300">
-          Volunteering your time to these organizations is one of the most effective ways to create
-          change. When you volunteer, you:
+      <div class="mt-16 mb-6 text-center">
+        <h2 class="mb-2 text-xl font-bold text-white md:text-2xl">Why Volunteer?</h2>
+        <p class="subheading mx-auto max-w-xl text-gray-300">
+          Volunteering is one of the most effective ways to create change. Even a few hours a month
+          makes a difference.
         </p>
-        <ul class="mb-4 list-disc space-y-2 pl-6 text-gray-300">
-          <li>Amplify your impact beyond individual actions</li>
-          <li>Build community with like-minded individuals</li>
-          <li>Develop new skills and knowledge</li>
-          <li>Help create systemic change needed to build a healthier planet</li>
-        </ul>
-        <p class="text-gray-300">
-          Even just a few hours a month can make a significant difference when combined with the
-          efforts of others.
-        </p>
+      </div>
+
+      <div class="mb-8 grid gap-4 md:grid-cols-2">
+        <IconCard
+          title="Amplify Your Impact"
+          description="Go beyond individual actions by joining organized efforts that multiply your contribution."
+          icon={ArrowsRepeatOutline}
+          color="blue"
+        />
+        <IconCard
+          title="Build Community"
+          description="Connect with like-minded people who share your commitment to a healthier planet."
+          icon={UsersGroupOutline}
+          color="blue"
+        />
+        <IconCard
+          title="Develop New Skills"
+          description="Gain valuable experience and knowledge while making a meaningful difference."
+          icon={GraduationCapOutline}
+          color="blue"
+        />
+        <IconCard
+          title="Drive Systemic Change"
+          description="Help create the large-scale shifts needed to build a cleaner, healthier world."
+          icon={GlobeOutline}
+          color="blue"
+        />
       </div>
     </div>
   </main>
