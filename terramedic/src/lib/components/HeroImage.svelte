@@ -162,11 +162,8 @@
 
   .hero-content {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 45%;
-    padding: 4rem 1rem 1rem;
+    inset: 0;
+    padding: 4rem 1rem 45%;
   }
 
   /* Green cross as the "t" in terramedic */
