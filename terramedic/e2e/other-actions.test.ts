@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test.describe('Other Actions page', () => {
   test('renders organization card grid', async ({ page }) => {
     await page.goto('/other-actions');
-    const cards = page.locator('[class*="org-card-grid"] > *');
+    const cards = page.locator('[data-testid="org-card-grid"] > *');
     await expect(cards).toHaveCount(2);
   });
 

@@ -37,7 +37,7 @@
         can contribute to healing the planet.
       </p>
 
-      <div class="org-card-grid mb-16 grid gap-6 md:grid-cols-2">
+      <div data-testid="org-card-grid" class="mb-16 grid gap-6 md:grid-cols-2">
         {#each actionOrganizations as org (org.websiteUrl)}
           <OrganizationCard
             name={org.name}
