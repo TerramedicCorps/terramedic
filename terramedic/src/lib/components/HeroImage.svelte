@@ -81,7 +81,7 @@
         <h1 class="mx-auto mb-6 max-w-3xl font-bold text-white">
           <span class="block text-2xl md:text-4xl lg:text-5xl">{title}</span>
           {#if titleBrand}
-            <span class="block text-4xl whitespace-nowrap md:text-7xl lg:text-8xl"
+            <span class="block text-3xl whitespace-nowrap sm:text-4xl md:text-7xl lg:text-8xl"
               ><svg
                 class="hero-logo-t"
                 viewBox={GREEN_CROSS.viewBox}
