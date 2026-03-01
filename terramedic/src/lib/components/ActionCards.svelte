@@ -99,7 +99,7 @@
     color: white;
     cursor: pointer;
     transition: all 0.3s ease;
-    background-color: #162033;
+    background-color: var(--color-navy);
     border: 1px solid rgba(255, 255, 255, 0.06);
   }
 
@@ -113,15 +113,15 @@
   }
 
   .blue .card-accent {
-    background: #2196f3;
+    background: var(--color-terra-blue);
   }
 
   .green .card-accent {
-    background: #2ecc71;
+    background: var(--color-terra-green);
   }
 
   .purple .card-accent {
-    background: #7c3aed;
+    background: var(--color-btn-purple);
   }
 
   .card-icon {
@@ -159,7 +159,7 @@
   }
 
   .card-description {
-    color: #b0bec5;
+    color: var(--color-text-secondary);
     font-size: 0.9rem;
     line-height: 1.6;
     margin-bottom: 1.25rem;
@@ -172,15 +172,15 @@
   }
 
   .blue-action {
-    color: #2196f3;
+    color: var(--color-terra-blue);
   }
 
   .green-action {
-    color: #2ecc71;
+    color: var(--color-terra-green);
   }
 
   .purple-action {
-    color: #7c3aed;
+    color: var(--color-btn-purple);
   }
 
   .card:hover {
