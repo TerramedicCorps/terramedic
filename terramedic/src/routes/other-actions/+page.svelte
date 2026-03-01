@@ -32,7 +32,7 @@
       <h1 class="mb-4 text-center text-3xl font-bold text-white md:text-4xl lg:text-5xl">
         Start Where You Are
       </h1>
-      <p class="mx-auto mb-10 max-w-2xl text-center text-lg text-gray-400">
+      <p class="subheading mx-auto mb-10 max-w-2xl text-center text-lg text-gray-400">
         Even if you don't have spare time or money right now, there are still meaningful ways you
         can contribute to healing the planet.
       </p>
@@ -54,7 +54,7 @@
 
       <div class="mb-6 text-center">
         <h2 class="mb-2 text-xl font-bold text-white md:text-2xl">Small Steps with Big Impact</h2>
-        <p class="mx-auto max-w-xl text-gray-300">
+        <p class="subheading mx-auto max-w-xl text-gray-300">
           These actions require minimal time or financial investment but can still make a
           difference:
         </p>
