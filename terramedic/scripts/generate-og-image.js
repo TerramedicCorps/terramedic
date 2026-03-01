@@ -27,20 +27,19 @@ try {
   await page.goto(DEV_SERVER_URL, { waitUntil: 'networkidle' });
 
   await page.evaluate(() => {
-    // Hide navbar and warming-stripes accent strip
+    // Hide navbar (outside hero, selected by tag)
     const nav = document.querySelector('nav');
-    if (nav) nav.style.display = 'none';
-    if (nav && nav.nextElementSibling) nav.nextElementSibling.style.display = 'none';
+    if (nav) {
+      const navWrapper = nav.closest('.sticky') || nav.parentElement;
+      if (navWrapper) navWrapper.style.display = 'none';
+    }
 
-    // Hide tagline and description paragraphs
-    document.querySelectorAll('.hero-content p').forEach((p) => (p.style.display = 'none'));
+    // Hide elements marked with data-og-hide (tagline, description, CTA)
+    document.querySelectorAll('[data-og-hide]').forEach((el) => (el.style.display = 'none'));
 
-    // Hide CTA button container and restyle hero content
-    const heroContent = document.querySelector('.hero-content');
+    // Restyle hero content container for OG layout
+    const heroContent = document.querySelector('[data-og-hero]');
     if (!heroContent) return;
-
-    const divs = heroContent.querySelectorAll(':scope > div');
-    if (divs.length) divs[divs.length - 1].style.display = 'none';
 
     // Center text over the dark space above the earth horizon
     heroContent.style.padding = '0 1rem 25%';
