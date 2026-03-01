@@ -63,7 +63,7 @@
     <!-- Dark scrim for text legibility -->
     <div class="hero-scrim"></div>
 
-    <!-- Content overlay -->
+    <!-- Content overlay (absolutely positioned via .hero-content in <style>) -->
     <div class="hero-content z-10 flex flex-col items-center justify-center text-center">
       {#if tagline}
         <p
