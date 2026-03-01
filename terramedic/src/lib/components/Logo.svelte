@@ -1,27 +1,49 @@
 <script>
-  export let size = 'medium'; // small, medium, large
+  import { GREEN_CROSS } from '$lib/icons';
 
-  // Calculate size based on prop
-  $: width = size === 'small' ? 120 : size === 'medium' ? 180 : 240;
-  $: height = size === 'small' ? 40 : size === 'medium' ? 60 : 80;
+  export let size = 'medium'; // small, medium, large
+  export let showWordmark = true;
+
+  $: fontSize = size === 'small' ? '1.125rem' : size === 'medium' ? '1.5rem' : '2rem';
 </script>
 
-<div class="logo" style="width: {width}px; height: {height}px;">
-  <img src="/images/logo.svg" alt="terramedic logo" />
+<div class="logo" style="display: inline-flex; align-items: baseline;">
+  <span
+    class="logo-text"
+    style="font-size: {fontSize}; font-weight: 700; letter-spacing: -0.02em; color: white;"
+  >
+    <svg
+      class="logo-t"
+      viewBox={GREEN_CROSS.viewBox}
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="Terramedic logo"
+    >
+      {#each GREEN_CROSS.arms as arm}
+        <rect
+          x={arm.x}
+          y={arm.y}
+          width={arm.width}
+          height={arm.height}
+          rx={arm.rx}
+          fill={GREEN_CROSS.fill}
+        />
+      {/each}
+    </svg>{#if showWordmark}erramedic{/if}
+  </span>
 </div>
 
 <style>
-  .logo {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden; /* Prevents the logo from overflowing the container */
+  .logo-text {
+    font-family: 'Montserrat', sans-serif;
+    line-height: 1;
   }
 
-  img {
-    max-width: 100%; /* Ensures the logo scales to fit the width of the container */
-    max-height: 100%; /* Ensures the logo scales to fit the height of the container */
-    width: auto; /* Preserves the aspect ratio */
-    height: auto; /* Preserves the aspect ratio */
+  .logo-t {
+    display: inline-block;
+    height: 0.85em;
+    width: 0.85em;
+    vertical-align: -0.05em;
+    margin-right: 0.03em;
   }
 </style>
