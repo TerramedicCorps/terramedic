@@ -8,6 +8,17 @@
   export let description = '';
   export let description2 = '';
 
+  const stars = [
+    { size: 2, top: '10%', left: '15%', delay: '0s' },
+    { size: 3, top: '8%', left: '75%', delay: '0.5s' },
+    { size: 2, top: '25%', left: '90%', delay: '1s' },
+    { size: 2, top: '15%', left: '45%', delay: '1.5s' },
+    { size: 3, top: '30%', left: '20%', delay: '2s' },
+    { size: 2, top: '5%', left: '60%', delay: '0.3s' },
+    { size: 2, top: '20%', left: '35%', delay: '1.2s' },
+    { size: 3, top: '12%', left: '85%', delay: '0.8s' }
+  ];
+
   let videoEl;
 
   // Pause video for users who prefer reduced motion
@@ -22,14 +33,12 @@
   <!-- Space background -->
   <div class="hero-space-bg">
     <!-- Decorative stars -->
-    <div class="star star-1"></div>
-    <div class="star star-2"></div>
-    <div class="star star-3"></div>
-    <div class="star star-4"></div>
-    <div class="star star-5"></div>
-    <div class="star star-6"></div>
-    <div class="star star-7"></div>
-    <div class="star star-8"></div>
+    {#each stars as star, i (i)}
+      <div
+        class="star"
+        style="width: {star.size}px; height: {star.size}px; top: {star.top}; left: {star.left}; animation-delay: {star.delay};"
+      ></div>
+    {/each}
 
     <!-- Atmospheric glow -->
     <div class="atmosphere-glow"></div>
@@ -226,69 +235,12 @@
     pointer-events: none;
   }
 
-  /* Decorative stars */
+  /* Decorative stars (positions set via inline styles from data array) */
   .star {
     position: absolute;
     border-radius: 50%;
     background: white;
     animation: twinkle 3s ease-in-out infinite alternate;
-  }
-
-  .star-1 {
-    width: 2px;
-    height: 2px;
-    top: 10%;
-    left: 15%;
-    animation-delay: 0s;
-  }
-  .star-2 {
-    width: 3px;
-    height: 3px;
-    top: 8%;
-    left: 75%;
-    animation-delay: 0.5s;
-  }
-  .star-3 {
-    width: 2px;
-    height: 2px;
-    top: 25%;
-    left: 90%;
-    animation-delay: 1s;
-  }
-  .star-4 {
-    width: 2px;
-    height: 2px;
-    top: 15%;
-    left: 45%;
-    animation-delay: 1.5s;
-  }
-  .star-5 {
-    width: 3px;
-    height: 3px;
-    top: 30%;
-    left: 20%;
-    animation-delay: 2s;
-  }
-  .star-6 {
-    width: 2px;
-    height: 2px;
-    top: 5%;
-    left: 60%;
-    animation-delay: 0.3s;
-  }
-  .star-7 {
-    width: 2px;
-    height: 2px;
-    top: 20%;
-    left: 35%;
-    animation-delay: 1.2s;
-  }
-  .star-8 {
-    width: 3px;
-    height: 3px;
-    top: 12%;
-    left: 85%;
-    animation-delay: 0.8s;
   }
 
   @keyframes twinkle {
