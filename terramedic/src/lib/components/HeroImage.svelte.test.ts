@@ -4,12 +4,23 @@ import { render, screen } from '@testing-library/svelte';
 import HeroImage from './HeroImage.svelte';
 
 describe('HeroImage', () => {
+  const baseProps = {
+    title: 'Welcome to',
+    titleBrand: 'erramedic',
+    description: 'Test description'
+  };
+
   test('CTA button has dark text on light green background', () => {
-    render(HeroImage, {
-      props: { title: 'Welcome to', titleBrand: 'erramedic', description: 'Test description' }
-    });
+    render(HeroImage, { props: baseProps });
     const ctaLink = screen.getByRole('link', { name: /Pick a path/i });
     expect(ctaLink.className).toContain('text-[#0a0e17]');
     expect(ctaLink.className).toContain('bg-terra-green');
+  });
+
+  test('hero content is constrained to upper portion of hero', () => {
+    const { container } = render(HeroImage, { props: baseProps });
+    const heroContent = container.querySelector('.hero-content');
+    expect(heroContent).toBeInTheDocument();
+    expect(heroContent).toHaveClass('hero-content');
   });
 });

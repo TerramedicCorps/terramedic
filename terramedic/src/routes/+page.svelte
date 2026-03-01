@@ -78,8 +78,11 @@
             href="/resources"
             class="text-terra-green inline-flex flex-wrap items-center justify-center text-lg font-medium transition-colors hover:text-green-400 md:text-xl"
           >
-            <span class="mr-1">Already taking action? Find resources here</span>
-            <ArrowRightOutline class="h-5 w-5" />
+            <span class="mr-1">Already taking action?</span>
+            <span class="inline-flex items-center whitespace-nowrap"
+              >Find resources here
+              <ArrowRightOutline class="ml-1 h-5 w-5" />
+            </span>
           </A>
         </div>
       </div>
@@ -92,7 +95,9 @@
             class="flex w-full items-center justify-center p-6 text-center md:w-1/2 md:justify-start md:p-10 md:text-left"
           >
             <div>
-              <h3 class="mx-auto mb-4 text-2xl font-bold text-white md:mx-0 md:text-3xl">
+              <h3
+                class="mx-auto mb-4 text-2xl font-bold text-balance text-white md:mx-0 md:text-3xl"
+              >
                 Understanding Warming Stripes
               </h3>
               <p class="mx-auto text-base text-gray-400 md:text-lg">

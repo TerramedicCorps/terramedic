@@ -23,7 +23,7 @@
       <h1 class="mb-4 text-center text-3xl font-bold text-white md:text-4xl lg:text-5xl">
         Resources for Advocates
       </h1>
-      <p class="subheading mx-auto mb-10 max-w-2xl text-center text-lg text-gray-400">
+      <p class="mx-auto mb-10 max-w-2xl text-center text-lg text-balance text-gray-400">
         Tools, research, and support for those already engaged in advocacy work.
       </p>
 

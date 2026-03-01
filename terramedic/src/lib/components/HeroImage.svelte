@@ -64,7 +64,7 @@
     <div class="hero-scrim"></div>
 
     <!-- Content overlay -->
-    <div class="hero-content relative z-10 flex flex-col items-center justify-center text-center">
+    <div class="hero-content z-10 flex flex-col items-center justify-center text-center">
       {#if tagline}
         <p
           class="text-terra-green mb-4 text-sm font-semibold tracking-widest uppercase md:text-base"
@@ -161,19 +161,12 @@
   }
 
   .hero-content {
-    padding: 5rem 1rem 2rem;
-  }
-
-  @media (min-width: 768px) {
-    .hero-content {
-      padding-top: 6rem;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .hero-content {
-      padding-top: 7rem;
-    }
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 45%;
+    padding: 4rem 1rem 1rem;
   }
 
   /* Green cross as the "t" in terramedic */

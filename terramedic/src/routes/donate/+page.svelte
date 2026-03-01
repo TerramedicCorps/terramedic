@@ -30,7 +30,7 @@
       <h1 class="mb-4 text-center text-3xl font-bold text-white md:text-4xl lg:text-5xl">
         Power Civic Action
       </h1>
-      <p class="subheading mx-auto mb-10 max-w-2xl text-center text-lg text-gray-400">
+      <p class="mx-auto mb-10 max-w-2xl text-center text-lg text-balance text-gray-400">
         From voter mobilization to grassroots advocacy, these organizations make it easy for
         everyday people to push for a healthier planet. Your donation keeps that work going.
       </p>
@@ -52,7 +52,7 @@
 
       <div class="mt-16 mb-6 text-center">
         <h2 class="mb-2 text-xl font-bold text-white md:text-2xl">Maximizing Your Impact</h2>
-        <p class="subheading mx-auto max-w-xl text-gray-300">
+        <p class="mx-auto max-w-xl text-balance text-gray-300">
           When donating to these organizations, consider these factors to maximize your impact:
         </p>
       </div>

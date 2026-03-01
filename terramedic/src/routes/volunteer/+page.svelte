@@ -30,7 +30,7 @@
       <h1 class="mb-4 text-center text-3xl font-bold text-white md:text-4xl lg:text-5xl">
         Volunteer Your Time
       </h1>
-      <p class="subheading mx-auto mb-10 max-w-2xl text-center text-lg text-gray-400">
+      <p class="mx-auto mb-10 max-w-2xl text-center text-lg text-balance text-gray-400">
         These organizations are making a real impact and need people like you. Your time and skills
         can help build a healthier planet.
       </p>
@@ -50,7 +50,7 @@
 
       <div class="mt-16 mb-6 text-center">
         <h2 class="mb-2 text-xl font-bold text-white md:text-2xl">Why Volunteer?</h2>
-        <p class="subheading mx-auto max-w-xl text-gray-300">
+        <p class="mx-auto max-w-xl text-balance text-gray-300">
           Volunteering is one of the most effective ways to create change. Even a few hours a month
           makes a difference.
         </p>
