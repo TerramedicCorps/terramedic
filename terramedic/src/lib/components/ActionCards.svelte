@@ -65,7 +65,8 @@
       </div>
       <h3 class="card-title">No&nbsp;time? No&nbsp;money?</h3>
       <p class="card-description">
-        Act every day with small choices that add up to meaningful impact over time.
+        We know the feeling! Act every day with small choices that add up to meaningful impact over
+        time.
       </p>
       <span class="card-action purple-action">Start with one action &rarr;</span>
     </div>
