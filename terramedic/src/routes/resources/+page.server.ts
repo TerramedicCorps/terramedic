@@ -1,5 +1,11 @@
-import type { Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 import { submitForm } from '$lib/server/submit-form';
+import { fetchOrganizations } from '$lib/server/api';
+
+export const load: PageServerLoad = async () => {
+  const organizations = await fetchOrganizations('resource');
+  return { organizations };
+};
 
 export const actions: Actions = {
   default: async ({ request }) => {

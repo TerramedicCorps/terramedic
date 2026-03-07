@@ -1,5 +1,4 @@
 <script>
-  import { actionOrganizations } from '$lib/data/action-orgs.js';
   import OrganizationCard from '$lib/components/OrganizationCard.svelte';
   import IconCard from '$lib/components/IconCard.svelte';
   import ActionButton from '$lib/components/ActionButton.svelte';
@@ -13,6 +12,7 @@
     FlagOutline
   } from 'flowbite-svelte-icons';
 
+  export let data;
   export let form;
 </script>
 
@@ -38,16 +38,16 @@
       </p>
 
       <div data-testid="org-card-grid" class="mb-16 grid gap-6 md:grid-cols-2">
-        {#each actionOrganizations as org (org.websiteUrl)}
+        {#each data.organizations as org (org.website_url)}
           <OrganizationCard
             name={org.name}
             description={org.description}
-            websiteUrl={org.websiteUrl}
-            imageUrl={org.imageUrl}
+            websiteUrl={org.website_url}
+            imageUrl={org.image_url}
             tags={org.tags}
             tagColor="purple"
             buttonColor="purple"
-            actionText={org.actionText}
+            actionText={org.action_text}
           />
         {/each}
       </div>
