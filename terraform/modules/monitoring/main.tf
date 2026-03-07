@@ -171,9 +171,8 @@ resource "aws_budgets_budget" "monthly" {
   limit_amount      = var.budget_limit_amount
   limit_unit        = "USD"
   time_unit         = "MONTHLY"
-  time_period_start = formatdate("YYYY-MM-01_00:00", timestamp())
-  # Add a reasonable end date (5 years in the future)
-  time_period_end = formatdate("YYYY-MM-01_00:00", timeadd(timestamp(), "43800h")) # ~5 years
+  time_period_start = "2026-03-01_00:00"
+  time_period_end   = "2031-03-01_00:00"
 
   # Define cost types explicitly to avoid warnings
   cost_types {

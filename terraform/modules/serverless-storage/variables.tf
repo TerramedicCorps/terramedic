@@ -45,8 +45,3 @@ variable "cors_origins" {
   default     = ["*"]
 }
 
-variable "ip_whitelist" {
-  description = "IP addresses allowed to access the bucket (leave empty for public access)"
-  type        = list(string)
-  default     = []
-}

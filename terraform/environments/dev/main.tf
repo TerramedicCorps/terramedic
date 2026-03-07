@@ -88,9 +88,10 @@ module "vpc_peering" {
 module "zappa" {
   source = "../../modules/zappa"
 
-  prefix     = var.prefix
-  aws_region = var.aws_region
-  vpc_id     = module.networking.vpc_id
+  prefix       = var.prefix
+  project_name = "terramedic"
+  aws_region   = var.aws_region
+  vpc_id       = module.networking.vpc_id
 
   create_lambda_sg = true
   # Lambda needs to reach shared account's DB subnets via VPC peering

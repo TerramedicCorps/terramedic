@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  VPC peering accepter role for the shared account.
+  Allows prod and dev accounts to accept VPC peering connections.
+
+Parameters:
+  ProdAccountId:
+    Type: String
+    Description: AWS account ID for the production account
+  DevAccountId:
+    Type: String
+    Description: AWS account ID for the development account
+
+Resources:
+  VPCPeeringAccepterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: vpc-peering-accepter
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !Sub "arn:aws:iam::${ProdAccountId}:root"
+                - !Sub "arn:aws:iam::${DevAccountId}:root"
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: VPCPeeringAccepterPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: AcceptPeering
+                Effect: Allow
+                Action:
+                  - ec2:AcceptVpcPeeringConnection
+                  - ec2:DescribeVpcPeeringConnections
+                  - ec2:DescribeVpcs
+                  - ec2:DescribeRouteTables
+                  - ec2:CreateRoute
+                  - ec2:DeleteRoute
+                  - ec2:CreateTags
+                Resource: "*"
+      Tags:
+        - Key: Name
+          Value: vpc-peering-accepter
+        - Key: ManagedBy
+          Value: cloudformation-bootstrap
+
+Outputs:
+  RoleArn:
+    Description: ARN of the VPC peering accepter role
+    Value: !GetAtt VPCPeeringAccepterRole.Arn

@@ -77,7 +77,6 @@ module "database" {
   app_db_username            = var.app_db_username
   use_secrets_manager        = true
   db_backup_retention_period = 14
-  auto_setup_database        = var.auto_setup_database
   prevent_destroy            = var.prevent_destroy
 }
 

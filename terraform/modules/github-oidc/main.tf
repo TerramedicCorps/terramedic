@@ -210,15 +210,32 @@ resource "aws_iam_role_policy" "infrastructure" {
           Resource = "*"
         },
         {
-          Sid      = "APIGateway"
-          Effect   = "Allow"
-          Action   = ["apigateway:*"]
-          Resource = "*"
+          Sid    = "APIGateway"
+          Effect = "Allow"
+          Action = ["apigateway:*"]
+          Resource = [
+            "arn:aws:apigateway:${var.aws_region}::/restapis",
+            "arn:aws:apigateway:${var.aws_region}::/restapis/*",
+            "arn:aws:apigateway:${var.aws_region}::/domainnames",
+            "arn:aws:apigateway:${var.aws_region}::/domainnames/*",
+            "arn:aws:apigateway:${var.aws_region}::/tags/*",
+          ]
         },
         {
-          Sid      = "CostExplorer"
-          Effect   = "Allow"
-          Action   = ["ce:*"]
+          Sid    = "CostExplorer"
+          Effect = "Allow"
+          Action = [
+            "ce:GetAnomalyMonitors",
+            "ce:GetAnomalySubscriptions",
+            "ce:CreateAnomalyMonitor",
+            "ce:CreateAnomalySubscription",
+            "ce:UpdateAnomalyMonitor",
+            "ce:UpdateAnomalySubscription",
+            "ce:DeleteAnomalyMonitor",
+            "ce:DeleteAnomalySubscription",
+            "ce:GetCostAndUsage",
+            "ce:GetCostForecast",
+          ]
           Resource = "*"
         },
 
@@ -317,12 +334,6 @@ resource "aws_iam_role_policy" "infrastructure" {
         },
 
         # --- Account-scoped services (regional) ---
-        {
-          Sid      = "EC2ReadOnly"
-          Effect   = "Allow"
-          Action   = ["ec2:Describe*", "ec2:Get*", "ec2:List*"]
-          Resource = "*"
-        },
         {
           Sid      = "EC2Mutate"
           Effect   = "Allow"

@@ -266,8 +266,8 @@ if [[ "$ENVIRONMENT" == "shared" ]]; then
           \"Effect\": \"Allow\",
           \"Principal\": {
             \"AWS\": [
-              \"arn:aws:iam::${PROD_ACCOUNT_ID}:role/terramedic-github-actions-prod\",
-              \"arn:aws:iam::${DEV_ACCOUNT_ID}:role/terramedic-github-actions-dev\"
+              \"arn:aws:iam::${PROD_ACCOUNT_ID}:role/github-actions-prod\",
+              \"arn:aws:iam::${DEV_ACCOUNT_ID}:role/github-actions-dev\"
             ]
           },
           \"Action\": [

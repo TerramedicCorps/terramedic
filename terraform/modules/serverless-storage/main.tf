@@ -51,14 +51,14 @@ resource "aws_s3_bucket_versioning" "assets" {
   }
 }
 
-# Public access block
+# Public access block - block public access when CloudFront is enabled (use OAI instead)
 resource "aws_s3_bucket_public_access_block" "assets" {
   bucket = aws_s3_bucket.assets.id
 
-  block_public_acls       = local.is_prod
-  block_public_policy     = false
-  ignore_public_acls      = local.is_prod
-  restrict_public_buckets = false
+  block_public_acls       = var.enable_cloudfront
+  block_public_policy     = var.enable_cloudfront
+  ignore_public_acls      = var.enable_cloudfront
+  restrict_public_buckets = var.enable_cloudfront
 }
 
 # CORS configuration
@@ -103,29 +103,31 @@ resource "aws_s3_bucket_lifecycle_configuration" "assets" {
   }
 }
 
-# Bucket policy for public read access
+# Bucket policy - CloudFront OAI access when CDN is enabled, public read otherwise
 resource "aws_s3_bucket_policy" "assets" {
   bucket = aws_s3_bucket.assets.id
 
-  policy = jsonencode({
+  policy = var.enable_cloudfront ? jsonencode({
     Version = "2012-10-17"
     Statement = [
-      merge(
-        {
-          Sid       = "PublicReadGetObject"
-          Effect    = "Allow"
-          Principal = "*"
-          Action    = "s3:GetObject"
-          Resource  = "${aws_s3_bucket.assets.arn}/*"
-        },
-        local.is_prod && length(var.ip_whitelist) > 0 ? {
-          Condition = {
-            IpAddress = {
-              "aws:SourceIp" = var.ip_whitelist
-            }
-          }
-        } : {}
-      )
+      {
+        Sid       = "CloudFrontOAIReadAccess"
+        Effect    = "Allow"
+        Principal = { AWS = aws_cloudfront_origin_access_identity.cdn[0].iam_arn }
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.assets.arn}/*"
+      }
+    ]
+    }) : jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "PublicReadGetObject"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.assets.arn}/*"
+      }
     ]
   })
 

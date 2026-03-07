@@ -105,12 +105,6 @@ variable "db_instance_class" {
   default     = "db.t4g.micro"
 }
 
-variable "auto_setup_database" {
-  description = "Whether to automatically run database setup after RDS creation"
-  type        = bool
-  default     = false
-}
-
 variable "prevent_destroy" {
   description = "Whether to prevent destruction of database resources"
   type        = bool
