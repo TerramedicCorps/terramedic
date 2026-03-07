@@ -32,3 +32,13 @@ vite.config.ts.timestamp-*
 *storybook.log
 yarn-error.log
 npm-debug.log*
+
+# Python / Django
+backend/.venv/
+backend/db.sqlite3
+backend/staticfiles/
+backend/htmlcov/
+backend/coverage.xml
+backend/.ruff_cache/
+__pycache__/
+*.pyc
