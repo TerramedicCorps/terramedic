@@ -64,7 +64,7 @@
       <!-- Take Action Section -->
       <div id="take-action" class="mt-16 mb-16 scroll-mt-20 pt-4">
         <div class="mb-10 px-4 text-center md:mb-12">
-          <h2 class="mb-4 text-2xl font-bold text-white md:text-3xl">Choose Your Path</h2>
+          <h2 class="mb-4 text-2xl font-bold text-white md:text-3xl">Choose Your Path to Action</h2>
         </div>
 
         <!-- Action Cards -->
