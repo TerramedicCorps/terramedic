@@ -27,6 +27,7 @@ class TestConfigureZappaSettings:
 
         settings = json.loads(output.read_text())
         assert "base" in settings
+        assert "dev" in settings
         assert "prod" in settings
 
     def test_prod_inherits_base_env_vars(
@@ -43,6 +44,30 @@ class TestConfigureZappaSettings:
             assert key in prod_env, (
                 f"Base env var {key!r} missing from prod"
             )
+
+    def test_dev_inherits_base_env_vars(
+        self, tmp_path: Path,
+    ) -> None:
+        output = tmp_path / "zappa_settings.json"
+        configure_zappa_settings(output_path=output)
+
+        settings = json.loads(output.read_text())
+        dev_env = settings["dev"]["environment_variables"]
+        base_env = settings["base"]["environment_variables"]
+
+        for key in base_env:
+            assert key in dev_env, (
+                f"Base env var {key!r} missing from dev"
+            )
+
+    def test_dev_uses_lower_memory(
+        self, tmp_path: Path,
+    ) -> None:
+        output = tmp_path / "zappa_settings.json"
+        configure_zappa_settings(output_path=output)
+
+        settings = json.loads(output.read_text())
+        assert settings["dev"]["memory_size"] < settings["prod"]["memory_size"]
 
     def test_custom_docker_requires_ecr_registry(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,

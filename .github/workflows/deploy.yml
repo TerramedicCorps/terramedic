@@ -2,10 +2,19 @@ name: Deploy Backend
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - "backend/**"
   workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy to"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - prod
 
 permissions:
   contents: read
@@ -14,7 +23,11 @@ permissions:
 jobs:
   deploy-backend:
     runs-on: ubuntu-latest
-    environment: prod
+    environment: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'prod') || 'dev' }}
+
+    env:
+      DEPLOY_ENV: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'prod') || 'dev' }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -34,7 +47,7 @@ jobs:
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/github-actions-prod
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/github-actions-${{ env.DEPLOY_ENV }}
           aws-region: us-east-1
 
       - name: Login to Amazon ECR
@@ -71,7 +84,7 @@ jobs:
           ZAPPA_ROLE_NAME: ${{ vars.ZAPPA_ROLE_NAME }}
         run: |
           poetry run python scripts/configure_zappa.py
-          poetry run zappa save-python-settings-file prod
+          poetry run zappa save-python-settings-file ${{ env.DEPLOY_ENV }}
 
       - name: Build and push Docker image
         working-directory: ./backend
@@ -85,39 +98,40 @@ jobs:
           docker tag $ECR_REGISTRY/geolambda:3.12.2 geolambda:3.12.2 || true
 
           # Build and push application image
-          bash scripts/build-docker.sh prod
+          bash scripts/build-docker.sh ${{ env.DEPLOY_ENV }}
 
       - name: Deploy with Zappa
         working-directory: ./backend
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          IMAGE_URI="${ECR_REGISTRY}/terramedic-prod:latest"
+          IMAGE_URI="${ECR_REGISTRY}/terramedic-${{ env.DEPLOY_ENV }}:latest"
+          FUNCTION_NAME="terramedic-${{ env.DEPLOY_ENV }}"
 
-          if aws lambda get-function --function-name "terramedic-prod" 2>/dev/null; then
+          if aws lambda get-function --function-name "$FUNCTION_NAME" 2>/dev/null; then
             echo "Waiting for any in-progress updates to complete..."
-            aws lambda wait function-updated --function-name "terramedic-prod"
+            aws lambda wait function-updated --function-name "$FUNCTION_NAME"
             echo "Updating existing deployment..."
             set +e
-            UPDATE_OUTPUT=$(poetry run zappa update prod --docker-image-uri "$IMAGE_URI" 2>&1)
+            UPDATE_OUTPUT=$(poetry run zappa update ${{ env.DEPLOY_ENV }} --docker-image-uri "$IMAGE_URI" 2>&1)
             UPDATE_STATUS=$?
             set -e
             echo "$UPDATE_OUTPUT"
             if [ $UPDATE_STATUS -ne 0 ]; then
               if echo "$UPDATE_OUTPUT" | grep -qiE 'ResourceConflict|concurrent'; then
                 echo "Retrying after concurrent update conflict..."
-                aws lambda wait function-updated --function-name "terramedic-prod"
-                poetry run zappa update prod --docker-image-uri "$IMAGE_URI"
+                aws lambda wait function-updated --function-name "$FUNCTION_NAME"
+                poetry run zappa update ${{ env.DEPLOY_ENV }} --docker-image-uri "$IMAGE_URI"
               else
                 exit $UPDATE_STATUS
               fi
             fi
           else
             echo "Creating new deployment..."
-            poetry run zappa deploy prod --docker-image-uri "$IMAGE_URI"
+            poetry run zappa deploy ${{ env.DEPLOY_ENV }} --docker-image-uri "$IMAGE_URI"
           fi
 
       - name: Run database migrations
         working-directory: ./backend
         run: |
-          poetry run zappa manage prod "migrate --noinput"
+          poetry run zappa manage ${{ env.DEPLOY_ENV }} "migrate --noinput"

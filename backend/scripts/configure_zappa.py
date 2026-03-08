@@ -67,12 +67,12 @@ def configure_zappa_settings(
             msg = "ECR_REGISTRY is required when USE_CUSTOM_DOCKER is true"
             raise RuntimeError(msg)
         docker_image_key = "docker_image_uri"
-        prod_docker_image = (
-            f"{ecr_registry}/terramedic-prod:latest"
-        )
+        docker_image_prod = f"{ecr_registry}/terramedic-prod:latest"
+        docker_image_dev = f"{ecr_registry}/terramedic-dev:latest"
     else:
         docker_image_key = "docker_image"
-        prod_docker_image = "public.ecr.aws/lambda/python:3.14"
+        docker_image_prod = "public.ecr.aws/lambda/python:3.14"
+        docker_image_dev = "public.ecr.aws/lambda/python:3.14"
 
     # Shared settings — Zappa's "extends" does a shallow merge, so
     # nested dicts like environment_variables are replaced, not merged.
@@ -125,10 +125,27 @@ def configure_zappa_settings(
                 "throttle_rate_limit": 50,
             },
         },
+        "dev": {
+            "extends": "base",
+            "stage": "dev",
+            docker_image_key: docker_image_dev,
+            "memory_size": 512,
+            "keep_warm": False,
+            "environment_variables": {
+                **base_env_vars,
+                "ENVIRONMENT": "development",
+                "DEBUG": "true",
+            },
+            "aws_environment_variables": {
+                "DATABASE_URL": db_secret_arn,
+                "SECRET_KEY": django_secret_arn,
+            },
+            "xray_tracing": False,
+        },
         "prod": {
             "extends": "base",
             "stage": "prod",
-            docker_image_key: prod_docker_image,
+            docker_image_key: docker_image_prod,
             "memory_size": 1024,
             "keep_warm": True,
             "keep_warm_expression": "rate(4 minutes)",

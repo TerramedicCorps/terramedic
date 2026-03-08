@@ -6,6 +6,10 @@
 [build.environment]
   NODE_VERSION = "20"
 
+# Deploy dev branch for test.terramedic.org
+[context.dev]
+  command = "yarn build"
+
 [forms.newsletter-signup.actions]
   [forms.newsletter-signup.actions.email]
     to = "info@terramedic.org"
