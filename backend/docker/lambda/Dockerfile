@@ -26,8 +26,9 @@ ENV PYTHONPATH=/var/task:$PYTHONPATH \
     LD_LIBRARY_PATH=/opt/lib:/opt/lib64
 
 # Collect static files into the image (survives cold starts)
+# SECRET_KEY is needed for settings.py but not used by collectstatic
 RUN mkdir -p /var/task/staticfiles && \
-    python manage.py collectstatic --noinput
+    SECRET_KEY=build-only-dummy-key python manage.py collectstatic --noinput
 
 # Pre-compile Python files for faster cold starts
 RUN python -m compileall -b terramedic
