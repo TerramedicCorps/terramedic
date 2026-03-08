@@ -88,10 +88,8 @@ COPY --from=builder /opt/lib/ /opt/lib/
 COPY --from=builder /opt/bin/ /opt/bin/
 COPY --from=builder /opt/share/ /opt/share/
 
-# Copy Python GDAL packages from builder
-COPY --from=builder /var/lang/lib/python3.14/site-packages/osgeo/ /var/lang/lib/python3.14/site-packages/osgeo/
-COPY --from=builder /var/lang/lib/python3.14/site-packages/osgeo_utils/ /var/lang/lib/python3.14/site-packages/osgeo_utils/
-COPY --from=builder /var/lang/lib/python3.14/site-packages/gdal-${GDAL_VERSION}.dist-info/ /var/lang/lib/python3.14/site-packages/gdal-${GDAL_VERSION}.dist-info/
+# Copy Python site-packages (including GDAL bindings) from builder
+COPY --from=builder /var/lang/lib/python3.14/site-packages/ /var/lang/lib/python3.14/site-packages/
 
 ENV LD_LIBRARY_PATH=/opt/lib:/opt/lib64:$LD_LIBRARY_PATH \
     GDAL_DATA=/opt/share/gdal \
