@@ -348,7 +348,7 @@ resource "aws_iam_role_policy" "infrastructure" {
           Sid      = "CloudFormationMutate"
           Effect   = "Allow"
           Action   = ["cloudformation:*"]
-          Resource = "arn:aws:cloudformation:${var.aws_region}:${data.aws_caller_identity.current.account_id}:stack/terramedic-*"
+          Resource = "arn:aws:cloudformation:${var.aws_region}:${data.aws_caller_identity.current.account_id}:stack/terramedic-*/*"
         },
 
         # --- Account-scoped services (regional) ---
