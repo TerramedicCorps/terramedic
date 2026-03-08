@@ -198,7 +198,10 @@ PARLER_LANGUAGES = {
 # Static files (CSS, JavaScript, Images)
 
 STATIC_URL = "/static/"
-STATIC_ROOT = str(BASE_DIR / "staticfiles") if not IS_LAMBDA else "/tmp/static"
+STATIC_ROOT = (
+    "/var/task/staticfiles" if IS_LAMBDA
+    else str(BASE_DIR / "staticfiles")
+)
 
 
 # Default primary key field type
