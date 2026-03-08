@@ -137,7 +137,7 @@ def configure_zappa_settings(
             "environment_variables": {
                 **base_env_vars,
                 "ENVIRONMENT": "development",
-                "DEBUG": "true",
+                "DEBUG": "false",
             },
             "aws_environment_variables": {
                 "DATABASE_URL": db_secret_arn,
