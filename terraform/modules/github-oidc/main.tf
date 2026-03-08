@@ -324,11 +324,11 @@ resource "aws_iam_role_policy" "infrastructure" {
           Sid    = "CloudControlAPI"
           Effect = "Allow"
           Action = [
-            "cloudformation:GetResource",
-            "cloudformation:CreateResource",
-            "cloudformation:UpdateResource",
-            "cloudformation:DeleteResource",
-            "cloudformation:ListResources",
+            "cloudcontrolapi:GetResource",
+            "cloudcontrolapi:CreateResource",
+            "cloudcontrolapi:UpdateResource",
+            "cloudcontrolapi:DeleteResource",
+            "cloudcontrolapi:ListResources",
           ]
           Resource = "*"
         },
