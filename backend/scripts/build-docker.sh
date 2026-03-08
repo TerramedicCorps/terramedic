@@ -54,7 +54,7 @@ build_app() {
   aws ecr describe-repositories --repository-names "terramedic-${ENV}" --region "${AWS_REGION}" 2>/dev/null ||
     aws ecr create-repository --repository-name "terramedic-${ENV}" --region "${AWS_REGION}"
 
-  if ! docker images | grep -q "geolambda.*3.12.2"; then
+  if ! docker image inspect geolambda:3.12.2 >/dev/null 2>&1; then
     echo "[WARN] Geolambda base image not found locally, pulling from ECR..."
     aws ecr get-login-password --region "${AWS_REGION}" |
       docker login --username AWS --password-stdin "${ECR_REGISTRY}"
