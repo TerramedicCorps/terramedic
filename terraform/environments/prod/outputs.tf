@@ -60,16 +60,6 @@ output "api_domain_name" {
   value       = var.api_gateway_id != "" ? aws_api_gateway_domain_name.api[0].domain_name : ""
 }
 
-output "route53_zone_id" {
-  description = "Route53 zone ID"
-  value       = aws_route53_zone.main.zone_id
-}
-
-output "route53_nameservers" {
-  description = "Route53 zone nameservers (update at domain registrar)"
-  value       = aws_route53_zone.main.name_servers
-}
-
 # ACM
 output "acm_certificate_arn" {
   description = "ARN of the ACM certificate"

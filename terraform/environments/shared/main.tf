@@ -102,6 +102,89 @@ module "monitoring" {
   alert_email         = var.alert_email
 }
 
+# Route53 Zone (shared across prod/dev)
+resource "aws_route53_zone" "main" {
+  name = var.domain_name
+
+  tags = {
+    Name = var.domain_name
+  }
+}
+
+# Apex domain → Netlify load balancer
+resource "aws_route53_record" "apex" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = var.domain_name
+  type    = "A"
+  ttl     = 300
+  records = ["75.2.60.5"]
+}
+
+resource "aws_route53_record" "www" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "www.${var.domain_name}"
+  type    = "CNAME"
+  ttl     = 300
+  records = [var.domain_name]
+}
+
+# Cross-account DNS management role (prod/dev create records in this zone)
+resource "aws_iam_role" "dns_manager" {
+  name = "dns-manager"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          AWS = [
+            "arn:aws:iam::${var.prod_account_id}:root",
+            "arn:aws:iam::${var.dev_account_id}:root",
+          ]
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = {
+    Name = "dns-manager"
+  }
+}
+
+resource "aws_iam_role_policy" "dns_manager" {
+  name = "route53-zone-access"
+  role = aws_iam_role.dns_manager.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "Route53RecordManagement"
+        Effect = "Allow"
+        Action = [
+          "route53:ChangeResourceRecordSets",
+          "route53:GetChange",
+          "route53:GetHostedZone",
+          "route53:ListResourceRecordSets",
+          "route53:ListTagsForResource",
+        ]
+        Resource = [
+          aws_route53_zone.main.arn,
+          "arn:aws:route53:::change/*",
+        ]
+      },
+      {
+        Sid      = "Route53List"
+        Effect   = "Allow"
+        Action   = ["route53:ListHostedZones"]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 # GitHub OIDC for CI/CD
 module "github_oidc" {
   source = "../../modules/github-oidc"

@@ -57,6 +57,23 @@ variable "private_db_subnet_b_cidr" {
   default     = "10.0.6.0/24"
 }
 
+# Domain
+variable "domain_name" {
+  description = "The domain name for the application"
+  type        = string
+  default     = "terramedic.org"
+}
+
+variable "prod_account_id" {
+  description = "AWS account ID of the production account"
+  type        = string
+}
+
+variable "dev_account_id" {
+  description = "AWS account ID of the development account"
+  type        = string
+}
+
 # Cross-account Lambda access
 variable "allowed_lambda_cidrs" {
   description = "CIDR blocks of Lambda subnets in prod and dev accounts that need DB access"

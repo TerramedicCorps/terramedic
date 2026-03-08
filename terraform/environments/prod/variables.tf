@@ -37,6 +37,11 @@ variable "shared_peering_role_arn" {
   type        = string
 }
 
+variable "shared_dns_role_arn" {
+  description = "IAM role ARN in the shared account for Route53 DNS management"
+  type        = string
+}
+
 # Networking
 variable "vpc_cidr" {
   description = "CIDR block for the prod VPC"

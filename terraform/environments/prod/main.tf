@@ -1,6 +1,7 @@
 # Production Account
 # Contains: VPC, Lambda/Zappa, API Gateway + custom domain, S3 + CloudFront,
-# ECR, WAF, Route53, ACM, Monitoring, VPC peering to shared, GitHub OIDC
+# ECR, WAF, ACM, Monitoring, VPC peering to shared, GitHub OIDC
+# DNS zone lives in shared account; prod creates records via cross-account role
 
 provider "aws" {
   region = var.aws_region
@@ -17,6 +18,20 @@ provider "aws" {
 
   assume_role {
     role_arn = var.shared_peering_role_arn
+  }
+
+  default_tags {
+    tags = var.tags
+  }
+}
+
+# Provider for DNS record management in shared account's Route53 zone
+provider "aws" {
+  alias  = "dns"
+  region = var.aws_region
+
+  assume_role {
+    role_arn = var.shared_dns_role_arn
   }
 
   default_tags {
@@ -220,16 +235,7 @@ module "lambda_ecr" {
   tags        = var.tags
 }
 
-# Route53 Zone
-resource "aws_route53_zone" "main" {
-  name = var.domain_name
-
-  tags = {
-    Name = var.domain_name
-  }
-}
-
-# ACM certificate for domain and all subdomains
+# ACM certificate for domain and all subdomains (stays in prod account)
 resource "aws_acm_certificate" "main" {
   domain_name               = var.domain_name
   subject_alternative_names = ["*.${var.domain_name}"]
@@ -240,11 +246,13 @@ resource "aws_acm_certificate" "main" {
   }
 }
 
+# ACM validation records in shared account's Route53 zone
 resource "aws_route53_record" "cert_validation" {
+  provider = aws.dns
   for_each = toset([var.domain_name, "*.${var.domain_name}"])
 
   allow_overwrite = true
-  zone_id         = aws_route53_zone.main.zone_id
+  zone_id         = data.terraform_remote_state.shared.outputs.route53_zone_id
   name = [
     for dvo in aws_acm_certificate.main.domain_validation_options : dvo.resource_record_name
     if dvo.domain_name == each.value
@@ -287,11 +295,12 @@ resource "aws_api_gateway_base_path_mapping" "api" {
   domain_name = aws_api_gateway_domain_name.api[0].domain_name
 }
 
-# DNS Records
+# API DNS record in shared account's Route53 zone
 resource "aws_route53_record" "api" {
-  count = var.api_gateway_id != "" ? 1 : 0
+  provider = aws.dns
+  count    = var.api_gateway_id != "" ? 1 : 0
 
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = data.terraform_remote_state.shared.outputs.route53_zone_id
   name    = "api.${var.domain_name}"
   type    = "A"
 
@@ -300,14 +309,6 @@ resource "aws_route53_record" "api" {
     zone_id                = aws_api_gateway_domain_name.api[0].regional_zone_id
     evaluate_target_health = true
   }
-}
-
-resource "aws_route53_record" "www" {
-  zone_id = aws_route53_zone.main.zone_id
-  name    = "www.${var.domain_name}"
-  type    = "CNAME"
-  ttl     = 300
-  records = [var.domain_name]
 }
 
 # GitHub OIDC for CI/CD
