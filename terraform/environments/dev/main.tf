@@ -1,7 +1,7 @@
 # Development Account
 # Contains: VPC (private app subnets only), Lambda/Zappa (512MB, no keep-warm),
 # ECR, S3 (no CloudFront), VPC peering to shared, GitHub OIDC,
-# ACM + API Gateway custom domain (test-api.terramedic.org)
+# ACM wildcard cert, API Gateway custom domain (test-api.terramedic.org)
 # DNS zone lives in shared account; dev creates records via cross-account role
 
 provider "aws" {
@@ -202,38 +202,43 @@ module "github_oidc" {
   cross_account_role_arns      = [var.shared_dns_role_arn]
 }
 
-# ACM certificate for test-api subdomain (must be in same account as API Gateway)
-resource "aws_acm_certificate" "api" {
-  domain_name       = "test-api.${var.domain_name}"
-  validation_method = "DNS"
+# ACM certificate for domain and all subdomains (stays in dev account)
+resource "aws_acm_certificate" "main" {
+  domain_name               = var.domain_name
+  subject_alternative_names = ["*.${var.domain_name}"]
+  validation_method         = "DNS"
 
   lifecycle {
     create_before_destroy = true
   }
 }
 
-# ACM validation record in shared account's Route53 zone
+# ACM validation records in shared account's Route53 zone
 resource "aws_route53_record" "cert_validation" {
   provider = aws.dns
-
-  for_each = {
-    for dvo in aws_acm_certificate.api.domain_validation_options : dvo.domain_name => {
-      name   = dvo.resource_record_name
-      type   = dvo.resource_record_type
-      record = dvo.resource_record_value
-    }
-  }
+  for_each = toset([var.domain_name, "*.${var.domain_name}"])
 
   allow_overwrite = true
   zone_id         = data.terraform_remote_state.shared.outputs.route53_zone_id
-  name            = each.value.name
-  type            = each.value.type
-  ttl             = 60
-  records         = [each.value.record]
+  name = [
+    for dvo in aws_acm_certificate.main.domain_validation_options : dvo.resource_record_name
+    if dvo.domain_name == each.value
+  ][0]
+  type = [
+    for dvo in aws_acm_certificate.main.domain_validation_options : dvo.resource_record_type
+    if dvo.domain_name == each.value
+  ][0]
+  ttl = 60
+  records = [
+    [
+      for dvo in aws_acm_certificate.main.domain_validation_options : dvo.resource_record_value
+      if dvo.domain_name == each.value
+    ][0]
+  ]
 }
 
-resource "aws_acm_certificate_validation" "api" {
-  certificate_arn         = aws_acm_certificate.api.arn
+resource "aws_acm_certificate_validation" "main" {
+  certificate_arn         = aws_acm_certificate.main.arn
   validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
 }
 
