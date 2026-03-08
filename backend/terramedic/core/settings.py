@@ -30,8 +30,12 @@ DEBUG = os.getenv("DEBUG", "True").lower() in ("true", "1", "t")
 allowed_hosts_env = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1")
 ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(",")]
 
-# Add testserver for Django tests
-if "test" in sys.argv:
+# Add testserver for Django tests (Django test runner and pytest)
+if (
+    "test" in sys.argv
+    or "pytest" in sys.modules
+    or os.getenv("PYTEST_CURRENT_TEST")
+):
     ALLOWED_HOSTS.append("testserver")
 
 
