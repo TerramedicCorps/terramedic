@@ -4,6 +4,7 @@ from typing import Any
 
 from django.contrib.gis.db.models.functions import Distance
 from django.contrib.gis.geos import Point
+from django.contrib.gis.measure import D
 from django.http import HttpRequest
 from ninja import Query, Router
 from ninja.errors import HttpError
@@ -56,13 +57,12 @@ def nearby_organizations(
     radius: float = Query(..., description="Radius in km", ge=0.1, le=500),  # noqa: B008
 ) -> list[dict[str, Any]]:
     point = Point(lng, lat, srid=4326)
-    radius_m = radius * 1000
 
     qs = (
         Organization.objects.filter(
             is_active=True,
             location__isnull=False,
-            location__distance_lte=(point, radius_m),
+            location__distance_lte=(point, D(km=radius)),
         )
         .annotate(distance=Distance("location", point))
         .prefetch_related("tags")
