@@ -333,6 +333,24 @@ resource "aws_iam_role_policy" "infrastructure" {
           Resource = "*"
         },
 
+        # --- CloudFormation (required by Zappa for Lambda deployment) ---
+        {
+          Sid    = "CloudFormationRead"
+          Effect = "Allow"
+          Action = [
+            "cloudformation:ListStacks",
+            "cloudformation:ValidateTemplate",
+            "cloudformation:GetTemplateSummary",
+          ]
+          Resource = "*"
+        },
+        {
+          Sid      = "CloudFormationMutate"
+          Effect   = "Allow"
+          Action   = ["cloudformation:*"]
+          Resource = "arn:aws:cloudformation:${var.aws_region}:${data.aws_caller_identity.current.account_id}:stack/terramedic-*"
+        },
+
         # --- Account-scoped services (regional) ---
         {
           Sid      = "EC2Mutate"
