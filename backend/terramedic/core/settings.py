@@ -118,7 +118,8 @@ if _database_url:
         db_config["ENGINE"] = "django.contrib.gis.db.backends.postgis"
     if IS_LAMBDA:
         db_config["CONN_MAX_AGE"] = 0
-        db_config["OPTIONS"] = {"connect_timeout": 5}
+        db_config.setdefault("OPTIONS", {})
+        db_config["OPTIONS"]["connect_timeout"] = 5
     DATABASES = {"default": db_config}
 else:
     # Use SpatiaLite for local development
