@@ -56,6 +56,13 @@ variable "private_subnet_b_cidr" {
   default     = "10.2.4.0/24"
 }
 
+# Cost control
+variable "enable_vpc_endpoints" {
+  description = "Enable VPC endpoints (disable to save costs when not actively developing)"
+  type        = bool
+  default     = true
+}
+
 # Database (in shared account, accessed via peering)
 variable "db_name" {
   description = "Database name in the shared RDS instance (dev database)"

@@ -1,0 +1,86 @@
+name: Dev Cost Control
+
+on:
+  workflow_dispatch:
+    inputs:
+      vpc_endpoints:
+        description: "VPC Endpoints (disable to save ~$15/mo when not developing)"
+        required: true
+        type: choice
+        options:
+          - enable
+          - disable
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  toggle-resources:
+    name: "${{ github.event.inputs.vpc_endpoints == 'enable' && 'Enable' || 'Disable' }} VPC Endpoints"
+    runs-on: ubuntu-latest
+    environment: dev
+
+    env:
+      TF_DIRECTORY: terraform/environments/dev
+      TF_VAR_app_db_username: ${{ secrets.APP_DB_USERNAME }}
+      TF_VAR_app_db_password: ${{ secrets.APP_DB_PASSWORD }}
+      TF_VAR_site_password: ${{ secrets.SITE_PASSWORD }}
+      TF_VAR_shared_peering_role_arn: ${{ secrets.SHARED_PEERING_ROLE_ARN }}
+      TF_VAR_shared_account_id: ${{ vars.SHARED_ACCOUNT_ID }}
+      TF_VAR_github_repo: ${{ vars.REPO_FULL_NAME }}
+      TF_VAR_alert_email: ${{ vars.TF_VAR_ALERT_EMAIL }}
+      TF_VAR_enable_vpc_endpoints: ${{ github.event.inputs.vpc_endpoints == 'enable' && 'true' || 'false' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate AWS Account ID
+        env:
+          AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+        run: |
+          if [ -z "$AWS_ACCOUNT_ID" ]; then
+            echo "::error::AWS_ACCOUNT_ID variable is not set in the 'dev' GitHub environment"
+            exit 1
+          fi
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/github-actions-dev
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Init
+        run: |
+          cd "$TF_DIRECTORY"
+          terraform init -backend-config=backend.hcl -input=false
+
+      - name: Terraform Plan
+        run: |
+          cd "$TF_DIRECTORY"
+          terraform plan -no-color -input=false -out=tfplan \
+            -target='module.networking.aws_vpc_endpoint.interface' \
+            -target='module.networking.aws_security_group.vpc_endpoints'
+
+      - name: Terraform Apply
+        run: |
+          cd "$TF_DIRECTORY"
+          terraform apply -input=false tfplan
+
+      - name: Summary
+        env:
+          ACTION: ${{ github.event.inputs.vpc_endpoints }}
+        run: |
+          if [ "$ACTION" = "enable" ]; then
+            echo "### VPC Endpoints Enabled" >> $GITHUB_STEP_SUMMARY
+            echo "Dev VPC endpoints are now **active**. Lambda can reach AWS services via private networking." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### VPC Endpoints Disabled" >> $GITHUB_STEP_SUMMARY
+            echo "Dev VPC endpoints are now **disabled**, saving ~\$15/mo." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "> **Note:** Lambda functions in the dev VPC will not be able to access Secrets Manager or CloudWatch Logs while endpoints are disabled." >> $GITHUB_STEP_SUMMARY
+          fi
