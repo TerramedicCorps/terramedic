@@ -174,10 +174,15 @@ jobs:
           # Get the regional domain name for the API Gateway custom domain
           REGIONAL_DOMAIN=$(aws apigateway get-domain-name \
             --domain-name "$API_DOMAIN" \
-            --query 'regionalDomainName' --output text)
+            --query 'regionalDomainName' --output text 2>/dev/null) || true
           REGIONAL_ZONE_ID=$(aws apigateway get-domain-name \
             --domain-name "$API_DOMAIN" \
-            --query 'regionalHostedZoneId' --output text)
+            --query 'regionalHostedZoneId' --output text 2>/dev/null) || true
+
+          if [ -z "$REGIONAL_DOMAIN" ] || [ "$REGIONAL_DOMAIN" = "None" ]; then
+            echo "::warning::Regional domain not available yet for $API_DOMAIN, skipping DNS record"
+            exit 0
+          fi
 
           # Assume dns-manager role in shared account
           CREDS=$(aws sts assume-role \
