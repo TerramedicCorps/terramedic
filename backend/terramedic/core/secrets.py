@@ -8,6 +8,7 @@ from functools import lru_cache
 from typing import Any
 
 import boto3
+from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,11 @@ def resolve_secret(value: str, json_key: str) -> str:
 
     secret_name = value.rsplit(":", 1)[-1] if ":" in value else "<unknown>"
     client = _get_client()
-    resp = client.get_secret_value(SecretId=value)
+    try:
+        resp = client.get_secret_value(SecretId=value)
+    except ClientError as exc:
+        msg = f"Failed to retrieve secret '{secret_name}' from Secrets Manager: {exc}"
+        raise RuntimeError(msg) from exc
     try:
         secret = json.loads(resp["SecretString"])
     except json.JSONDecodeError as exc:

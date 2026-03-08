@@ -77,3 +77,25 @@ class TestResolveSecret:
         arn = "arn:aws:secretsmanager:us-east-1:123:secret:my-secret"
         with pytest.raises(KeyError, match="key"):
             resolve_secret(arn, "key")
+
+    @patch("terramedic.core.secrets._get_client")
+    def test_aws_api_error_raises_runtime_error(
+        self, mock_get_client: MagicMock,
+    ) -> None:
+        from botocore.exceptions import ClientError
+
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        mock_client.get_secret_value.side_effect = ClientError(
+            {
+                "Error": {
+                    "Code": "ResourceNotFoundException",
+                    "Message": "not found",
+                },
+            },
+            "GetSecretValue",
+        )
+
+        arn = "arn:aws:secretsmanager:us-east-1:123:secret:missing"
+        with pytest.raises(RuntimeError, match="Failed to retrieve secret"):
+            resolve_secret(arn, "key")
