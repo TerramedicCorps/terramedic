@@ -34,8 +34,5 @@ ENV PYTHONPATH=/var/task:$PYTHONPATH \
 # Pre-compile Python files for faster cold starts
 RUN python -m compileall -b terramedic
 
-# Collect static files
-RUN python manage.py collectstatic --noinput || true
-
 # Lambda handler
 CMD ["zappa.handler.lambda_handler"]
