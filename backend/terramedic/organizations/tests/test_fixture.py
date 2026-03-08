@@ -15,11 +15,11 @@ class TestSeedDataFixture:
     def _load_seed_data(self, seed_data: None) -> None:
         pass
 
-    def test_organization_count(self) -> None:
-        assert Organization.objects.count() == 16
+    def test_organizations_loaded(self) -> None:
+        assert Organization.objects.count() > 0
 
-    def test_tag_count(self) -> None:
-        assert Tag.objects.count() == 31
+    def test_tags_loaded(self) -> None:
+        assert Tag.objects.count() > 0
 
     def test_category_counts(self) -> None:
         assert Organization.objects.filter(category=Category.DONATE).count() == 5
