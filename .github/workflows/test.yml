@@ -35,7 +35,7 @@ jobs:
 
       - name: Start Django backend
         working-directory: .
-        run: docker run -d --name backend -p 8000:8000 terramedic-backend
+        run: docker run -d --name backend -p 8000:8000 -e LOAD_SEED_DATA=true terramedic-backend
 
       - name: Wait for backend to be ready
         working-directory: .
