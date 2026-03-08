@@ -10,7 +10,7 @@ services:
       - SPATIALITE_LIBRARY_PATH=mod_spatialite
       - LOAD_SEED_DATA=true
     volumes:
-      - backend-data:/app/data
+      - backend-data:/app/db
 
 volumes:
   backend-data:

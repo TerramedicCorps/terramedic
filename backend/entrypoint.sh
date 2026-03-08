@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+mkdir -p /app/db
+
 python manage.py migrate --noinput
 
 # Load seed data only if explicitly enabled and no organizations exist
