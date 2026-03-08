@@ -183,7 +183,10 @@ jobs:
           CREDS=$(aws sts assume-role \
             --role-arn "$SHARED_DNS_ROLE_ARN" \
             --role-session-name "deploy-dns-${{ env.DEPLOY_ENV }}" \
-            --query 'Credentials' --output json)
+            --query 'Credentials' --output json) || {
+            echo "::error::Failed to assume DNS role $SHARED_DNS_ROLE_ARN"
+            exit 1
+          }
 
           export AWS_ACCESS_KEY_ID=$(echo "$CREDS" | jq -r .AccessKeyId)
           export AWS_SECRET_ACCESS_KEY=$(echo "$CREDS" | jq -r .SecretAccessKey)
