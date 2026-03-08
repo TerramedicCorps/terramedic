@@ -90,6 +90,8 @@ class TestConfigureZappaSettings:
         settings = json.loads(output.read_text())
         assert "docker_image_uri" in settings["prod"]
         assert "123.dkr.ecr" in settings["prod"]["docker_image_uri"]
+        assert "docker_image_uri" in settings["dev"]
+        assert "123.dkr.ecr" in settings["dev"]["docker_image_uri"]
 
     def test_default_uses_public_ecr_image(
         self, tmp_path: Path,
@@ -100,6 +102,8 @@ class TestConfigureZappaSettings:
         settings = json.loads(output.read_text())
         assert "docker_image" in settings["prod"]
         assert "public.ecr.aws" in settings["prod"]["docker_image"]
+        assert "docker_image" in settings["dev"]
+        assert "public.ecr.aws" in settings["dev"]["docker_image"]
 
     def test_ci_validation_raises_on_missing_vars(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
