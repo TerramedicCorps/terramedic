@@ -43,9 +43,9 @@ def list_organizations(
 @router.get("/nearby/", response=list[OrganizationOut], auth=None)
 def nearby_organizations(
     request: HttpRequest,
-    lat: float = Query(...),  # noqa: B008
-    lng: float = Query(...),  # noqa: B008
-    radius: float = Query(..., description="Radius in km"),  # noqa: B008
+    lat: float = Query(..., ge=-90, le=90),  # noqa: B008
+    lng: float = Query(..., ge=-180, le=180),  # noqa: B008
+    radius: float = Query(..., description="Radius in km", ge=0.1, le=500),  # noqa: B008
 ) -> list[dict]:
     point = Point(lng, lat, srid=4326)
     radius_m = radius * 1000
