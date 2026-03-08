@@ -1,7 +1,8 @@
 # Development Account
 # Contains: VPC (private app subnets only), Lambda/Zappa (512MB, no keep-warm),
-# ECR, S3 (no CloudFront), VPC peering to shared, GitHub OIDC
-# Minimal infrastructure -- no WAF, no Route53, no CloudFront, no custom domain
+# ECR, S3 (no CloudFront), VPC peering to shared, GitHub OIDC,
+# ACM wildcard cert, API Gateway custom domain (test-api.terramedic.org)
+# DNS zone lives in shared account; dev creates records via cross-account role
 
 provider "aws" {
   region = var.aws_region
@@ -18,6 +19,20 @@ provider "aws" {
 
   assume_role {
     role_arn = var.shared_peering_role_arn
+  }
+
+  default_tags {
+    tags = var.tags
+  }
+}
+
+# Provider for DNS record management in shared account's Route53 zone
+provider "aws" {
+  alias  = "dns"
+  region = var.aws_region
+
+  assume_role {
+    role_arn = var.shared_dns_role_arn
   }
 
   default_tags {
@@ -184,4 +199,49 @@ module "github_oidc" {
   enable_infrastructure_policy = true
   resource_prefix              = var.resource_prefix
   peering_account_ids          = [var.shared_account_id]
+  cross_account_role_arns      = [var.shared_dns_role_arn]
 }
+
+# ACM certificate for domain and all subdomains (stays in dev account)
+resource "aws_acm_certificate" "main" {
+  domain_name               = var.domain_name
+  subject_alternative_names = ["*.${var.domain_name}"]
+  validation_method         = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# ACM validation records in shared account's Route53 zone
+resource "aws_route53_record" "cert_validation" {
+  provider = aws.dns
+  for_each = toset([var.domain_name, "*.${var.domain_name}"])
+
+  allow_overwrite = true
+  zone_id         = data.terraform_remote_state.shared.outputs.route53_zone_id
+  name = [
+    for dvo in aws_acm_certificate.main.domain_validation_options : dvo.resource_record_name
+    if dvo.domain_name == each.value
+  ][0]
+  type = [
+    for dvo in aws_acm_certificate.main.domain_validation_options : dvo.resource_record_type
+    if dvo.domain_name == each.value
+  ][0]
+  ttl = 60
+  records = [
+    [
+      for dvo in aws_acm_certificate.main.domain_validation_options : dvo.resource_record_value
+      if dvo.domain_name == each.value
+    ][0]
+  ]
+}
+
+resource "aws_acm_certificate_validation" "main" {
+  certificate_arn         = aws_acm_certificate.main.arn
+  validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
+}
+
+# API Gateway custom domain, base path mapping, and Route53 A record
+# are managed by the deploy workflow (post-deploy step) since the API Gateway
+# is created by Zappa, not Terraform. See .github/workflows/deploy.yml.

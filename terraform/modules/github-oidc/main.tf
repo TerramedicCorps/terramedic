@@ -31,6 +31,11 @@ resource "aws_iam_openid_connect_provider" "github" {
 
 locals {
   oidc_provider_arn = var.create_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : var.existing_oidc_provider_arn
+
+  cross_account_role_arns = concat(
+    [for id in var.peering_account_ids : "arn:aws:iam::${id}:role/vpc-peering-accepter"],
+    var.cross_account_role_arns,
+  )
 }
 
 # IAM Role for GitHub Actions
@@ -468,16 +473,13 @@ resource "aws_iam_role_policy" "infrastructure" {
         },
       ],
 
-      # --- STS: only if peering_account_ids is non-empty ---
-      length(var.peering_account_ids) > 0 ? [
+      # --- STS: cross-account role assumption (VPC peering, DNS, etc.) ---
+      length(local.cross_account_role_arns) > 0 ? [
         {
-          Sid    = "STS"
-          Effect = "Allow"
-          Action = ["sts:AssumeRole"]
-          Resource = [
-            for account_id in var.peering_account_ids :
-            "arn:aws:iam::${account_id}:role/vpc-peering-accepter"
-          ]
+          Sid      = "STS"
+          Effect   = "Allow"
+          Action   = ["sts:AssumeRole"]
+          Resource = local.cross_account_role_arns
         },
       ] : [],
     )

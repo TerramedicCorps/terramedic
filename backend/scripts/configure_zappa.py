@@ -31,7 +31,6 @@ def configure_zappa_settings(
         "ZAPPA_S3_BUCKET",
         "terramedic-prod-zappa-deployments",
     )
-    assets_bucket = get_env("PRODUCTION_ASSETS_BUCKET", "")
     zappa_role_name = get_env("ZAPPA_ROLE_NAME", "")
 
     vpc_subnet_ids = _parse_csv(get_env("VPC_SUBNET_IDS", ""))
@@ -39,6 +38,9 @@ def configure_zappa_settings(
 
     db_secret_arn = get_env("DATABASE_SECRET_ARN", "")
     django_secret_arn = get_env("DJANGO_SECRET_ARN", "")
+
+    domain_name = get_env("DOMAIN_NAME", "")
+    certificate_arn = get_env("ACM_CERTIFICATE_ARN", "")
 
     use_custom_docker = (
         get_env("USE_CUSTOM_DOCKER", "false").lower() == "true"
@@ -67,12 +69,12 @@ def configure_zappa_settings(
             msg = "ECR_REGISTRY is required when USE_CUSTOM_DOCKER is true"
             raise RuntimeError(msg)
         docker_image_key = "docker_image_uri"
-        prod_docker_image = (
-            f"{ecr_registry}/terramedic-prod:latest"
-        )
+        docker_image_prod = f"{ecr_registry}/terramedic-prod:latest"
+        docker_image_dev = f"{ecr_registry}/terramedic-dev:latest"
     else:
         docker_image_key = "docker_image"
-        prod_docker_image = "public.ecr.aws/lambda/python:3.14"
+        docker_image_prod = "public.ecr.aws/lambda/python:3.14"
+        docker_image_dev = "public.ecr.aws/lambda/python:3.14"
 
     # Shared settings — Zappa's "extends" does a shallow merge, so
     # nested dicts like environment_variables are replaced, not merged.
@@ -125,10 +127,35 @@ def configure_zappa_settings(
                 "throttle_rate_limit": 50,
             },
         },
+        "dev": {
+            "extends": "base",
+            "stage": "dev",
+            docker_image_key: docker_image_dev,
+            "memory_size": 512,
+            "keep_warm": False,
+            "environment_variables": {
+                **base_env_vars,
+                "ENVIRONMENT": "development",
+                "DEBUG": "false",
+            },
+            "aws_environment_variables": {
+                "DATABASE_URL": db_secret_arn,
+                "SECRET_KEY": django_secret_arn,
+            },
+            "xray_tracing": False,
+            **(
+                {
+                    "domain": f"test-api.{domain_name}",
+                    "certificate_arn": certificate_arn,
+                }
+                if domain_name and certificate_arn
+                else {}
+            ),
+        },
         "prod": {
             "extends": "base",
             "stage": "prod",
-            docker_image_key: prod_docker_image,
+            docker_image_key: docker_image_prod,
             "memory_size": 1024,
             "keep_warm": True,
             "keep_warm_expression": "rate(4 minutes)",
@@ -136,7 +163,6 @@ def configure_zappa_settings(
                 **base_env_vars,
                 "ENVIRONMENT": "production",
                 "DEBUG": "false",
-                "AWS_STORAGE_BUCKET_NAME": assets_bucket,
             },
             # ARNs resolved at runtime by secrets.py
             "aws_environment_variables": {
@@ -144,6 +170,14 @@ def configure_zappa_settings(
                 "SECRET_KEY": django_secret_arn,
             },
             "xray_tracing": True,
+            **(
+                {
+                    "domain": f"api.{domain_name}",
+                    "certificate_arn": certificate_arn,
+                }
+                if domain_name and certificate_arn
+                else {}
+            ),
         },
     }
 

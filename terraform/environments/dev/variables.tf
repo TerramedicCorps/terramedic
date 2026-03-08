@@ -37,6 +37,11 @@ variable "shared_peering_role_arn" {
   type        = string
 }
 
+variable "shared_dns_role_arn" {
+  description = "IAM role ARN in the shared account for Route53 DNS management"
+  type        = string
+}
+
 # Networking
 variable "vpc_cidr" {
   description = "CIDR block for the dev VPC"
@@ -98,6 +103,12 @@ variable "budget_limit_amount" {
   description = "Monthly budget limit amount in USD"
   type        = string
   default     = "30"
+}
+
+# Domain & DNS
+variable "domain_name" {
+  description = "The domain name for the application"
+  type        = string
 }
 
 # GitHub OIDC

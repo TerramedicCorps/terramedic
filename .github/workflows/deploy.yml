@@ -2,10 +2,19 @@ name: Deploy Backend
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - "backend/**"
   workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy to"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - prod
 
 permissions:
   contents: read
@@ -14,7 +23,11 @@ permissions:
 jobs:
   deploy-backend:
     runs-on: ubuntu-latest
-    environment: prod
+    environment: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'prod') || 'dev' }}
+
+    env:
+      DEPLOY_ENV: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'prod') || 'dev' }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -34,7 +47,7 @@ jobs:
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/github-actions-prod
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/github-actions-${{ env.DEPLOY_ENV }}
           aws-region: us-east-1
 
       - name: Login to Amazon ECR
@@ -61,7 +74,6 @@ jobs:
           CI: true
           AWS_REGION: us-east-1
           ZAPPA_S3_BUCKET: ${{ vars.ZAPPA_S3_BUCKET }}
-          PRODUCTION_ASSETS_BUCKET: ${{ vars.PRODUCTION_ASSETS_BUCKET }}
           USE_CUSTOM_DOCKER: true
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           VPC_SUBNET_IDS: ${{ vars.VPC_SUBNET_IDS }}
@@ -69,8 +81,11 @@ jobs:
           DATABASE_SECRET_ARN: ${{ secrets.DATABASE_SECRET_ARN }}
           DJANGO_SECRET_ARN: ${{ secrets.DJANGO_SECRET_ARN }}
           ZAPPA_ROLE_NAME: ${{ vars.ZAPPA_ROLE_NAME }}
+          DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
+          ACM_CERTIFICATE_ARN: ${{ vars.ACM_CERTIFICATE_ARN }}
         run: |
           poetry run python scripts/configure_zappa.py
+          poetry run zappa save-python-settings-file ${{ env.DEPLOY_ENV }}
 
       - name: Build and push Docker image
         working-directory: ./backend
@@ -84,39 +99,119 @@ jobs:
           docker tag $ECR_REGISTRY/geolambda:3.12.2 geolambda:3.12.2 || true
 
           # Build and push application image
-          bash scripts/build-docker.sh prod
+          bash scripts/build-docker.sh ${{ env.DEPLOY_ENV }}
 
       - name: Deploy with Zappa
         working-directory: ./backend
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          IMAGE_URI="${ECR_REGISTRY}/terramedic-prod:latest"
+          IMAGE_URI="${ECR_REGISTRY}/terramedic-${{ env.DEPLOY_ENV }}:latest"
+          FUNCTION_NAME="terramedic-${{ env.DEPLOY_ENV }}"
 
-          if aws lambda get-function --function-name "terramedic-prod" 2>/dev/null; then
+          if aws lambda get-function --function-name "$FUNCTION_NAME" 2>/dev/null; then
             echo "Waiting for any in-progress updates to complete..."
-            aws lambda wait function-updated --function-name "terramedic-prod"
+            aws lambda wait function-updated --function-name "$FUNCTION_NAME"
             echo "Updating existing deployment..."
             set +e
-            UPDATE_OUTPUT=$(poetry run zappa update prod --docker-image-uri "$IMAGE_URI" 2>&1)
+            UPDATE_OUTPUT=$(poetry run zappa update ${{ env.DEPLOY_ENV }} --docker-image-uri "$IMAGE_URI" 2>&1)
             UPDATE_STATUS=$?
             set -e
             echo "$UPDATE_OUTPUT"
             if [ $UPDATE_STATUS -ne 0 ]; then
               if echo "$UPDATE_OUTPUT" | grep -qiE 'ResourceConflict|concurrent'; then
                 echo "Retrying after concurrent update conflict..."
-                aws lambda wait function-updated --function-name "terramedic-prod"
-                poetry run zappa update prod --docker-image-uri "$IMAGE_URI"
+                aws lambda wait function-updated --function-name "$FUNCTION_NAME"
+                poetry run zappa update ${{ env.DEPLOY_ENV }} --docker-image-uri "$IMAGE_URI"
               else
                 exit $UPDATE_STATUS
               fi
             fi
           else
             echo "Creating new deployment..."
-            poetry run zappa deploy prod --docker-image-uri "$IMAGE_URI"
+            poetry run zappa deploy ${{ env.DEPLOY_ENV }} --docker-image-uri "$IMAGE_URI"
           fi
 
       - name: Run database migrations
         working-directory: ./backend
         run: |
-          poetry run zappa manage prod "migrate --noinput"
+          poetry run zappa manage ${{ env.DEPLOY_ENV }} "migrate --noinput"
+
+      - name: Configure API custom domain
+        working-directory: ./backend
+        env:
+          DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
+          SHARED_DNS_ROLE_ARN: ${{ vars.SHARED_DNS_ROLE_ARN }}
+          ROUTE53_ZONE_ID: ${{ vars.ROUTE53_ZONE_ID }}
+        run: |
+          if [ -z "$DOMAIN_NAME" ]; then
+            echo "DOMAIN_NAME not set, skipping custom domain setup"
+            exit 0
+          fi
+
+          # Determine API subdomain by environment
+          if [ "${{ env.DEPLOY_ENV }}" = "prod" ]; then
+            API_DOMAIN="api.${DOMAIN_NAME}"
+          else
+            API_DOMAIN="test-api.${DOMAIN_NAME}"
+          fi
+
+          # Use Zappa's built-in certify to create/update API Gateway custom domain
+          poetry run zappa certify ${{ env.DEPLOY_ENV }} --yes || {
+            echo "::warning::zappa certify failed for ${API_DOMAIN} — ACM cert may not be issued yet"
+            exit 0
+          }
+
+          echo "Custom domain configured: $API_DOMAIN"
+
+          # Create Route53 alias record (cross-account in shared account)
+          if [ -z "$SHARED_DNS_ROLE_ARN" ] || [ -z "$ROUTE53_ZONE_ID" ]; then
+            echo "::warning::SHARED_DNS_ROLE_ARN or ROUTE53_ZONE_ID not set, skipping DNS record"
+            exit 0
+          fi
+
+          # Get the regional domain name for the API Gateway custom domain
+          REGIONAL_DOMAIN=$(aws apigateway get-domain-name \
+            --domain-name "$API_DOMAIN" \
+            --query 'regionalDomainName' --output text 2>/dev/null) || true
+          REGIONAL_ZONE_ID=$(aws apigateway get-domain-name \
+            --domain-name "$API_DOMAIN" \
+            --query 'regionalHostedZoneId' --output text 2>/dev/null) || true
+
+          if [ -z "$REGIONAL_DOMAIN" ] || [ "$REGIONAL_DOMAIN" = "None" ] || [ -z "$REGIONAL_ZONE_ID" ] || [ "$REGIONAL_ZONE_ID" = "None" ]; then
+            echo "::warning::Regional domain not available yet for $API_DOMAIN, skipping DNS record"
+            exit 0
+          fi
+
+          # Assume dns-manager role in shared account
+          CREDS=$(aws sts assume-role \
+            --role-arn "$SHARED_DNS_ROLE_ARN" \
+            --role-session-name "deploy-dns-${{ env.DEPLOY_ENV }}" \
+            --query 'Credentials' --output json) || {
+            echo "::error::Failed to assume DNS role $SHARED_DNS_ROLE_ARN"
+            exit 1
+          }
+
+          export AWS_ACCESS_KEY_ID=$(echo "$CREDS" | jq -r .AccessKeyId)
+          export AWS_SECRET_ACCESS_KEY=$(echo "$CREDS" | jq -r .SecretAccessKey)
+          export AWS_SESSION_TOKEN=$(echo "$CREDS" | jq -r .SessionToken)
+
+          # Upsert the A alias record
+          aws route53 change-resource-record-sets \
+            --hosted-zone-id "$ROUTE53_ZONE_ID" \
+            --change-batch "{
+              \"Changes\": [{
+                \"Action\": \"UPSERT\",
+                \"ResourceRecordSet\": {
+                  \"Name\": \"${API_DOMAIN}\",
+                  \"Type\": \"A\",
+                  \"AliasTarget\": {
+                    \"DNSName\": \"${REGIONAL_DOMAIN}\",
+                    \"HostedZoneId\": \"${REGIONAL_ZONE_ID}\",
+                    \"EvaluateTargetHealth\": true
+                  }
+                }
+              }]
+            }"
+
+          echo "DNS record created: $API_DOMAIN → $REGIONAL_DOMAIN"
