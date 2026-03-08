@@ -1,3 +1,5 @@
+data "aws_caller_identity" "current" {}
+
 # S3 bucket for Zappa deployments
 resource "aws_s3_bucket" "zappa_deployments" {
   bucket = "${var.prefix}-zappa-deployments"
@@ -186,9 +188,14 @@ resource "aws_iam_policy" "zappa_deployment" {
         Resource = "${aws_s3_bucket.zappa_deployments.arn}/*"
       },
       {
+        # Zappa needs these API Gateway actions to manage REST APIs
         Effect = "Allow"
         Action = [
-          "apigateway:*"
+          "apigateway:GET",
+          "apigateway:POST",
+          "apigateway:PUT",
+          "apigateway:DELETE",
+          "apigateway:PATCH"
         ]
         Resource = "arn:aws:apigateway:${var.aws_region}::/*"
       },
@@ -222,7 +229,7 @@ resource "aws_iam_policy" "zappa_deployment" {
           "iam:GetRole",
           "iam:PassRole"
         ]
-        Resource = "arn:aws:iam::*:role/${var.prefix}-*"
+        Resource = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.prefix}-*"
       }
     ]
   })
