@@ -272,8 +272,6 @@ resource "aws_vpc_endpoint" "s3" {
 locals {
   interface_endpoints = {
     secretsmanager = "com.amazonaws.${var.aws_region}.secretsmanager"
-    ecr_api        = "com.amazonaws.${var.aws_region}.ecr.api"
-    ecr_dkr        = "com.amazonaws.${var.aws_region}.ecr.dkr"
     logs           = "com.amazonaws.${var.aws_region}.logs"
   }
   endpoint_subnet_ids = (
