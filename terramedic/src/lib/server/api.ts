@@ -19,11 +19,17 @@ export async function fetchOrganizations(category?: string): Promise<Organizatio
     ? `${API_BASE}/organizations/?category=${category}`
     : `${API_BASE}/organizations/`;
 
-  const response = await fetch(url);
+  try {
+    const response = await fetch(url);
 
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status}`);
+    if (!response.ok) {
+      console.error(`API error: ${response.status}`);
+      return [];
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Failed to fetch organizations:', error);
+    return [];
   }
-
-  return response.json();
 }
