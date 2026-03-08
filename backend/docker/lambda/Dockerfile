@@ -5,15 +5,12 @@ FROM ${ECR_REGISTRY}/geolambda:3.12.2 AS app
 
 WORKDIR /var/task
 
-# Install Poetry for dependency management
-RUN pip install --no-cache-dir poetry==2.1.3
-
-# Copy dependency files first (for better caching)
+# Install Poetry, use it to install dependencies, then remove it
 COPY pyproject.toml poetry.lock ./
-
-# Install Python dependencies without creating a virtual environment
-RUN poetry config virtualenvs.create false && \
-    poetry install --only main --no-root --no-interaction --no-ansi
+RUN pip install --no-cache-dir poetry==2.1.3 && \
+    poetry config virtualenvs.create false && \
+    poetry install --only main --no-root --no-interaction --no-ansi && \
+    pip uninstall -y poetry
 
 # Copy application code
 COPY terramedic/ ./terramedic/
