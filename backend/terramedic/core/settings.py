@@ -17,14 +17,17 @@ import dj_database_url
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv(
-    "SECRET_KEY",
-    "django-insecure-terramedic-dev-key-change-in-production",
-)
-
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG", "True").lower() in ("true", "1", "t")
+DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
+
+# SECURITY WARNING: keep the secret key used in production secret!
+_is_testing = "pytest" in sys.modules or os.getenv("PYTEST_CURRENT_TEST")
+SECRET_KEY = os.getenv("SECRET_KEY", "")
+if not SECRET_KEY:
+    if DEBUG or _is_testing:
+        SECRET_KEY = "django-insecure-terramedic-dev-key-change-in-production"
+    else:
+        raise ValueError("SECRET_KEY environment variable is required in production")
 
 # Parse ALLOWED_HOSTS from environment variable (comma-separated)
 allowed_hosts_env = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1")
