@@ -55,8 +55,8 @@ module "networking" {
   # No DB subnets (DB lives in shared)
   create_db_subnets = false
 
-  # VPC endpoints for Lambda to reach AWS services
-  create_vpc_endpoints       = true
+  # VPC endpoints for Lambda to reach AWS services (toggle to save costs)
+  create_vpc_endpoints       = var.enable_vpc_endpoints
   enable_single_az_endpoints = true
 }
 

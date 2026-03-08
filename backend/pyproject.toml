@@ -17,12 +17,16 @@ django-cors-headers = "^4.9.0"
 whitenoise = "^6.9.0"
 gunicorn = "^23.0.0"
 django-parler = "^2.3"
+boto3 = "^1.42.63"
+zappa = "^0.61.4"
+psycopg = {version = ">=3.2", extras = ["binary"]}
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.11.12"
 pytest = "^8.3.3"
 pytest-django = "^4.9.0"
 pytest-cov = "^6.0.0"
+boto3-stubs = "^1.42.63"
 
 [tool.ruff]
 target-version = "py314"

@@ -1,0 +1,122 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate required variables
+        run: |
+          missing=()
+          [ -z "${{ vars.AWS_ACCOUNT_ID }}" ] && missing+=(AWS_ACCOUNT_ID)
+          [ -z "${{ vars.ZAPPA_S3_BUCKET }}" ] && missing+=(ZAPPA_S3_BUCKET)
+          [ -z "${{ vars.ZAPPA_ROLE_NAME }}" ] && missing+=(ZAPPA_ROLE_NAME)
+          [ -z "${{ vars.VPC_SUBNET_IDS }}" ] && missing+=(VPC_SUBNET_IDS)
+          [ -z "${{ vars.VPC_SECURITY_GROUP_IDS }}" ] && missing+=(VPC_SECURITY_GROUP_IDS)
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing GitHub environment variables: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/github-actions-prod
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install Poetry
+        run: |
+          python3 -m pip install --user "poetry==2.1.3"
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          poetry install --no-interaction --no-ansi --only main
+
+      - name: Configure Zappa settings
+        working-directory: ./backend
+        env:
+          CI: true
+          AWS_REGION: us-east-1
+          ZAPPA_S3_BUCKET: ${{ vars.ZAPPA_S3_BUCKET }}
+          PRODUCTION_ASSETS_BUCKET: ${{ vars.PRODUCTION_ASSETS_BUCKET }}
+          USE_CUSTOM_DOCKER: true
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          VPC_SUBNET_IDS: ${{ vars.VPC_SUBNET_IDS }}
+          VPC_SECURITY_GROUP_IDS: ${{ vars.VPC_SECURITY_GROUP_IDS }}
+          DATABASE_SECRET_ARN: ${{ secrets.DATABASE_SECRET_ARN }}
+          DJANGO_SECRET_ARN: ${{ secrets.DJANGO_SECRET_ARN }}
+          ZAPPA_ROLE_NAME: ${{ vars.ZAPPA_ROLE_NAME }}
+        run: |
+          poetry run python scripts/configure_zappa.py
+
+      - name: Build and push Docker image
+        working-directory: ./backend
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          AWS_ACCOUNT: ${{ vars.AWS_ACCOUNT_ID }}
+        run: |
+          # Pull geolambda base image from ECR (or build if not cached)
+          docker pull $ECR_REGISTRY/geolambda:3.12.2 || \
+            bash scripts/build-docker.sh geolambda
+          docker tag $ECR_REGISTRY/geolambda:3.12.2 geolambda:3.12.2 || true
+
+          # Build and push application image
+          bash scripts/build-docker.sh prod
+
+      - name: Deploy with Zappa
+        working-directory: ./backend
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          IMAGE_URI="${ECR_REGISTRY}/terramedic-prod:latest"
+
+          if aws lambda get-function --function-name "terramedic-prod" 2>/dev/null; then
+            echo "Waiting for any in-progress updates to complete..."
+            aws lambda wait function-updated --function-name "terramedic-prod"
+            echo "Updating existing deployment..."
+            set +e
+            UPDATE_OUTPUT=$(poetry run zappa update prod --docker-image-uri "$IMAGE_URI" 2>&1)
+            UPDATE_STATUS=$?
+            set -e
+            echo "$UPDATE_OUTPUT"
+            if [ $UPDATE_STATUS -ne 0 ]; then
+              if echo "$UPDATE_OUTPUT" | grep -qiE 'ResourceConflict|concurrent'; then
+                echo "Retrying after concurrent update conflict..."
+                aws lambda wait function-updated --function-name "terramedic-prod"
+                poetry run zappa update prod --docker-image-uri "$IMAGE_URI"
+              else
+                exit $UPDATE_STATUS
+              fi
+            fi
+          else
+            echo "Creating new deployment..."
+            poetry run zappa deploy prod --docker-image-uri "$IMAGE_URI"
+          fi
+
+      - name: Run database migrations
+        working-directory: ./backend
+        run: |
+          poetry run zappa manage prod "migrate --noinput"

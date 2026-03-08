@@ -191,7 +191,7 @@ resource "aws_budgets_budget" "monthly" {
   # Add cost allocation tag to the budget
   cost_filter {
     name   = "TagKeyValue"
-    values = ["user:Project$$${var.prefix}"]
+    values = ["user:Project${"$"}${var.prefix}"]
   }
 
   # Early warning at 70% of budget

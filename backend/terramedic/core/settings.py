@@ -17,17 +17,25 @@ import dj_database_url
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+# Detect Lambda environment
+IS_LAMBDA = bool(os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
 
 # SECURITY WARNING: keep the secret key used in production secret!
 _is_testing = "pytest" in sys.modules or os.getenv("PYTEST_CURRENT_TEST")
-SECRET_KEY = os.getenv("SECRET_KEY", "")
-if not SECRET_KEY:
-    if DEBUG or _is_testing:
-        SECRET_KEY = "django-insecure-terramedic-dev-key-change-in-production"
-    else:
-        raise ValueError("SECRET_KEY environment variable is required in production")
+_raw_secret_key = os.getenv("SECRET_KEY", "")
+if IS_LAMBDA and _raw_secret_key:
+    from terramedic.core.secrets import resolve_secret
+
+    SECRET_KEY = resolve_secret(_raw_secret_key, "key")
+elif _raw_secret_key:
+    SECRET_KEY = _raw_secret_key
+elif DEBUG or _is_testing:
+    SECRET_KEY = "django-insecure-terramedic-dev-key-change-in-production"
+else:
+    raise ValueError("SECRET_KEY environment variable is required in production")
 
 # Parse ALLOWED_HOSTS from environment variable (comma-separated)
 allowed_hosts_env = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1")
@@ -40,6 +48,14 @@ if (
     or os.getenv("PYTEST_CURRENT_TEST")
 ):
     ALLOWED_HOSTS.append("testserver")
+
+# On Lambda, allow API Gateway invoke URLs
+if IS_LAMBDA:
+    _aws_region = (
+        os.getenv("AWS_REGION")
+        or os.getenv("AWS_DEFAULT_REGION", "us-east-1")
+    )
+    ALLOWED_HOSTS.append(f".execute-api.{_aws_region}.amazonaws.com")
 
 
 # Application definition
@@ -94,11 +110,20 @@ WSGI_APPLICATION = "terramedic.core.wsgi.application"
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 _database_url = os.getenv("DATABASE_URL", "")
+if IS_LAMBDA and _database_url:
+    from terramedic.core.secrets import resolve_secret
+
+    _database_url = resolve_secret(_database_url, "url")
+
 if _database_url:
     db_config = dj_database_url.parse(_database_url)
     # Use PostGIS backend for PostgreSQL
     if db_config.get("ENGINE") == "django.db.backends.postgresql":
         db_config["ENGINE"] = "django.contrib.gis.db.backends.postgis"
+    if IS_LAMBDA:
+        db_config["CONN_MAX_AGE"] = 0
+        db_config.setdefault("OPTIONS", {})
+        db_config["OPTIONS"]["connect_timeout"] = 5
     DATABASES = {"default": db_config}
 else:
     # Use SpatiaLite for local development
@@ -109,6 +134,11 @@ else:
         },
     }
 
+
+# GDAL/GEOS library paths for Lambda (from geolambda Docker image)
+if IS_LAMBDA:
+    GDAL_LIBRARY_PATH = os.getenv("GDAL_LIBRARY_PATH", "/opt/lib64/libgdal.so")
+    GEOS_LIBRARY_PATH = os.getenv("GEOS_LIBRARY_PATH", "/opt/lib64/libgeos_c.so")
 
 # Auto-detect SpatiaLite library path on macOS
 SPATIALITE_LIBRARY_PATH = os.getenv("SPATIALITE_LIBRARY_PATH", "")
@@ -168,7 +198,10 @@ PARLER_LANGUAGES = {
 # Static files (CSS, JavaScript, Images)
 
 STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT = (
+    "/var/task/staticfiles" if IS_LAMBDA
+    else str(BASE_DIR / "staticfiles")
+)
 
 
 # Default primary key field type
