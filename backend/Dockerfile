@@ -30,13 +30,12 @@ WORKDIR /app
 COPY --from=builder /usr/local/lib/python3.14/site-packages /usr/local/lib/python3.14/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 COPY . .
-
-RUN python manage.py collectstatic --noinput 2>/dev/null || true
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh && \
+    python manage.py collectstatic --noinput 2>/dev/null || true && \
+    chown -R app:app /app
 
 EXPOSE 8000
-
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
 
 USER app
 
