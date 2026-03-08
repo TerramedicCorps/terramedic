@@ -22,9 +22,9 @@ resource "aws_s3_bucket_public_access_block" "static_assets" {
   bucket = aws_s3_bucket.static_assets.id
 
   block_public_acls       = var.enable_cloudfront
-  block_public_policy     = false
+  block_public_policy     = var.enable_cloudfront
   ignore_public_acls      = var.enable_cloudfront
-  restrict_public_buckets = false
+  restrict_public_buckets = var.enable_cloudfront
 }
 
 # Bucket ownership controls
