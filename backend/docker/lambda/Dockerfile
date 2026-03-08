@@ -26,9 +26,16 @@ ENV PYTHONPATH=/var/task:$PYTHONPATH \
     LD_LIBRARY_PATH=/opt/lib:/opt/lib64:$LD_LIBRARY_PATH
 
 # Collect static files into the image (survives cold starts)
-# SECRET_KEY is needed for settings.py but not used by collectstatic
+# Build-time env overrides:
+#   SECRET_KEY      — settings.py requires it but collectstatic doesn't use it
+#   GDAL/GEOS paths — django.contrib.gis needs these; IS_LAMBDA is false at build time
+#   DATABASE_URL    — force plain SQLite so SpatiaLite (mod_spatialite) isn't loaded
 RUN mkdir -p /var/task/staticfiles && \
-    SECRET_KEY=build-only-dummy-key python manage.py collectstatic --noinput
+    SECRET_KEY=build-only-dummy-key \
+    GDAL_LIBRARY_PATH=/opt/lib64/libgdal.so \
+    GEOS_LIBRARY_PATH=/opt/lib64/libgeos_c.so \
+    DATABASE_URL=sqlite:////tmp/build.db \
+    python manage.py collectstatic --noinput
 
 # Pre-compile Python files for faster cold starts
 RUN python -m compileall -b terramedic
