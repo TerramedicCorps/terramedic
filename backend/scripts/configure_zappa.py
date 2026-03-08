@@ -63,6 +63,9 @@ def configure_zappa_settings(  # noqa: T201
             raise RuntimeError(msg)
 
     if use_custom_docker:
+        if not ecr_registry:
+            msg = "ECR_REGISTRY is required when USE_CUSTOM_DOCKER is true"
+            raise RuntimeError(msg)
         docker_image_key = "docker_image_uri"
         prod_docker_image = (
             f"{ecr_registry}/terramedic-prod:latest"
