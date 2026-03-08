@@ -52,7 +52,7 @@ OPTIONS:
     -h, --help               Show this help message
 
 EXAMPLES:
-    $0 --environment shared --github-org TerramedicCorps --github-repo terramedic --profile terramedic-shared --prod-account-id 214888068332 --dev-account-id 682120331907
+    $0 --environment shared --github-org TerramedicCorps --github-repo terramedic --profile terramedic-shared --prod-account-id PROD_ACCOUNT_ID --dev-account-id DEV_ACCOUNT_ID
     $0 --environment prod --github-org TerramedicCorps --github-repo terramedic --profile terramedic-prod
     $0 --environment dev --github-org TerramedicCorps --github-repo terramedic
 
