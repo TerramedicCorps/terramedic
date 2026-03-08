@@ -51,6 +51,11 @@ build_app() {
     exit 1
   fi
 
+  if [ ! -f zappa_settings.json ]; then
+    echo "[ERROR] zappa_settings.json not found. Run 'python scripts/configure_zappa.py' first." >&2
+    exit 1
+  fi
+
   aws ecr describe-repositories --repository-names "terramedic-${ENV}" --region "${AWS_REGION}" 2>/dev/null ||
     aws ecr create-repository --repository-name "terramedic-${ENV}" --region "${AWS_REGION}"
 
