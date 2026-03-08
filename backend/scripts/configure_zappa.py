@@ -74,6 +74,16 @@ def configure_zappa_settings(
         docker_image_key = "docker_image"
         prod_docker_image = "public.ecr.aws/lambda/python:3.14"
 
+    # Shared settings — Zappa's "extends" does a shallow merge, so
+    # nested dicts like environment_variables are replaced, not merged.
+    # We merge them explicitly here to avoid silent key loss.
+    base_env_vars = {
+        "IS_LAMBDA": "true",
+        "GDAL_DATA": "/opt/share/gdal",
+        "PROJ_LIB": "/opt/share/proj",
+        "LD_LIBRARY_PATH": "/opt/lib:/opt/lib64",
+    }
+
     settings: dict[str, dict[str, Any]] = {
         "base": {
             "aws_region": aws_region,
@@ -93,12 +103,7 @@ def configure_zappa_settings(
             "timeout_seconds": 30,
             "slim_handler": False,
             "use_precompiled_packages": False,
-            "environment_variables": {
-                "IS_LAMBDA": "true",
-                "GDAL_DATA": "/opt/share/gdal",
-                "PROJ_LIB": "/opt/share/proj",
-                "LD_LIBRARY_PATH": "/opt/lib:/opt/lib64",
-            },
+            "environment_variables": base_env_vars,
             "exclude": [
                 "*.gz", "*.rar", "*.zip", "*.tar",
                 ".git/*", "tests/*", "*.pyc",
@@ -128,21 +133,15 @@ def configure_zappa_settings(
             "keep_warm": True,
             "keep_warm_expression": "rate(4 minutes)",
             "environment_variables": {
-                "IS_LAMBDA": "true",
-                "GDAL_DATA": "/opt/share/gdal",
-                "PROJ_LIB": "/opt/share/proj",
-                "LD_LIBRARY_PATH": "/opt/lib:/opt/lib64",
+                **base_env_vars,
                 "ENVIRONMENT": "production",
                 "DEBUG": "false",
                 "AWS_STORAGE_BUCKET_NAME": assets_bucket,
             },
+            # ARNs resolved at runtime by secrets.py
             "aws_environment_variables": {
                 "DATABASE_URL": db_secret_arn,
                 "SECRET_KEY": django_secret_arn,
-            },
-            "apigateway_settings": {
-                "throttle_burst_limit": 100,
-                "throttle_rate_limit": 50,
             },
             "xray_tracing": True,
         },
