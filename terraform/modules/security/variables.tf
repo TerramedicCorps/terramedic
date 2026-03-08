@@ -12,7 +12,7 @@ variable "vpc_id" {
 variable "allowed_bastion_cidrs" {
   description = "List of CIDR blocks allowed to access the bastion host"
   type        = list(string)
-  default     = ["0.0.0.0/0"]
+  default     = []
 }
 
 variable "lambda_security_group_id" {
