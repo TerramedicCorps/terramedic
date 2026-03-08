@@ -31,7 +31,6 @@ def configure_zappa_settings(
         "ZAPPA_S3_BUCKET",
         "terramedic-prod-zappa-deployments",
     )
-    assets_bucket = get_env("PRODUCTION_ASSETS_BUCKET", "")
     zappa_role_name = get_env("ZAPPA_ROLE_NAME", "")
 
     vpc_subnet_ids = _parse_csv(get_env("VPC_SUBNET_IDS", ""))
@@ -164,7 +163,6 @@ def configure_zappa_settings(
                 **base_env_vars,
                 "ENVIRONMENT": "production",
                 "DEBUG": "false",
-                "AWS_STORAGE_BUCKET_NAME": assets_bucket,
             },
             # ARNs resolved at runtime by secrets.py
             "aws_environment_variables": {
