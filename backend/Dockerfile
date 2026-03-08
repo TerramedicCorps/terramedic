@@ -1,11 +1,11 @@
 FROM python:3.14-slim AS builder
 
-RUN pip install --no-cache-dir poetry
+RUN pip install --no-cache-dir poetry && \
+    poetry config virtualenvs.create false
 
 WORKDIR /app
 COPY pyproject.toml poetry.lock ./
-RUN poetry export -f requirements.txt -o requirements.txt --only main && \
-    pip install --no-cache-dir --prefix=/install -r requirements.txt
+RUN poetry install --only main --no-root --no-interaction
 
 FROM python:3.14-slim
 
@@ -26,7 +26,9 @@ RUN addgroup --system app && adduser --system --ingroup app app
 
 WORKDIR /app
 
-COPY --from=builder /install /usr/local
+# Copy installed Python packages from builder
+COPY --from=builder /usr/local/lib/python3.14/site-packages /usr/local/lib/python3.14/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 COPY . .
 
 RUN python manage.py collectstatic --noinput 2>/dev/null || true
