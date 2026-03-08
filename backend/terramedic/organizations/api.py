@@ -1,7 +1,12 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django.contrib.gis.db.models.functions import Distance
 from django.contrib.gis.geos import Point
 from django.http import HttpRequest
 from ninja import Query, Router
+from ninja.errors import HttpError
 
 from terramedic.organizations.models import Organization
 from terramedic.organizations.schemas import OrganizationOut
@@ -11,7 +16,10 @@ router = Router()
 
 def _serialize_org(
     org: Organization,
-) -> dict:
+) -> dict[str, Any]:
+    # Manual serialization needed because django-parler translated fields
+    # (description, action_text) require accessing the active language on the
+    # model instance; django-ninja's ModelSchema cannot resolve these.
     return {
         "id": org.pk,
         "name": org.name,
@@ -29,7 +37,7 @@ def _serialize_org(
 def list_organizations(
     request: HttpRequest,
     category: str | None = Query(None),  # noqa: B008
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     qs = Organization.objects.filter(
         is_active=True,
     ).prefetch_related("tags")
@@ -46,7 +54,7 @@ def nearby_organizations(
     lat: float = Query(..., ge=-90, le=90),  # noqa: B008
     lng: float = Query(..., ge=-180, le=180),  # noqa: B008
     radius: float = Query(..., description="Radius in km", ge=0.1, le=500),  # noqa: B008
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     point = Point(lng, lat, srid=4326)
     radius_m = radius * 1000
 
@@ -68,7 +76,7 @@ def nearby_organizations(
 def get_organization(
     request: HttpRequest,
     org_id: int,
-) -> dict:
+) -> dict[str, Any]:
     try:
         org = (
             Organization.objects.filter(is_active=True)
@@ -76,8 +84,6 @@ def get_organization(
             .get(pk=org_id)
         )
     except Organization.DoesNotExist as exc:
-        from ninja.errors import HttpError
-
         raise HttpError(404, "Organization not found") from exc
 
     return _serialize_org(org)
