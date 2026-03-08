@@ -23,7 +23,7 @@ COPY zappa_settings.json ./
 # Set Python path and library paths
 ENV PYTHONPATH=/var/task:$PYTHONPATH \
     DJANGO_SETTINGS_MODULE=terramedic.core.settings \
-    LD_LIBRARY_PATH=/opt/lib:/opt/lib64
+    LD_LIBRARY_PATH=/opt/lib:/opt/lib64:$LD_LIBRARY_PATH
 
 # Collect static files into the image (survives cold starts)
 # SECRET_KEY is needed for settings.py but not used by collectstatic
