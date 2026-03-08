@@ -203,6 +203,6 @@ for env in shared prod dev; do
 
   echo "# In terraform/environments/${env}/:"
   echo "terraform import module.github_oidc.aws_iam_openid_connect_provider.github[0] ${oidc_provider_arn}"
-  echo "terraform import module.github_oidc.aws_iam_role.github_actions terramedic-github-actions-${env}"
+  echo "terraform import module.github_oidc.aws_iam_role.github_actions github-actions-${env}"
   echo
 done
