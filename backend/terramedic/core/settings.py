@@ -135,10 +135,16 @@ else:
     }
 
 
-# GDAL/GEOS library paths for Lambda (from geolambda Docker image)
-if IS_LAMBDA:
-    GDAL_LIBRARY_PATH = os.getenv("GDAL_LIBRARY_PATH", "/opt/lib64/libgdal.so")
-    GEOS_LIBRARY_PATH = os.getenv("GEOS_LIBRARY_PATH", "/opt/lib64/libgeos_c.so")
+# GDAL/GEOS library paths (read from env so Docker build and Lambda both work)
+# On Lambda, default to the geolambda image paths; elsewhere, only set if explicit.
+_gdal_default = "/opt/lib64/libgdal.so" if IS_LAMBDA else ""
+_geos_default = "/opt/lib64/libgeos_c.so" if IS_LAMBDA else ""
+_gdal_path = os.getenv("GDAL_LIBRARY_PATH", _gdal_default)
+_geos_path = os.getenv("GEOS_LIBRARY_PATH", _geos_default)
+if _gdal_path:
+    GDAL_LIBRARY_PATH = _gdal_path
+if _geos_path:
+    GEOS_LIBRARY_PATH = _geos_path
 
 # Auto-detect SpatiaLite library path on macOS
 SPATIALITE_LIBRARY_PATH = os.getenv("SPATIALITE_LIBRARY_PATH", "")
