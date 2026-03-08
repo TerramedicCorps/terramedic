@@ -128,6 +128,10 @@ def configure_zappa_settings(  # noqa: T201
             "keep_warm": True,
             "keep_warm_expression": "rate(4 minutes)",
             "environment_variables": {
+                "IS_LAMBDA": "true",
+                "GDAL_DATA": "/opt/share/gdal",
+                "PROJ_LIB": "/opt/share/proj",
+                "LD_LIBRARY_PATH": "/opt/lib:/opt/lib64",
                 "ENVIRONMENT": "production",
                 "DEBUG": "false",
                 "AWS_STORAGE_BUCKET_NAME": assets_bucket,
