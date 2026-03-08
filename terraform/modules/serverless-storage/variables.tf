@@ -39,6 +39,12 @@ variable "enable_cloudfront" {
   default     = false
 }
 
+variable "enable_public_read" {
+  description = "Whether to allow public read access when CloudFront is disabled. Must be explicitly set to true."
+  type        = bool
+  default     = false
+}
+
 variable "cors_origins" {
   description = "Allowed CORS origins for the bucket"
   type        = list(string)

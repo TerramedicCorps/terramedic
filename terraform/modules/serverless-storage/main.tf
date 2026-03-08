@@ -51,14 +51,18 @@ resource "aws_s3_bucket_versioning" "assets" {
   }
 }
 
-# Public access block - block public access when CloudFront is enabled (use OAI instead)
+# Public access block - only allow public access when explicitly opted in without CloudFront
+locals {
+  block_public = var.enable_cloudfront || !var.enable_public_read
+}
+
 resource "aws_s3_bucket_public_access_block" "assets" {
   bucket = aws_s3_bucket.assets.id
 
-  block_public_acls       = var.enable_cloudfront
-  block_public_policy     = var.enable_cloudfront
-  ignore_public_acls      = var.enable_cloudfront
-  restrict_public_buckets = var.enable_cloudfront
+  block_public_acls       = local.block_public
+  block_public_policy     = local.block_public
+  ignore_public_acls      = local.block_public
+  restrict_public_buckets = local.block_public
 }
 
 # CORS configuration
@@ -103,8 +107,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "assets" {
   }
 }
 
-# Bucket policy - CloudFront OAI access when CDN is enabled, public read otherwise
+# Bucket policy - CloudFront OAI access when CDN is enabled, public read only if explicitly opted in
 resource "aws_s3_bucket_policy" "assets" {
+  count = var.enable_cloudfront || var.enable_public_read ? 1 : 0
+
   bucket = aws_s3_bucket.assets.id
 
   policy = var.enable_cloudfront ? jsonencode({
