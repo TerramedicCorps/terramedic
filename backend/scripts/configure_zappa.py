@@ -72,7 +72,7 @@ def configure_zappa_settings(  # noqa: T201
         )
     else:
         docker_image_key = "docker_image"
-        prod_docker_image = "public.ecr.aws/lambda/python:3.13"
+        prod_docker_image = "public.ecr.aws/lambda/python:3.14"
 
     settings: dict[str, dict[str, Any]] = {
         "base": {
