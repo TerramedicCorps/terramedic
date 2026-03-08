@@ -27,7 +27,7 @@ export async function fetchOrganizations(category?: string): Promise<Organizatio
       return [];
     }
 
-    return response.json();
+    return await response.json();
   } catch (error) {
     console.error('Failed to fetch organizations:', error);
     return [];
