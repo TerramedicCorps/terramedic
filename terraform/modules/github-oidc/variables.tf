@@ -55,6 +55,12 @@ variable "peering_account_ids" {
   default     = []
 }
 
+variable "cross_account_role_arns" {
+  description = "Additional cross-account IAM role ARNs to allow assuming (e.g., dns-manager)"
+  type        = list(string)
+  default     = []
+}
+
 variable "resource_prefix" {
   description = "Prefix for IAM resource ARN scoping"
   type        = string

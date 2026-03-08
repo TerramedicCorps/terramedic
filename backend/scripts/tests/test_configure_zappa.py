@@ -143,3 +143,34 @@ class TestConfigureZappaSettings:
         vpc = settings["base"]["vpc_config"]
         assert vpc["SubnetIds"] == ["subnet-1", "subnet-2"]
         assert vpc["SecurityGroupIds"] == ["sg-1"]
+
+    def test_domain_settings_when_env_vars_set(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        cert_arn = "arn:aws:acm:us-east-1:123:cert/abc"
+        monkeypatch.setenv("DOMAIN_NAME", "example.org")
+        monkeypatch.setenv("ACM_CERTIFICATE_ARN", cert_arn)
+
+        output = tmp_path / "zappa_settings.json"
+        configure_zappa_settings(output_path=output)
+
+        settings = json.loads(output.read_text())
+        assert settings["prod"]["domain"] == "api.example.org"
+        assert settings["dev"]["domain"] == "test-api.example.org"
+        assert settings["prod"]["certificate_arn"] == cert_arn
+        assert settings["dev"]["certificate_arn"] == cert_arn
+
+    def test_no_domain_settings_without_env_vars(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("DOMAIN_NAME", raising=False)
+        monkeypatch.delenv("ACM_CERTIFICATE_ARN", raising=False)
+
+        output = tmp_path / "zappa_settings.json"
+        configure_zappa_settings(output_path=output)
+
+        settings = json.loads(output.read_text())
+        assert "domain" not in settings["prod"]
+        assert "domain" not in settings["dev"]
+        assert "certificate_arn" not in settings["prod"]
+        assert "certificate_arn" not in settings["dev"]

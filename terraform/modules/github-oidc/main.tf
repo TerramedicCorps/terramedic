@@ -468,16 +468,19 @@ resource "aws_iam_role_policy" "infrastructure" {
         },
       ],
 
-      # --- STS: only if peering_account_ids is non-empty ---
-      length(var.peering_account_ids) > 0 ? [
+      # --- STS: cross-account role assumption (VPC peering, DNS, etc.) ---
+      length(concat(
+        [for id in var.peering_account_ids : "arn:aws:iam::${id}:role/vpc-peering-accepter"],
+        var.cross_account_role_arns,
+        )) > 0 ? [
         {
           Sid    = "STS"
           Effect = "Allow"
           Action = ["sts:AssumeRole"]
-          Resource = [
-            for account_id in var.peering_account_ids :
-            "arn:aws:iam::${account_id}:role/vpc-peering-accepter"
-          ]
+          Resource = concat(
+            [for id in var.peering_account_ids : "arn:aws:iam::${id}:role/vpc-peering-accepter"],
+            var.cross_account_role_arns,
+          )
         },
       ] : [],
     )

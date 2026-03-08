@@ -199,6 +199,7 @@ module "github_oidc" {
   enable_infrastructure_policy = true
   resource_prefix              = var.resource_prefix
   peering_account_ids          = [var.shared_account_id]
+  cross_account_role_arns      = [var.shared_dns_role_arn]
 }
 
 # ACM certificate for test-api subdomain (must be in same account as API Gateway)
@@ -236,38 +237,6 @@ resource "aws_acm_certificate_validation" "api" {
   validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
 }
 
-# API custom domain (conditional -- requires api_gateway_id from Zappa deployment)
-resource "aws_api_gateway_domain_name" "api" {
-  count = var.api_gateway_id != "" ? 1 : 0
-
-  domain_name              = "test-api.${var.domain_name}"
-  regional_certificate_arn = aws_acm_certificate_validation.api.certificate_arn
-
-  endpoint_configuration {
-    types = ["REGIONAL"]
-  }
-}
-
-resource "aws_api_gateway_base_path_mapping" "api" {
-  count = var.api_gateway_id != "" ? 1 : 0
-
-  api_id      = var.api_gateway_id
-  stage_name  = var.api_gateway_stage
-  domain_name = aws_api_gateway_domain_name.api[0].domain_name
-}
-
-# API DNS record in shared account's Route53 zone
-resource "aws_route53_record" "api" {
-  provider = aws.dns
-  count    = var.api_gateway_id != "" ? 1 : 0
-
-  zone_id = data.terraform_remote_state.shared.outputs.route53_zone_id
-  name    = "test-api.${var.domain_name}"
-  type    = "A"
-
-  alias {
-    name                   = aws_api_gateway_domain_name.api[0].regional_domain_name
-    zone_id                = aws_api_gateway_domain_name.api[0].regional_zone_id
-    evaluate_target_health = true
-  }
-}
+# API Gateway custom domain, base path mapping, and Route53 A record
+# are managed by the deploy workflow (post-deploy step) since the API Gateway
+# is created by Zappa, not Terraform. See .github/workflows/deploy.yml.

@@ -54,11 +54,7 @@ output "cloudfront_distribution_domain_name" {
   value       = module.storage.cloudfront_distribution_domain_name
 }
 
-# DNS
-output "api_domain_name" {
-  description = "Custom domain name for the API"
-  value       = var.api_gateway_id != "" ? aws_api_gateway_domain_name.api[0].domain_name : ""
-}
+# DNS (API Gateway custom domain is managed by the deploy workflow)
 
 # ACM
 output "acm_certificate_arn" {

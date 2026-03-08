@@ -40,6 +40,9 @@ def configure_zappa_settings(
     db_secret_arn = get_env("DATABASE_SECRET_ARN", "")
     django_secret_arn = get_env("DJANGO_SECRET_ARN", "")
 
+    domain_name = get_env("DOMAIN_NAME", "")
+    certificate_arn = get_env("ACM_CERTIFICATE_ARN", "")
+
     use_custom_docker = (
         get_env("USE_CUSTOM_DOCKER", "false").lower() == "true"
     )
@@ -141,6 +144,14 @@ def configure_zappa_settings(
                 "SECRET_KEY": django_secret_arn,
             },
             "xray_tracing": False,
+            **(
+                {
+                    "domain": f"test-api.{domain_name}",
+                    "certificate_arn": certificate_arn,
+                }
+                if domain_name and certificate_arn
+                else {}
+            ),
         },
         "prod": {
             "extends": "base",
@@ -161,6 +172,14 @@ def configure_zappa_settings(
                 "SECRET_KEY": django_secret_arn,
             },
             "xray_tracing": True,
+            **(
+                {
+                    "domain": f"api.{domain_name}",
+                    "certificate_arn": certificate_arn,
+                }
+                if domain_name and certificate_arn
+                else {}
+            ),
         },
     }
 
