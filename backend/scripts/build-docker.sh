@@ -6,12 +6,14 @@ set -e
 
 AWS_REGION=${AWS_REGION:-us-east-1}
 
-if [ -z "$AWS_ACCOUNT" ]; then
-  echo "[ERROR] AWS_ACCOUNT environment variable is not set" >&2
+AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID:-$AWS_ACCOUNT}
+
+if [ -z "$AWS_ACCOUNT_ID" ]; then
+  echo "[ERROR] AWS_ACCOUNT_ID environment variable is not set" >&2
   exit 1
 fi
 
-ECR_REGISTRY="${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 
 cd "$(dirname "$0")/.." || exit 1
 
