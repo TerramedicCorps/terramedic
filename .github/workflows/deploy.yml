@@ -85,11 +85,6 @@ jobs:
           # Build and push application image
           bash scripts/build-docker.sh prod
 
-      - name: Add Zappa to deployment environment
-        working-directory: ./backend
-        run: |
-          poetry add --no-interaction zappa
-
       - name: Deploy with Zappa
         working-directory: ./backend
         env:
