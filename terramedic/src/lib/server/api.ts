@@ -23,19 +23,13 @@ export async function fetchOrganizations(
   const query = params.toString();
   const url = `${API_BASE}/organizations/${query ? `?${query}` : ''}`;
 
-  try {
-    const headers: Record<string, string> = {};
-    if (acceptLanguage) headers['Accept-Language'] = acceptLanguage;
-    const response = await fetch(url, { headers });
+  const headers: Record<string, string> = {};
+  if (acceptLanguage) headers['Accept-Language'] = acceptLanguage;
+  const response = await fetch(url, { headers });
 
-    if (!response.ok) {
-      console.error(`API error: ${response.status}`);
-      return [];
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Failed to fetch organizations:', error);
-    return [];
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
   }
+
+  return await response.json();
 }

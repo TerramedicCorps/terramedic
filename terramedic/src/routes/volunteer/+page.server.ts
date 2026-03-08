@@ -3,9 +3,14 @@ import { submitForm } from '$lib/server/submit-form';
 import { fetchOrganizations } from '$lib/server/api';
 
 export const load: PageServerLoad = async ({ request }) => {
-  const lang = request.headers.get('accept-language') ?? undefined;
-  const organizations = await fetchOrganizations('volunteer', lang);
-  return { organizations };
+  const acceptLanguage = request.headers.get('accept-language') ?? undefined;
+  try {
+    const organizations = await fetchOrganizations('volunteer', acceptLanguage);
+    return { organizations };
+  } catch (error) {
+    console.error('Failed to load organizations:', error);
+    return { organizations: [] };
+  }
 };
 
 export const actions: Actions = {
