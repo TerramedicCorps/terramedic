@@ -36,7 +36,7 @@
       </p>
 
       <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {#each data.organizations as org (org.website_url)}
+        {#each data.organizations as org (org.id)}
           <OrganizationCard
             name={org.name}
             description={org.description}
