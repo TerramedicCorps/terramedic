@@ -1,0 +1,16 @@
+services:
+  api:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_SETTINGS_MODULE=terramedic.core.settings
+      - DEBUG=true
+      - CORS_ALLOWED_ORIGINS=http://localhost:5173
+      - SPATIALITE_LIBRARY_PATH=mod_spatialite
+      - LOAD_SEED_DATA=true
+    volumes:
+      - backend-data:/app/db
+
+volumes:
+  backend-data:

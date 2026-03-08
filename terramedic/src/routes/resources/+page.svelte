@@ -2,8 +2,8 @@
   import NavBar from '$lib/components/NavBar.svelte';
   import Footer from '$lib/components/Footer.svelte';
   import OrganizationCard from '$lib/components/OrganizationCard.svelte';
-  import { resourceOrgs } from '$lib/data/resource-orgs.js';
 
+  export let data;
   export let form;
 </script>
 
@@ -28,13 +28,13 @@
       </p>
 
       <div class="mx-auto mb-12 grid max-w-4xl gap-8 px-4 sm:px-6 md:grid-cols-2">
-        {#each resourceOrgs as org (org.websiteUrl)}
+        {#each data.organizations as org (org.id)}
           <OrganizationCard
             name={org.name}
             description={org.description}
-            websiteUrl={org.websiteUrl}
-            imageUrl={org.imageUrl}
-            actionText={org.actionText}
+            websiteUrl={org.website_url}
+            imageUrl={org.image_url}
+            actionText={org.action_text}
             tags={org.tags}
             tagColor="gold"
             buttonColor="gold"

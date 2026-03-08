@@ -21,6 +21,36 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Django backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          load: true
+          tags: terramedic-backend
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Start Django backend
+        working-directory: .
+        run: docker run -d --name backend -p 8000:8000 -e DEBUG=false -e SECRET_KEY=ci-test-key -e ALLOWED_HOSTS=localhost,127.0.0.1 -e LOAD_SEED_DATA=true terramedic-backend
+
+      - name: Wait for backend to be ready
+        working-directory: .
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/api/organizations/ > /dev/null 2>&1; then
+              echo "Backend is ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Backend failed to start"
+          docker logs backend
+          exit 1
+
       - name: Setup Node.js and Yarn
         uses: ./.github/actions/setup-node-yarn
 

@@ -1,5 +1,4 @@
 <script>
-  import { volunteerOrganizations } from '$lib/data/volunteer-orgs.js';
   import OrganizationCard from '$lib/components/OrganizationCard.svelte';
   import IconCard from '$lib/components/IconCard.svelte';
   import NavBar from '$lib/components/NavBar.svelte';
@@ -11,6 +10,7 @@
     GlobeOutline
   } from 'flowbite-svelte-icons';
 
+  export let data;
   export let form;
 </script>
 
@@ -36,14 +36,14 @@
       </p>
 
       <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {#each volunteerOrganizations as org (org.websiteUrl)}
+        {#each data.organizations as org (org.id)}
           <OrganizationCard
             name={org.name}
             description={org.description}
-            websiteUrl={org.websiteUrl}
-            imageUrl={org.imageUrl}
+            websiteUrl={org.website_url}
+            imageUrl={org.image_url}
             tags={org.tags}
-            actionText={org.actionText}
+            actionText={org.action_text}
           />
         {/each}
       </div>

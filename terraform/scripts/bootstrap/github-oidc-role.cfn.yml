@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  GitHub Actions OIDC provider and IAM role for Terramedic CI/CD.
+  This stack is created during bootstrap and later imported into Terraform.
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [shared, prod, dev]
+    Description: Environment name
+  GitHubOrg:
+    Type: String
+    Description: GitHub organization or user name
+  GitHubRepo:
+    Type: String
+    Description: GitHub repository name
+
+Conditions:
+  IsShared: !Equals [!Ref Environment, shared]
+  IsProd: !Equals [!Ref Environment, prod]
+
+Resources:
+  GitHubOIDCProvider:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        - ffffffffffffffffffffffffffffffffffffffff
+      Tags:
+        - Key: Name
+          Value: github-actions-oidc
+
+  GitHubActionsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "github-actions-${Environment}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Ref GitHubOIDCProvider
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+              StringLike:
+                token.actions.githubusercontent.com:sub:
+                  - !Sub "repo:${GitHubOrg}/${GitHubRepo}:environment:${Environment}"
+      Policies:
+        - PolicyName: TerraformBootstrapPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: TerraformStateAccess
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub "arn:aws:s3:::terramedic-terraform-state-${AWS::AccountId}"
+                  - !Sub "arn:aws:s3:::terramedic-terraform-state-${AWS::AccountId}/*"
+              - Sid: TerraformLockAccess
+                Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:DescribeTable
+                Resource:
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/terramedic-terraform-locks"
+      Tags:
+        - Key: Name
+          Value: !Sub "github-actions-${Environment}"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ManagedBy
+          Value: cloudformation-bootstrap
+
+Outputs:
+  RoleArn:
+    Description: ARN of the GitHub Actions OIDC role
+    Value: !GetAtt GitHubActionsRole.Arn
+  OIDCProviderArn:
+    Description: ARN of the GitHub OIDC provider
+    Value: !Ref GitHubOIDCProvider

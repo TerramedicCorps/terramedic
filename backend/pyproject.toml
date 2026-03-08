@@ -1,0 +1,70 @@
+[tool.poetry]
+name = "terramedic"
+version = "0.1.0"
+description = "Terramedic Django Backend"
+authors = ["Leila Hadj-Chikh <lhadjchikh@gmail.com>"]
+readme = "README.md"
+packages = [
+    { include = "terramedic" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.14"
+django = "^6.0.3"
+django-ninja = "^1.5.3"
+dj-database-url = "^3.1.2"
+django-cors-headers = "^4.9.0"
+whitenoise = "^6.9.0"
+gunicorn = "^23.0.0"
+django-parler = "^2.3"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.11.12"
+pytest = "^8.3.3"
+pytest-django = "^4.9.0"
+pytest-cov = "^6.0.0"
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "C90", "N", "B", "UP", "ANN", "A", "COM", "C4", "DTZ", "T10", "T20", "PT", "Q", "SIM", "ARG", "ERA"]
+ignore = [
+    "ARG001",  # Unused function argument - common in Django views/handlers
+    "ANN401",  # Allow Any in Django model save method *args, **kwargs
+]
+
+[tool.ruff.lint.per-file-ignores]
+"*/migrations/*.py" = ["E501", "ANN", "COM"]
+"*/tests/*.py" = ["ARG002"]  # Pytest fixtures are injected via parameter names
+
+[tool.ruff.lint.isort]
+known-first-party = ["terramedic"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "terramedic.core.settings"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+addopts = [
+    "--cov=terramedic",
+    "--cov-report=xml:coverage.xml",
+    "--cov-report=html:htmlcov",
+    "--cov-report=term-missing",
+    "--cov-fail-under=80",
+]
+
+[tool.coverage.run]
+source = ["terramedic"]
+omit = [
+    "**/migrations/*",
+    "**/tests/*",
+    "**/tests.py",
+    "**/test_*.py",
+    "**/*_tests.py",
+    "**/management/commands/*",
+    "terramedic/core/settings.py",
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

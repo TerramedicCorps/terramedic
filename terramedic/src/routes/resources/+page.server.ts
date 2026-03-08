@@ -1,5 +1,17 @@
-import type { Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 import { submitForm } from '$lib/server/submit-form';
+import { fetchOrganizations } from '$lib/server/api';
+
+export const load: PageServerLoad = async ({ request }) => {
+  const acceptLanguage = request.headers.get('accept-language') ?? undefined;
+  try {
+    const organizations = await fetchOrganizations('resource', acceptLanguage);
+    return { organizations };
+  } catch (error) {
+    console.error('Failed to load organizations:', error);
+    return { organizations: [] };
+  }
+};
 
 export const actions: Actions = {
   default: async ({ request }) => {
