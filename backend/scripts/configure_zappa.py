@@ -22,7 +22,7 @@ def _parse_csv(value: str) -> list[str]:
     return [s.strip() for s in value.split(",") if s.strip()]
 
 
-def configure_zappa_settings(  # noqa: T201
+def configure_zappa_settings(
     output_path: Path | None = None,
 ) -> None:
     aws_region = get_env("AWS_REGION", "us-east-1")
