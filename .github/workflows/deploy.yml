@@ -118,8 +118,3 @@ jobs:
         working-directory: ./backend
         run: |
           poetry run zappa manage prod "migrate --noinput"
-
-      - name: Collect static files
-        working-directory: ./backend
-        run: |
-          poetry run zappa manage prod "collectstatic --noinput"
