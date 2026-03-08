@@ -51,7 +51,11 @@ if (
 
 # On Lambda, allow API Gateway invoke URLs
 if IS_LAMBDA:
-    ALLOWED_HOSTS.append(".execute-api.us-east-1.amazonaws.com")
+    _aws_region = (
+        os.getenv("AWS_REGION")
+        or os.getenv("AWS_DEFAULT_REGION", "us-east-1")
+    )
+    ALLOWED_HOSTS.append(f".execute-api.{_aws_region}.amazonaws.com")
 
 
 # Application definition
