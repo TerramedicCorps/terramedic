@@ -2,7 +2,7 @@
 
 # Build and push Docker images for Lambda deployment
 
-set -e
+set -eo pipefail
 
 AWS_REGION=${AWS_REGION:-us-east-1}
 
