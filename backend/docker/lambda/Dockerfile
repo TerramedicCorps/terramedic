@@ -6,7 +6,7 @@ FROM ${ECR_REGISTRY}/geolambda:3.12.2 AS app
 WORKDIR /var/task
 
 # Install Poetry for dependency management
-RUN pip install --no-cache-dir poetry
+RUN pip install --no-cache-dir poetry==2.1.3
 
 # Copy dependency files first (for better caching)
 COPY pyproject.toml poetry.lock ./
