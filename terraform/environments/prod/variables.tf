@@ -125,7 +125,7 @@ variable "alert_email" {
 variable "budget_limit_amount" {
   description = "Monthly budget limit amount in USD"
   type        = string
-  default     = "100"
+  default     = "30"
 }
 
 # GitHub OIDC
