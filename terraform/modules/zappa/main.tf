@@ -71,12 +71,15 @@ resource "aws_security_group" "lambda" {
   description = "Security group for Lambda functions"
   vpc_id      = var.vpc_id
 
-  # Allow outbound traffic to RDS
-  egress {
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
-    cidr_blocks = var.database_subnet_cidrs
+  # Allow outbound traffic to RDS (only if database CIDRs are provided)
+  dynamic "egress" {
+    for_each = length(var.database_subnet_cidrs) > 0 ? [1] : []
+    content {
+      from_port   = 5432
+      to_port     = 5432
+      protocol    = "tcp"
+      cidr_blocks = var.database_subnet_cidrs
+    }
   }
 
   # Allow outbound HTTPS for AWS services
