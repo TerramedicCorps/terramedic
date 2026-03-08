@@ -71,6 +71,7 @@ jobs:
           ZAPPA_ROLE_NAME: ${{ vars.ZAPPA_ROLE_NAME }}
         run: |
           poetry run python scripts/configure_zappa.py
+          poetry run zappa save-python-settings-file prod
 
       - name: Build and push Docker image
         working-directory: ./backend
