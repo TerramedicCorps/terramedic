@@ -27,7 +27,9 @@ jobs:
       TF_VAR_app_db_password: ${{ secrets.APP_DB_PASSWORD }}
       TF_VAR_site_password: ${{ secrets.SITE_PASSWORD }}
       TF_VAR_shared_peering_role_arn: ${{ secrets.SHARED_PEERING_ROLE_ARN }}
+      TF_VAR_shared_dns_role_arn: ${{ secrets.SHARED_DNS_ROLE_ARN }}
       TF_VAR_shared_account_id: ${{ vars.SHARED_ACCOUNT_ID }}
+      TF_VAR_domain_name: ${{ vars.DOMAIN_NAME }}
       TF_VAR_github_repo: ${{ vars.REPO_FULL_NAME }}
       TF_VAR_alert_email: ${{ vars.TF_VAR_ALERT_EMAIL }}
       TF_VAR_enable_vpc_endpoints: ${{ github.event.inputs.vpc_endpoints == 'enable' && 'true' || 'false' }}
