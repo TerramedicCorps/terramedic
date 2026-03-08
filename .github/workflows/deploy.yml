@@ -178,7 +178,7 @@ jobs:
             --domain-name "$API_DOMAIN" \
             --query 'regionalHostedZoneId' --output text 2>/dev/null) || true
 
-          if [ -z "$REGIONAL_DOMAIN" ] || [ "$REGIONAL_DOMAIN" = "None" ]; then
+          if [ -z "$REGIONAL_DOMAIN" ] || [ "$REGIONAL_DOMAIN" = "None" ] || [ -z "$REGIONAL_ZONE_ID" ] || [ "$REGIONAL_ZONE_ID" = "None" ]; then
             echo "::warning::Regional domain not available yet for $API_DOMAIN, skipping DNS record"
             exit 0
           fi
