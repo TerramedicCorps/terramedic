@@ -43,7 +43,7 @@ resource "aws_secretsmanager_secret" "secret_key" {
 resource "aws_secretsmanager_secret_version" "db_url" {
   secret_id = aws_secretsmanager_secret.db_url.id
   secret_string = jsonencode({
-    url      = "postgis://${var.app_db_username}:${var.app_db_password}@${var.db_endpoint}/${var.db_name}"
+    url      = "postgis://${var.app_db_username}:${var.app_db_password}@${var.db_endpoint}/${var.db_name}?sslmode=require"
     username = var.app_db_username
     password = var.app_db_password
     host     = split(":", var.db_endpoint)[0]

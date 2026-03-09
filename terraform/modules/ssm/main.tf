@@ -66,7 +66,7 @@ resource "aws_ssm_parameter" "db_url" {
   tier        = "Standard" # Free tier (< 4KB)
 
   # Connection string with environment-specific database name
-  value = "postgis://${var.app_db_username}:${var.app_db_password}@${var.db_endpoint}/${var.db_name_prefix}_${each.key}"
+  value = "postgis://${var.app_db_username}:${var.app_db_password}@${var.db_endpoint}/${var.db_name_prefix}_${each.key}?sslmode=require"
 
   tags = merge(
     var.tags,
