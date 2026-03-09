@@ -56,6 +56,7 @@ if IS_LAMBDA:
         or os.getenv("AWS_DEFAULT_REGION", "us-east-1")
     )
     ALLOWED_HOSTS.append(f".execute-api.{_aws_region}.amazonaws.com")
+    ALLOWED_HOSTS.append(".terramedic.org")
 
 
 # Application definition
