@@ -59,7 +59,7 @@
 
     <!-- Main Content Section -->
     <section class="section container-narrow">
-      <h2 class="section-title text-white">Mother Earth is hurting.<br />But you can help.</h2>
+      <h2 class="section-title text-white">Mother Earth is hurting.<br />But you can help her.</h2>
 
       <!-- Take Action Section -->
       <div id="take-action" class="mt-16 mb-16 scroll-mt-20 pt-4">
