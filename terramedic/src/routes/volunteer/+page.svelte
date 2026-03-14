@@ -59,6 +59,8 @@
             websiteUrl={org.website_url}
             imageUrl={org.image_url}
             tags={org.tags}
+            tagColor="blue"
+            buttonColor="blue"
             actionText={org.action_text}
           />
         {/each}
