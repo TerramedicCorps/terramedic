@@ -22,6 +22,17 @@
     name="description"
     content="Find your career in healing the planet. Browse job boards for roles in clean energy, conservation, sustainability, environmental policy, and more."
   />
+  <meta property="og:title" content="Careers in Healing the Planet | Terramedic" />
+  <meta
+    property="og:description"
+    content="Find your career in healing the planet. Browse job boards for roles in clean energy, conservation, sustainability, and more."
+  />
+  <meta property="og:url" content="https://terramedic.org/careers" />
+  <meta name="twitter:title" content="Careers in Healing the Planet | Terramedic" />
+  <meta
+    name="twitter:description"
+    content="Find your career in healing the planet. Browse job boards for roles in clean energy, conservation, sustainability, and more."
+  />
 </svelte:head>
 
 <div class="bg-space-black flex min-h-screen flex-col">

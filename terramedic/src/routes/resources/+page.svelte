@@ -13,7 +13,18 @@
   <title>Resources for Advocates | Terramedic</title>
   <meta
     name="description"
-    content="Tools, research, and support for those already engaged in advocacy work. Find communication strategies, data resources, and organizations that help amplify your impact."
+    content="Tools, research, and support for those already engaged in advocacy. Find communication strategies, data resources, and organizations that amplify your impact."
+  />
+  <meta property="og:title" content="Resources for Advocates | Terramedic" />
+  <meta
+    property="og:description"
+    content="Tools, research, and support for those already engaged in advocacy. Find strategies and resources that amplify your impact."
+  />
+  <meta property="og:url" content="https://terramedic.org/resources" />
+  <meta name="twitter:title" content="Resources for Advocates | Terramedic" />
+  <meta
+    name="twitter:description"
+    content="Tools, research, and support for those already engaged in advocacy. Find strategies and resources that amplify your impact."
   />
 </svelte:head>
 

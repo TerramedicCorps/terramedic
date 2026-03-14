@@ -12,6 +12,17 @@
     name="description"
     content="Terramedic's privacy policy explains how we collect, use, and protect your information, including our cookie consent practices and use of Google Analytics."
   />
+  <meta property="og:title" content="Privacy Policy | Terramedic" />
+  <meta
+    property="og:description"
+    content="Terramedic's privacy policy explains how we collect, use, and protect your information."
+  />
+  <meta property="og:url" content="https://terramedic.org/privacy" />
+  <meta name="twitter:title" content="Privacy Policy | Terramedic" />
+  <meta
+    name="twitter:description"
+    content="Terramedic's privacy policy explains how we collect, use, and protect your information."
+  />
 </svelte:head>
 
 <div class="bg-space-black flex min-h-screen flex-col">

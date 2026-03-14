@@ -20,7 +20,18 @@
   <title>Donate to Make a Difference | Terramedic</title>
   <meta
     name="description"
-    content="Support organizations working for a cleaner, safer world through donations and make a financial impact."
+    content="Put your money to work for a healthier planet. Support vetted organizations driving real change through advocacy, voter mobilization, and grassroots action."
+  />
+  <meta property="og:title" content="Donate to Make a Difference | Terramedic" />
+  <meta
+    property="og:description"
+    content="Put your money to work for a healthier planet. Support vetted organizations driving real change."
+  />
+  <meta property="og:url" content="https://terramedic.org/donate" />
+  <meta name="twitter:title" content="Donate to Make a Difference | Terramedic" />
+  <meta
+    name="twitter:description"
+    content="Put your money to work for a healthier planet. Support vetted organizations driving real change."
   />
 </svelte:head>
 

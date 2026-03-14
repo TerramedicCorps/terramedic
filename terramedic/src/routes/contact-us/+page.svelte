@@ -13,6 +13,17 @@
     name="description"
     content="Have questions or want to collaborate? Reach out to the Terramedic team with feedback, partnership ideas, or general inquiries. We'd love to hear from you."
   />
+  <meta property="og:title" content="Contact Us | Terramedic" />
+  <meta
+    property="og:description"
+    content="Have questions or want to collaborate? Reach out to the Terramedic team. We'd love to hear from you."
+  />
+  <meta property="og:url" content="https://terramedic.org/contact-us" />
+  <meta name="twitter:title" content="Contact Us | Terramedic" />
+  <meta
+    name="twitter:description"
+    content="Have questions or want to collaborate? Reach out to the Terramedic team. We'd love to hear from you."
+  />
 </svelte:head>
 
 <div class="bg-space-black flex min-h-screen flex-col">

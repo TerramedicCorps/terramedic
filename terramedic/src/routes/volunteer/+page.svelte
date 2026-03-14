@@ -20,6 +20,17 @@
   <title>Volunteer Opportunities | Terramedic</title>
   <meta
     name="description"
+    content="Find opportunities to volunteer your time and skills to organizations making the world cleaner, safer, and healthier. Even a few hours a month makes a difference."
+  />
+  <meta property="og:title" content="Volunteer Opportunities | Terramedic" />
+  <meta
+    property="og:description"
+    content="Find opportunities to volunteer your time and skills to organizations making the world cleaner, safer, and healthier."
+  />
+  <meta property="og:url" content="https://terramedic.org/volunteer" />
+  <meta name="twitter:title" content="Volunteer Opportunities | Terramedic" />
+  <meta
+    name="twitter:description"
     content="Find opportunities to volunteer your time and skills to organizations making the world cleaner, safer, and healthier."
   />
 </svelte:head>

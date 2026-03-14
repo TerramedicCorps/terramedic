@@ -34,6 +34,17 @@
     name="description"
     content="Learn about warming stripes, the powerful visualization of rising global temperatures created by climate scientist Ed Hawkins, and the science behind them."
   />
+  <meta property="og:title" content="Understanding Warming Stripes | Terramedic" />
+  <meta
+    property="og:description"
+    content="Learn about warming stripes, the powerful visualization of rising global temperatures created by climate scientist Ed Hawkins."
+  />
+  <meta property="og:url" content="https://terramedic.org/warming-stripes" />
+  <meta name="twitter:title" content="Understanding Warming Stripes | Terramedic" />
+  <meta
+    name="twitter:description"
+    content="Learn about warming stripes, the powerful visualization of rising global temperatures created by climate scientist Ed Hawkins."
+  />
 </svelte:head>
 
 <div class="bg-space-black flex min-h-screen flex-col">

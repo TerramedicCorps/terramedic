@@ -22,7 +22,18 @@
   <title>Start Where You Are | Terramedic</title>
   <meta
     name="description"
-    content="No spare time or money? You can still make a difference. Discover everyday actions, conversation starters, and small steps that add up to meaningful change for the planet."
+    content="No spare time or money? You can still make a difference. Discover everyday actions and small steps that add up to meaningful change."
+  />
+  <meta property="og:title" content="Start Where You Are | Terramedic" />
+  <meta
+    property="og:description"
+    content="No spare time or money? You can still make a difference. Discover everyday actions and small steps that add up."
+  />
+  <meta property="og:url" content="https://terramedic.org/other-actions" />
+  <meta name="twitter:title" content="Start Where You Are | Terramedic" />
+  <meta
+    name="twitter:description"
+    content="No spare time or money? You can still make a difference. Discover everyday actions and small steps that add up."
   />
 </svelte:head>
 

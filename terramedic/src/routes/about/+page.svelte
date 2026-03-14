@@ -2,6 +2,7 @@
   import ActionButton from '$lib/components/ActionButton.svelte';
   import Footer from '$lib/components/Footer.svelte';
   import NavBar from '$lib/components/NavBar.svelte';
+  import { trackSectionView } from '$lib/utils/analytics';
 
   export let form;
 </script>
@@ -11,6 +12,17 @@
   <title>About Terramedic Corps | Terramedic</title>
   <meta
     name="description"
+    content="Terramedic turns awareness into action by connecting people who want to heal our planet with meaningful ways to make a difference."
+  />
+  <meta property="og:title" content="About Terramedic Corps | Terramedic" />
+  <meta
+    property="og:description"
+    content="Terramedic turns awareness into action by connecting people who want to heal our planet with meaningful ways to make a difference."
+  />
+  <meta property="og:url" content="https://terramedic.org/about" />
+  <meta name="twitter:title" content="About Terramedic Corps | Terramedic" />
+  <meta
+    name="twitter:description"
     content="Terramedic turns awareness into action by connecting people who want to heal our planet with meaningful ways to make a difference."
   />
 </svelte:head>
@@ -24,7 +36,10 @@
         About Terramedic Corps
       </h1>
 
-      <div class="bg-navy mb-16 rounded-lg p-8 shadow-sm">
+      <div
+        class="bg-navy mb-16 rounded-lg p-8 shadow-sm"
+        use:trackSectionView={{ section: 'what_we_do', page: 'about' }}
+      >
         <div class="flex flex-col items-center md:flex-row">
           <!-- Image on the left -->
           <div class="relative mb-6 flex w-full justify-center md:mr-8 md:mb-0 md:w-1/3">
@@ -42,7 +57,10 @@
         </div>
       </div>
 
-      <div class="bg-navy mb-16 rounded-lg p-8 shadow-sm">
+      <div
+        class="bg-navy mb-16 rounded-lg p-8 shadow-sm"
+        use:trackSectionView={{ section: 'word_terramedic', page: 'about' }}
+      >
         <h2 class="mb-4 text-xl font-bold text-white md:text-2xl">The Word "Terramedic"</h2>
         <p class="mb-4 text-gray-300">
           The word "terramedic" was coined by Leila Hadj-Chikh as the name for her team at
@@ -75,7 +93,10 @@
         </p>
       </div>
 
-      <div class="bg-navy mb-16 rounded-lg p-6 shadow-sm">
+      <div
+        class="bg-navy mb-16 rounded-lg p-6 shadow-sm"
+        use:trackSectionView={{ section: 'take_action', page: 'about' }}
+      >
         <div class="flex flex-col md:flex-row">
           <div class="w-full pr-0 md:w-3/5 md:pr-8">
             <h2 class="mb-4 text-xl font-bold text-white md:text-2xl">Take Action Now</h2>
