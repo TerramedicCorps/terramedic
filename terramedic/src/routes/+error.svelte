@@ -10,7 +10,7 @@
     href="/"
     class="bg-terra-green mb-12 inline-block rounded-lg px-8 py-3 text-lg font-semibold text-[#0a0e17] transition-colors hover:bg-green-400"
   >
-    Take me home
+    Take me Home!
   </a>
   <img
     src="/images/blue-marble.jpg"
