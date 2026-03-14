@@ -9,18 +9,18 @@
 
 <svelte:head>
   <link rel="canonical" href="https://terramedic.org/about" />
-  <title>About Terramedic Corps | Terramedic</title>
+  <title>About Terramedic.org | Terramedic</title>
   <meta
     name="description"
     content="Terramedic turns awareness into action by connecting people who want to heal our planet with meaningful ways to make a difference."
   />
-  <meta property="og:title" content="About Terramedic Corps | Terramedic" />
+  <meta property="og:title" content="About Terramedic.org | Terramedic" />
   <meta
     property="og:description"
     content="Terramedic turns awareness into action by connecting people who want to heal our planet with meaningful ways to make a difference."
   />
   <meta property="og:url" content="https://terramedic.org/about" />
-  <meta name="twitter:title" content="About Terramedic Corps | Terramedic" />
+  <meta name="twitter:title" content="About Terramedic.org | Terramedic" />
   <meta
     name="twitter:description"
     content="Terramedic turns awareness into action by connecting people who want to heal our planet with meaningful ways to make a difference."
@@ -33,7 +33,7 @@
   <main class="flex-grow">
     <div class="container-narrow py-12">
       <h1 class="mb-12 text-center text-3xl font-bold text-white md:text-4xl lg:text-5xl">
-        About Terramedic Corps
+        About Terramedic.org
       </h1>
 
       <div
@@ -50,7 +50,7 @@
           <div class="w-full md:w-2/3">
             <h2 class="mb-4 text-xl font-bold text-white md:text-2xl">What We Do</h2>
             <p class="mb-4 text-gray-300">
-              Terramedic turns awareness into action by connecting people who want to heal our
+              Terramedic.org turns awareness into action by connecting people who want to heal our
               planet with meaningful ways to make a difference.
             </p>
           </div>
@@ -61,9 +61,13 @@
         class="bg-navy mb-16 rounded-lg p-8 shadow-sm"
         use:trackSectionView={{ section: 'word_terramedic', page: 'about' }}
       >
-        <h2 class="mb-4 text-xl font-bold text-white md:text-2xl">The Word "Terramedic"</h2>
+        <h2 class="mb-4 text-xl font-bold text-white md:text-2xl">What's a "terramedic"?</h2>
+        <p class="mb-6 text-lg text-white italic">
+          <strong>terramedic</strong> <span class="text-gray-400">(noun)</span> — from Latin
+          <em>terra</em> (earth) + <em>medicus</em> (healer). A person who takes action to heal the Earth.
+        </p>
         <p class="mb-4 text-gray-300">
-          The word "terramedic" was coined by Leila Hadj-Chikh as the name for her team at
+          The word "terramedics" was coined by Leila Hadj-Chikh as the name for her team at
           <a
             href="https://www.conservationxlabs.com/"
             target="_blank"
@@ -78,19 +82,15 @@
           >
           competition at the inaugural Earth Optimism Summit in 2017 in Washington, DC.
         </p>
-        <p class="mb-4 text-gray-300">
+        <p class="text-gray-300">
           The term is intentionally placed in the public domain under
           <a
             href="https://creativecommons.org/publicdomain/zero/1.0/"
             target="_blank"
             rel="noopener noreferrer"
             class="text-terra-green hover:underline">CC0 1.0 Universal</a
-          >. It is free for anyone to use, share, adapt, and apply in any context — without
-          restriction or attribution.
-        </p>
-        <p class="text-gray-300">
-          We encourage everyone to use "terramedics" to describe individuals and communities caring
-          for the Earth.
+          >. It is a term anyone should be free to use — not a trademark or proprietary label.
+          Anyone who takes action to heal the Earth deserves the title terramedic.
         </p>
       </div>
 
