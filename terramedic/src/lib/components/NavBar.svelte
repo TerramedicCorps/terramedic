@@ -43,10 +43,10 @@
             class="nav-item about-dropdown-trigger"
             active={activeUrl === '/about' || activeUrl === '/warming-stripes'}
           >
-            <span class="nav-link about-link">
+            <button class="nav-link about-link" aria-haspopup="true">
               About
               <ChevronDownOutline class="ms-1 h-3 w-3" />
-            </span>
+            </button>
           </NavLi>
           <Dropdown class="z-50 rounded-lg border border-white/10 bg-[#0f1829] shadow-lg">
             <DropdownItem href="/about" class="dropdown-link">Terramedic Corps</DropdownItem>
@@ -101,6 +101,9 @@
   :global(.navbar-background .about-link) {
     display: inline-flex;
     align-items: center;
+    background: none;
+    border: none;
+    cursor: pointer;
   }
 
   :global(.navbar-background .nav-item:hover .nav-link) {
