@@ -37,7 +37,8 @@
     <div class="container-narrow flex flex-col items-center gap-4 sm:flex-row">
       <p class="flex-1 text-sm text-gray-300">
         We use cookies to understand how visitors interact with our site so we can improve the
-        experience. No personal information is shared with third parties.
+        experience. No personal information is shared with third parties. See our
+        <a href="/privacy" class="text-terra-green hover:underline">privacy policy</a>.
       </p>
       <div class="flex gap-3">
         <button
