@@ -46,7 +46,7 @@
             class="nav-item about-dropdown-trigger"
             active={activeUrl === '/about' || activeUrl === '/warming-stripes'}
           >
-            <span class="nav-link inline-flex items-center">
+            <span class="nav-link about-link">
               About
               <ChevronDownOutline class="ms-1 h-3 w-3" />
             </span>
@@ -99,6 +99,11 @@
     white-space: nowrap;
     display: block;
     width: 100%;
+  }
+
+  :global(.navbar-background .about-link) {
+    display: inline-flex;
+    align-items: center;
   }
 
   :global(.navbar-background .nav-item:hover .nav-link) {
