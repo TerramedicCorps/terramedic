@@ -17,21 +17,21 @@
 
 <svelte:head>
   <link rel="canonical" href="https://terramedic.org/careers" />
-  <title>Careers in Healing the Planet | Terramedic</title>
+  <title>Environmental Careers & Job Boards | Terramedic</title>
   <meta
     name="description"
-    content="Find your career in healing the planet. Browse job boards for roles in clean energy, conservation, sustainability, environmental policy, and more."
+    content="Browse job boards for environmental careers in clean energy, conservation, sustainability, environmental policy, and more. Find your next role at organizations healing the planet."
   />
-  <meta property="og:title" content="Careers in Healing the Planet | Terramedic" />
+  <meta property="og:title" content="Environmental Careers & Job Boards | Terramedic" />
   <meta
     property="og:description"
-    content="Find your career in healing the planet. Browse job boards for roles in clean energy, conservation, sustainability, and more."
+    content="Browse job boards for environmental careers in clean energy, conservation, sustainability, and more."
   />
   <meta property="og:url" content="https://terramedic.org/careers" />
-  <meta name="twitter:title" content="Careers in Healing the Planet | Terramedic" />
+  <meta name="twitter:title" content="Environmental Careers & Job Boards | Terramedic" />
   <meta
     name="twitter:description"
-    content="Find your career in healing the planet. Browse job boards for roles in clean energy, conservation, sustainability, and more."
+    content="Browse job boards for environmental careers in clean energy, conservation, sustainability, and more."
   />
 </svelte:head>
 
@@ -41,7 +41,7 @@
   <main class="flex-grow">
     <div class="container-narrow py-12">
       <h1 class="mb-4 text-center text-3xl font-bold text-white md:text-4xl lg:text-5xl">
-        Careers in Healing the Planet
+        Make It Your Job
       </h1>
       <p class="mx-auto mb-10 max-w-2xl text-center text-lg text-balance text-gray-400">
         Turn your passion into your profession. These job boards connect you with organizations
