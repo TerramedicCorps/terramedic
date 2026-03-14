@@ -8,7 +8,7 @@
   </h1>
   <a
     href="/"
-    class="bg-terra-green mb-12 inline-block rounded-lg px-8 py-3 text-lg font-semibold text-white transition-colors hover:bg-green-600"
+    class="bg-terra-green mb-12 inline-block rounded-lg px-8 py-3 text-lg font-semibold text-[#0a0e17] transition-colors hover:bg-green-400"
   >
     Take me home
   </a>
