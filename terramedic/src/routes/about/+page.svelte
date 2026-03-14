@@ -75,7 +75,14 @@
             target="_blank"
             rel="noopener noreferrer"
             class="text-terra-green hover:underline">Make for the Planet</a
-          > competition at the inaugural Earth Optimism Summit in 2017.
+          >
+          competition at the inaugural
+          <a
+            href="https://earthoptimism.si.edu/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-terra-green hover:underline">Earth Optimism Summit</a
+          > in 2017.
         </p>
         <p class="mb-4 text-gray-300">
           The term is intentionally placed in the public domain under
