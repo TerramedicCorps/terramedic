@@ -1,6 +1,11 @@
 import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 
+// Mock $env/dynamic/public for analytics module
+vi.mock('$env/dynamic/public', () => ({
+  env: { PUBLIC_GA_MEASUREMENT_ID: '' }
+}));
+
 // required for svelte5 + jsdom as jsdom does not support matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

@@ -2,9 +2,9 @@
  * Google Analytics utility functions for tracking page views and events
  */
 
-import { PUBLIC_GA_MEASUREMENT_ID } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 
-export const GA_MEASUREMENT_ID = PUBLIC_GA_MEASUREMENT_ID;
+export const GA_MEASUREMENT_ID = env.PUBLIC_GA_MEASUREMENT_ID ?? '';
 
 /**
  * Dynamically load the Google Analytics gtag.js script and initialize it.

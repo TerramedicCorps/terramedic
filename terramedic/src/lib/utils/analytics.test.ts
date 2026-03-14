@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 
-// Mock $env/static/public before importing analytics
-vi.mock('$env/static/public', () => ({
-  PUBLIC_GA_MEASUREMENT_ID: 'G-TEST123'
+// Mock $env/dynamic/public before importing analytics
+vi.mock('$env/dynamic/public', () => ({
+  env: { PUBLIC_GA_MEASUREMENT_ID: 'G-TEST123' }
 }));
 
 describe('analytics (server environment)', () => {
