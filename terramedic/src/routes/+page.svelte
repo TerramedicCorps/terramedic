@@ -115,7 +115,7 @@
               </p>
               <div class="mt-6 flex justify-center md:justify-start">
                 <Button
-                  href="/about"
+                  href="/warming-stripes"
                   color="none"
                   class="bg-btn-blue font-medium text-white hover:bg-[#0d47a1]"
                 >

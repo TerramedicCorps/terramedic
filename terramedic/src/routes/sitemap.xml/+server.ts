@@ -6,6 +6,7 @@ export const GET: RequestHandler = async () => {
   const pages: string[] = [
     '/',
     '/about',
+    '/warming-stripes',
     '/volunteer',
     '/donate',
     '/other-actions',
