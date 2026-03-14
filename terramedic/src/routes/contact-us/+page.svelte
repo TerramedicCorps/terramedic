@@ -7,6 +7,7 @@
 </script>
 
 <svelte:head>
+  <link rel="canonical" href="https://terramedic.org/contact-us" />
   <title>Contact Us | Terramedic</title>
   <meta
     name="description"

@@ -36,6 +36,7 @@
 </script>
 
 <svelte:head>
+  <link rel="canonical" href="https://terramedic.org/" />
   <title>Terramedic | Heal the Earth</title>
   <meta
     name="description"

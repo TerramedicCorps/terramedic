@@ -6,6 +6,7 @@
 </script>
 
 <svelte:head>
+  <link rel="canonical" href="https://terramedic.org/privacy" />
   <title>Privacy Policy | Terramedic</title>
   <meta
     name="description"

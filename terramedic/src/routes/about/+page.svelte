@@ -33,6 +33,7 @@
 </script>
 
 <svelte:head>
+  <link rel="canonical" href="https://terramedic.org/about" />
   <title>About Warming Stripes | Terramedic</title>
   <meta
     name="description"

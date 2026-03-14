@@ -9,6 +9,7 @@
 </script>
 
 <svelte:head>
+  <link rel="canonical" href="https://terramedic.org/resources" />
   <title>Resources for Advocates | Terramedic</title>
   <meta
     name="description"

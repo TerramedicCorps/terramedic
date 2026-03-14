@@ -16,6 +16,7 @@
 </script>
 
 <svelte:head>
+  <link rel="canonical" href="https://terramedic.org/donate" />
   <title>Donate to Make a Difference | Terramedic</title>
   <meta
     name="description"

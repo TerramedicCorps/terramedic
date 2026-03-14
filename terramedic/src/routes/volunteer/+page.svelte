@@ -16,6 +16,7 @@
 </script>
 
 <svelte:head>
+  <link rel="canonical" href="https://terramedic.org/volunteer" />
   <title>Volunteer Opportunities | Terramedic</title>
   <meta
     name="description"
