@@ -54,15 +54,13 @@
         tagline=""
         title="Anyone can be a"
         titleBrand="erramedic"
-        description="It doesn't take much to start healing our planet."
+        description="Mother Earth is hurting."
+        description2="But you can help her."
       />
     </section>
 
-    <!-- Main Content Section -->
+    <!-- Take Action Section -->
     <section class="section container-narrow">
-      <h2 class="section-title text-white">Mother Earth is hurting.<br />But you can help her.</h2>
-
-      <!-- Take Action Section -->
       <div
         id="take-action"
         class="mt-16 mb-16 scroll-mt-20 pt-4"
