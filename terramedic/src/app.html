@@ -33,8 +33,7 @@
       content="warming stripes, volunteer, donate, heal the planet, Terramedic"
     />
     <meta name="author" content="Terramedic Corps" />
-    <!-- <meta name="robots" content="index, follow" /> -->
-    <meta name="robots" content="noindex, nofollow" />
+    <meta name="robots" content="index, follow" />
 
     <!-- Open Graph Meta Tags (for social sharing) -->
     <meta property="og:title" content="Terramedic — Turn Awareness into Action" />
@@ -42,7 +41,7 @@
       property="og:description"
       content="Volunteer, donate, or start where you are. Terramedic connects you with effective ways to make a difference."
     />
-    <meta property="og:image" content="%sveltekit.assets%/images/og-image.png" />
+    <meta property="og:image" content="https://terramedic.org/images/og-image.jpg" />
     <meta property="og:url" content="https://terramedic.org" />
     <meta property="og:type" content="website" />
 
@@ -53,17 +52,18 @@
       name="twitter:description"
       content="Volunteer, donate, or start where you are. Terramedic connects you with effective ways to make a difference."
     />
-    <meta name="twitter:image" content="%sveltekit.assets%/images/og-image.png" />
+    <meta name="twitter:image" content="https://terramedic.org/images/og-image.jpg" />
 
-    <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-8W2R505NS8"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Terramedic",
+        "url": "https://terramedic.org",
+        "logo": "https://terramedic.org/images/logo.svg",
+        "description": "Terramedic turns awareness into action by connecting people who want to heal our planet with meaningful ways to make a difference."
       }
-      gtag('js', new Date());
-      gtag('config', 'G-8W2R505NS8');
     </script>
 
     %sveltekit.head%

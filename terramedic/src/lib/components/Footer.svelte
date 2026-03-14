@@ -43,7 +43,12 @@
               </li>
               <li>
                 <a href="/about" class="text-gray-400 transition-colors hover:text-white"
-                  >About Warming Stripes</a
+                  >About Terramedic</a
+                >
+              </li>
+              <li>
+                <a href="/warming-stripes" class="text-gray-400 transition-colors hover:text-white"
+                  >Warming Stripes</a
                 >
               </li>
               <li>
@@ -61,8 +66,13 @@
                 >
               </li>
               <li>
+                <a href="/careers" class="text-gray-400 transition-colors hover:text-white"
+                  >Careers</a
+                >
+              </li>
+              <li>
                 <a href="/resources" class="text-gray-400 transition-colors hover:text-white"
-                  >Resources for Advocates</a
+                  >Resources</a
                 >
               </li>
             </ul>
@@ -175,6 +185,9 @@
     <div class="mt-12 border-t border-white/10 pt-6">
       <p class="text-center text-sm text-balance text-gray-400">
         © {new Date().getFullYear()} Terramedic Corps. Created for a healthier planet.
+        <a href="/privacy" class="text-gray-400 transition-colors hover:text-white">
+          Privacy Policy
+        </a>
       </p>
     </div>
   </div>

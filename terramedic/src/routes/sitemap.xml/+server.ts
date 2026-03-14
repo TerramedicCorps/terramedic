@@ -3,7 +3,18 @@ import type { RequestHandler } from '@sveltejs/kit';
 export const GET: RequestHandler = async () => {
   const baseUrl = 'https://terramedic.org';
 
-  const pages: string[] = ['/', '/about', '/volunteer', '/donate', '/other-actions', '/resources'];
+  const pages: string[] = [
+    '/',
+    '/about',
+    '/warming-stripes',
+    '/volunteer',
+    '/donate',
+    '/other-actions',
+    '/resources',
+    '/careers',
+    '/contact-us',
+    '/privacy'
+  ];
 
   const sitemap: string = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

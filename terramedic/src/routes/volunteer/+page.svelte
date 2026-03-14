@@ -9,15 +9,28 @@
     GraduationCapOutline,
     GlobeOutline
   } from 'flowbite-svelte-icons';
+  import { trackSectionView } from '$lib/utils/analytics';
 
   export let data;
   export let form;
 </script>
 
 <svelte:head>
+  <link rel="canonical" href="https://terramedic.org/volunteer" />
   <title>Volunteer Opportunities | Terramedic</title>
   <meta
     name="description"
+    content="Find opportunities to volunteer your time and skills to organizations making the world cleaner, safer, and healthier. Even a few hours a month makes a difference."
+  />
+  <meta property="og:title" content="Volunteer Opportunities | Terramedic" />
+  <meta
+    property="og:description"
+    content="Find opportunities to volunteer your time and skills to organizations making the world cleaner, safer, and healthier."
+  />
+  <meta property="og:url" content="https://terramedic.org/volunteer" />
+  <meta name="twitter:title" content="Volunteer Opportunities | Terramedic" />
+  <meta
+    name="twitter:description"
     content="Find opportunities to volunteer your time and skills to organizations making the world cleaner, safer, and healthier."
   />
 </svelte:head>
@@ -35,7 +48,10 @@
         can help build a healthier planet.
       </p>
 
-      <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div
+        class="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+        use:trackSectionView={{ section: 'organizations', page: 'volunteer' }}
+      >
         {#each data.organizations as org (org.id)}
           <OrganizationCard
             name={org.name}
@@ -56,7 +72,10 @@
         </p>
       </div>
 
-      <div class="mb-8 grid gap-4 md:grid-cols-2">
+      <div
+        class="mb-8 grid gap-4 md:grid-cols-2"
+        use:trackSectionView={{ section: 'why_volunteer', page: 'volunteer' }}
+      >
         <IconCard
           title="Amplify Your Impact"
           description="Go beyond individual actions by joining organized efforts that multiply your contribution."

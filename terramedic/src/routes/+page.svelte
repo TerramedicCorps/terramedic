@@ -4,7 +4,7 @@
   import Footer from '$lib/components/Footer.svelte';
   import HeroImage from '$lib/components/HeroImage.svelte';
   import ImageModal from '$lib/components/ImageModal.svelte';
-  import { A, Button } from 'flowbite-svelte';
+  import { Button } from 'flowbite-svelte';
   import { ArrowRightOutline } from 'flowbite-svelte-icons';
 
   export let form;
@@ -14,7 +14,7 @@
   let modalImage = '/images/2025GenerationsStripes.jpg';
   let modalAlt = '2025 Generations Stripes';
 
-  import { trackEvent } from '$lib/utils/analytics';
+  import { trackEvent, trackSectionView } from '$lib/utils/analytics';
 
   // Function to open modal
   function openModal(src, alt) {
@@ -36,6 +36,7 @@
 </script>
 
 <svelte:head>
+  <link rel="canonical" href="https://terramedic.org/" />
   <title>Terramedic | Heal the Earth</title>
   <meta
     name="description"
@@ -48,7 +49,7 @@
 
   <main class="flex-grow">
     <!-- Hero Section -->
-    <section class="relative">
+    <section class="relative" use:trackSectionView={{ section: 'hero', page: 'home' }}>
       <HeroImage
         tagline=""
         title="Anyone can be a"
@@ -62,7 +63,11 @@
       <h2 class="section-title text-white">Mother Earth is hurting.<br />But you can help her.</h2>
 
       <!-- Take Action Section -->
-      <div id="take-action" class="mt-16 mb-16 scroll-mt-20 pt-4">
+      <div
+        id="take-action"
+        class="mt-16 mb-16 scroll-mt-20 pt-4"
+        use:trackSectionView={{ section: 'action_cards', page: 'home' }}
+      >
         <div class="mb-10 px-4 text-center md:mb-12">
           <h2 class="mb-4 text-2xl font-bold text-white md:text-3xl">Choose Your Path to Action</h2>
         </div>
@@ -71,24 +76,13 @@
         <div class="mx-auto max-w-4xl">
           <ActionCards />
         </div>
-
-        <!-- Resources Link -->
-        <div class="mt-10 px-4 text-center md:mt-12">
-          <A
-            href="/resources"
-            class="text-terra-green inline-flex flex-wrap items-center justify-center text-lg font-medium transition-colors hover:text-green-400 md:text-xl"
-          >
-            <span class="mr-1">Already taking action?</span>
-            <span class="inline-flex items-center whitespace-nowrap"
-              >Find resources here
-              <ArrowRightOutline class="ml-1 h-5 w-5" />
-            </span>
-          </A>
-        </div>
       </div>
     </section>
 
-    <section class="section container-narrow">
+    <section
+      class="section container-narrow"
+      use:trackSectionView={{ section: 'warming_stripes', page: 'home' }}
+    >
       <div class="bg-navy overflow-hidden rounded-xl shadow-sm">
         <div class="flex flex-col md:flex-row">
           <div
@@ -107,7 +101,7 @@
               </p>
               <div class="mt-6 flex justify-center md:justify-start">
                 <Button
-                  href="/about"
+                  href="/warming-stripes"
                   color="none"
                   class="bg-btn-blue font-medium text-white hover:bg-[#0d47a1]"
                 >
@@ -132,6 +126,7 @@
                   src="/images/2025GenerationsStripes.jpg"
                   alt="2025 Generations Stripes"
                   class="w-full object-contain"
+                  loading="lazy"
                 />
                 <!-- Zoom indicator overlay -->
                 <div

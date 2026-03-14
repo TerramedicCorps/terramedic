@@ -6,23 +6,19 @@ test.describe('Navbar responsive layout', () => {
     await page.goto('/');
 
     // Check that all nav links are visible
-    const navLinks = [
-      'Home',
-      'About',
-      'Volunteer',
-      'Donate',
-      'Other Actions',
-      'Resources',
-      'Contact'
-    ];
+    const navLinks = ['Volunteer', 'Donate', 'Other Actions', 'Careers', 'Resources', 'Contact'];
     const nav = page.locator('nav');
     for (const linkText of navLinks) {
       await expect(nav.getByRole('link', { name: linkText, exact: true })).toBeVisible();
     }
 
+    // About dropdown trigger should be visible (it's a button inside NavLi)
+    const aboutTrigger = nav.locator('button.about-link');
+    await expect(aboutTrigger).toBeVisible();
+
     // Check that a nav link is on the same row as the logo (not stacked below)
     const logoBox = await page.locator('[data-testid="nav-logo"]').boundingBox();
-    const aboutLink = nav.getByRole('link', { name: 'About', exact: true });
+    const aboutLink = aboutTrigger;
     const linkBox = await aboutLink.boundingBox();
 
     expect(logoBox).not.toBeNull();
@@ -40,8 +36,8 @@ test.describe('Navbar responsive layout', () => {
     await page.goto('/');
 
     // Nav links should not be visible below the lg breakpoint (1024px)
-    const aboutLink = page.locator('nav').getByRole('link', { name: 'About', exact: true });
-    await expect(aboutLink).not.toBeVisible();
+    const aboutTrigger = page.locator('nav button.about-link');
+    await expect(aboutTrigger).not.toBeVisible();
 
     // Hamburger button should be visible
     const hamburger = page.locator('nav button').first();

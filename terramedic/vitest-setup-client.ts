@@ -1,6 +1,11 @@
 import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 
+// Mock $env/dynamic/public for analytics module
+vi.mock('$env/dynamic/public', () => ({
+  env: { PUBLIC_GA_MEASUREMENT_ID: '' }
+}));
+
 // required for svelte5 + jsdom as jsdom does not support matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -15,4 +20,10 @@ Object.defineProperty(window, 'matchMedia', {
   }))
 });
 
-// add more mocks here if you need them
+// jsdom does not support IntersectionObserver
+global.IntersectionObserver = class IntersectionObserver {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+  constructor() {}
+} as unknown as typeof globalThis.IntersectionObserver;

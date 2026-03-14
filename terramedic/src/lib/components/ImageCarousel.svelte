@@ -59,12 +59,14 @@
   <button
     class="absolute top-1/2 left-8 -translate-y-1/2 transform rounded-full bg-white p-2 text-black shadow-md"
     on:click={prevImage}
+    aria-label="Previous image"
   >
     &#8592;
   </button>
   <button
     class="absolute top-1/2 right-8 -translate-y-1/2 transform rounded-full bg-white p-2 text-black shadow-md"
     on:click={nextImage}
+    aria-label="Next image"
   >
     &#8594;
   </button>

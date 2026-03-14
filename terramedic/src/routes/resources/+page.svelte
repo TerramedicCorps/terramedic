@@ -2,16 +2,29 @@
   import NavBar from '$lib/components/NavBar.svelte';
   import Footer from '$lib/components/Footer.svelte';
   import OrganizationCard from '$lib/components/OrganizationCard.svelte';
+  import { trackSectionView } from '$lib/utils/analytics';
 
   export let data;
   export let form;
 </script>
 
 <svelte:head>
+  <link rel="canonical" href="https://terramedic.org/resources" />
   <title>Resources for Advocates | Terramedic</title>
   <meta
     name="description"
-    content="Resources for advocates including research tools, communication strategies, and advocacy support."
+    content="Tools, research, and support for those already engaged in advocacy. Find communication strategies, data resources, and organizations that amplify your impact."
+  />
+  <meta property="og:title" content="Resources for Advocates | Terramedic" />
+  <meta
+    property="og:description"
+    content="Tools, research, and support for those already engaged in advocacy. Find strategies and resources that amplify your impact."
+  />
+  <meta property="og:url" content="https://terramedic.org/resources" />
+  <meta name="twitter:title" content="Resources for Advocates | Terramedic" />
+  <meta
+    name="twitter:description"
+    content="Tools, research, and support for those already engaged in advocacy. Find strategies and resources that amplify your impact."
   />
 </svelte:head>
 
@@ -27,7 +40,10 @@
         Tools, research, and support for those already engaged in advocacy work.
       </p>
 
-      <div class="mx-auto mb-12 grid max-w-4xl gap-8 px-4 sm:px-6 md:grid-cols-2">
+      <div
+        class="mx-auto mb-12 grid max-w-4xl gap-8 px-4 sm:px-6 md:grid-cols-2"
+        use:trackSectionView={{ section: 'organizations', page: 'resources' }}
+      >
         {#each data.organizations as org (org.id)}
           <OrganizationCard
             name={org.name}

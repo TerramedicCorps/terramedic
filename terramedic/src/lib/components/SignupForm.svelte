@@ -1,6 +1,7 @@
 <script>
   import { Button, Input, Label } from 'flowbite-svelte';
   import { onMount } from 'svelte';
+  import { trackEvent } from '$lib/utils/analytics';
 
   // Receive form data from SvelteKit form actions
   export let form = undefined;
@@ -50,6 +51,7 @@
         if (response.ok) {
           isSuccess = true;
           email = '';
+          trackEvent('newsletter_signup', { method: 'footer_form' });
         } else {
           throw new Error('Network response was not ok');
         }
