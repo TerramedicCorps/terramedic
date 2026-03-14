@@ -139,6 +139,7 @@
                   src="/images/2025GenerationsStripes.jpg"
                   alt="2025 Generations Stripes"
                   class="w-full object-contain"
+                  loading="lazy"
                 />
                 <!-- Zoom indicator overlay -->
                 <div

@@ -124,6 +124,7 @@
                   src="/images/WarmingBarChart-1850-2024.png"
                   alt="Global temperature change 1850-2024"
                   class="w-full object-contain"
+                  loading="lazy"
                 />
                 <!-- Zoom indicator overlay -->
                 <div
