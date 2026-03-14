@@ -9,7 +9,7 @@
   <title>Privacy Policy | Terramedic</title>
   <meta
     name="description"
-    content="Terramedic's privacy policy explains how we collect, use, and protect your information."
+    content="Terramedic's privacy policy explains how we collect, use, and protect your information, including our cookie consent practices and use of Google Analytics."
   />
 </svelte:head>
 

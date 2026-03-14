@@ -12,7 +12,7 @@
   <title>Resources for Advocates | Terramedic</title>
   <meta
     name="description"
-    content="Resources for advocates including research tools, communication strategies, and advocacy support."
+    content="Tools, research, and support for those already engaged in advocacy work. Find communication strategies, data resources, and organizations that help amplify your impact."
   />
 </svelte:head>
 

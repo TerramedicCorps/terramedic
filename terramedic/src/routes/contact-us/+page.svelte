@@ -10,7 +10,7 @@
   <title>Contact Us | Terramedic</title>
   <meta
     name="description"
-    content="Reach out to the Terramedic team with questions, feedback, or collaboration opportunities."
+    content="Have questions or want to collaborate? Reach out to the Terramedic team with feedback, partnership ideas, or general inquiries. We'd love to hear from you."
   />
 </svelte:head>
 

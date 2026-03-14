@@ -21,7 +21,7 @@
   <title>Start Where You Are | Terramedic</title>
   <meta
     name="description"
-    content="Learn about other ways to make a difference even without spare time or money."
+    content="No spare time or money? You can still make a difference. Discover everyday actions, conversation starters, and small steps that add up to meaningful change for the planet."
   />
 </svelte:head>
 
