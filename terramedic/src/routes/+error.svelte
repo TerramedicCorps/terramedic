@@ -6,9 +6,12 @@
   <h1 class="mb-6 text-3xl font-bold text-white md:text-5xl">
     Like Planet B, the page you're looking for doesn't exist.
   </h1>
-  <p class="mb-12 text-xl text-gray-400 md:text-2xl">
-    Let's go <a href="/" class="text-terra-green hover:underline">home</a>.
-  </p>
+  <a
+    href="/"
+    class="bg-terra-green mb-12 inline-block rounded-lg px-8 py-3 text-lg font-semibold text-white transition-colors hover:bg-green-600"
+  >
+    Let's go home
+  </a>
   <img
     src="/images/blue-marble.jpg"
     alt="NASA Blue Marble — Earth seen from space"
