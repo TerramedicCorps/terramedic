@@ -10,6 +10,53 @@ let mockObserve: ReturnType<typeof vi.fn>;
 let mockDisconnect: ReturnType<typeof vi.fn>;
 let capturedCallback: ((entries: Array<{ isIntersecting: boolean }>) => void) | undefined;
 
+describe('trackPageView', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    mockGtag.mockClear();
+    (globalThis as Record<string, unknown>).gtag = mockGtag;
+  });
+
+  it('should call gtag config with the measurement ID from env', async () => {
+    const { trackPageView } = await import('./analytics');
+    trackPageView('/test', 'Test Page');
+
+    expect(mockGtag).toHaveBeenCalledWith('config', 'G-TEST123', {
+      page_path: '/test',
+      page_title: 'Test Page'
+    });
+  });
+
+  it('should not throw if gtag is undefined', async () => {
+    delete (globalThis as Record<string, unknown>).gtag;
+    const { trackPageView } = await import('./analytics');
+
+    expect(() => trackPageView('/test', 'Test Page')).not.toThrow();
+  });
+});
+
+describe('trackEvent', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    mockGtag.mockClear();
+    (globalThis as Record<string, unknown>).gtag = mockGtag;
+  });
+
+  it('should call gtag event with provided params', async () => {
+    const { trackEvent } = await import('./analytics');
+    trackEvent('test_event', { key: 'value' });
+
+    expect(mockGtag).toHaveBeenCalledWith('event', 'test_event', { key: 'value' });
+  });
+
+  it('should default to empty params', async () => {
+    const { trackEvent } = await import('./analytics');
+    trackEvent('test_event');
+
+    expect(mockGtag).toHaveBeenCalledWith('event', 'test_event', {});
+  });
+});
+
 describe('trackSectionView', () => {
   beforeEach(() => {
     vi.resetModules();

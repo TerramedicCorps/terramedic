@@ -36,8 +36,8 @@ export function initAnalytics(): void {
  * @param title - The title of the page
  */
 export function trackPageView(url: string, title: string): void {
-  if (typeof gtag !== 'undefined') {
-    gtag('config', GA_MEASUREMENT_ID, {
+  if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+    window.gtag('config', GA_MEASUREMENT_ID, {
       page_path: url,
       page_title: title
     });
@@ -50,8 +50,8 @@ export function trackPageView(url: string, title: string): void {
  * @param eventParams - Additional parameters to include with the event
  */
 export function trackEvent(eventName: string, eventParams: Record<string, unknown> = {}): void {
-  if (typeof gtag !== 'undefined') {
-    gtag('event', eventName, eventParams);
+  if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+    window.gtag('event', eventName, eventParams);
   }
 }
 
