@@ -14,7 +14,7 @@
   let modalImage = '/images/2025GenerationsStripes.jpg';
   let modalAlt = '2025 Generations Stripes';
 
-  import { trackEvent } from '$lib/utils/analytics';
+  import { trackEvent, trackSectionView } from '$lib/utils/analytics';
 
   // Function to open modal
   function openModal(src, alt) {
@@ -48,7 +48,7 @@
 
   <main class="flex-grow">
     <!-- Hero Section -->
-    <section class="relative">
+    <section class="relative" use:trackSectionView={{ section: 'hero', page: 'home' }}>
       <HeroImage
         tagline=""
         title="Anyone can be a"
@@ -62,7 +62,11 @@
       <h2 class="section-title text-white">Mother Earth is hurting.<br />But you can help her.</h2>
 
       <!-- Take Action Section -->
-      <div id="take-action" class="mt-16 mb-16 scroll-mt-20 pt-4">
+      <div
+        id="take-action"
+        class="mt-16 mb-16 scroll-mt-20 pt-4"
+        use:trackSectionView={{ section: 'action_cards', page: 'home' }}
+      >
         <div class="mb-10 px-4 text-center md:mb-12">
           <h2 class="mb-4 text-2xl font-bold text-white md:text-3xl">Choose Your Path to Action</h2>
         </div>
@@ -88,7 +92,10 @@
       </div>
     </section>
 
-    <section class="section container-narrow">
+    <section
+      class="section container-narrow"
+      use:trackSectionView={{ section: 'warming_stripes', page: 'home' }}
+    >
       <div class="bg-navy overflow-hidden rounded-xl shadow-sm">
         <div class="flex flex-col md:flex-row">
           <div

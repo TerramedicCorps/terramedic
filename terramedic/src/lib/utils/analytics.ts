@@ -56,6 +56,37 @@ export function trackEvent(eventName: string, eventParams: Record<string, unknow
 }
 
 /**
+ * Svelte action that tracks when a section enters the viewport.
+ * Fires a section_view event once per section, then disconnects.
+ * Usage: <section use:trackSectionView={{ section: 'hero', page: 'home' }}>
+ */
+export function trackSectionView(
+  node: HTMLElement,
+  params: { section: string; page: string }
+): { destroy: () => void } {
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (entries[0]?.isIntersecting) {
+        trackEvent('section_view', {
+          section: params.section,
+          page: params.page
+        });
+        observer.disconnect();
+      }
+    },
+    { threshold: 0.5 }
+  );
+
+  observer.observe(node);
+
+  return {
+    destroy() {
+      observer.disconnect();
+    }
+  };
+}
+
+/**
  * Initialize page view tracking in SvelteKit
  * This should be called from the root +layout.svelte
  * @param navigation - The navigation object

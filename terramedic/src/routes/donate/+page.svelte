@@ -9,6 +9,7 @@
     SearchOutline,
     RefreshOutline
   } from 'flowbite-svelte-icons';
+  import { trackSectionView } from '$lib/utils/analytics';
 
   export let data;
   export let form;
@@ -35,7 +36,10 @@
         everyday people to push for a healthier planet. Your donation keeps that work going.
       </p>
 
-      <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div
+        class="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+        use:trackSectionView={{ section: 'organizations', page: 'donate' }}
+      >
         {#each data.organizations as org (org.id)}
           <OrganizationCard
             name={org.name}
@@ -57,7 +61,10 @@
         </p>
       </div>
 
-      <div class="mb-8 grid gap-4 md:grid-cols-2">
+      <div
+        class="mb-8 grid gap-4 md:grid-cols-2"
+        use:trackSectionView={{ section: 'maximizing_impact', page: 'donate' }}
+      >
         <IconCard
           title="Effectiveness"
           description="Organizations that use evidence-based approaches and measure their results."
