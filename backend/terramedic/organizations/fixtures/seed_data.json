@@ -415,5 +415,58 @@
       "description": "An excellent resource for anyone looking to take meaningful action, regardless of their circumstances. Provides accessible, evidence-based information about solutions at different scales that fit diverse lifestyles and resources.",
       "action_text": "Explore Solutions"
     }
+  },
+
+  { "model": "organizations.tag", "pk": 32, "fields": { "name": "Job Board" } },
+  { "model": "organizations.tag", "pk": 33, "fields": { "name": "Careers" } },
+
+  {
+    "model": "organizations.organization",
+    "pk": 17,
+    "fields": {
+      "name": "Climatebase",
+      "website_url": "https://climatebase.org/",
+      "image_url": "",
+      "category": "career",
+      "tags": [32, 33, 8],
+      "sort_order": 0,
+      "is_active": true,
+      "location": null
+    }
+  },
+  {
+    "model": "organizations.organization",
+    "pk": 18,
+    "fields": {
+      "name": "Green Jobs Network",
+      "website_url": "https://greenjobs.net/",
+      "image_url": "",
+      "category": "career",
+      "tags": [32, 33, 8],
+      "sort_order": 1,
+      "is_active": true,
+      "location": null
+    }
+  },
+
+  {
+    "model": "organizations.organizationtranslation",
+    "pk": 17,
+    "fields": {
+      "master": 17,
+      "language_code": "en",
+      "description": "A comprehensive platform for finding jobs, fellowships, and companies working on solutions to heal the planet. Browse thousands of roles across sectors like clean energy, sustainable agriculture, and environmental policy.",
+      "action_text": "Browse Jobs"
+    }
+  },
+  {
+    "model": "organizations.organizationtranslation",
+    "pk": 18,
+    "fields": {
+      "master": 18,
+      "language_code": "en",
+      "description": "The #1 community for environmental and social impact jobseekers, connecting people with careers since 2008. Covers renewable energy, conservation, sustainability, and more, plus a podcast, career coaching, and a mobile app.",
+      "action_text": "Search Green Jobs"
+    }
   }
 ]
