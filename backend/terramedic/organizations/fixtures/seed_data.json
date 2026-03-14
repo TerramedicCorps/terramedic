@@ -77,8 +77,8 @@
     "model": "organizations.organization",
     "pk": 4,
     "fields": {
-      "name": "Climate Changemakers",
-      "website_url": "https://www.climatechangemakers.org/donate",
+      "name": "The Climate Reality Project",
+      "website_url": "https://www.climaterealityproject.org/donate/donate-climate-reality-project",
       "image_url": "",
       "category": "donate",
       "tags": [4, 1, 8],
@@ -133,8 +133,8 @@
     "model": "organizations.organization",
     "pk": 8,
     "fields": {
-      "name": "Climate Changemakers",
-      "website_url": "https://www.climatechangemakers.org/",
+      "name": "The Climate Reality Project",
+      "website_url": "https://www.climaterealityproject.org/join-reality",
       "image_url": "",
       "category": "volunteer",
       "tags": [8, 21, 31],
@@ -245,7 +245,7 @@
     "model": "organizations.organization",
     "pk": 16,
     "fields": {
-      "name": "Yale Solutions Hub",
+      "name": "Yale Climate Connections — Solutions",
       "website_url": "https://yaleclimateconnections.org/solutions/",
       "image_url": "",
       "category": "action",
@@ -292,8 +292,8 @@
     "fields": {
       "master": 4,
       "language_code": "en",
-      "description": "A nationwide advocacy network helping busy people take meaningful civic action on climate. Your donation funds free resources, events, and organizers who equip advocates to engage with policymakers in all 50 states.",
-      "action_text": "Power Civic Engagement"
+      "description": "A global nonprofit that trains everyday people to become leaders in their communities and advocate for practical solutions to the environmental crisis. Your donation funds leadership training, advocacy campaigns, and grassroots organizing worldwide.",
+      "action_text": "Support Climate Reality"
     }
   },
   {
@@ -332,8 +332,8 @@
     "fields": {
       "master": 8,
       "language_code": "en",
-      "description": "A community that makes it easy to take impactful climate action. They provide regular opportunities to contact elected officials, alongside educational resources and a supportive community.",
-      "action_text": "Join the Community"
+      "description": "Join a global network of trained advocates working to drive practical solutions to the environmental crisis. The Climate Reality Leadership Corps offers training, ongoing campaigns, events, and community organizing opportunities.",
+      "action_text": "Join the Movement"
     }
   },
   {
