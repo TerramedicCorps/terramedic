@@ -73,7 +73,7 @@
 
 <div class="secondary-cards">
   <a href="/resources" class="card-link">
-    <div class="card teal">
+    <div class="card blue">
       <div class="card-accent"></div>
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -81,7 +81,7 @@
         viewBox="0 0 24 24"
         stroke-width="1.5"
         stroke="currentColor"
-        class="card-icon-lg teal-stroke"
+        class="card-icon-lg blue-stroke"
       >
         <path stroke-linecap="round" stroke-linejoin="round" d={ICON_PATHS.bookOpen} />
       </svg>
@@ -190,10 +190,6 @@
     background: var(--color-btn-purple);
   }
 
-  .teal .card-accent {
-    background: #0ea5a8;
-  }
-
   .gold .card-accent {
     background: #d4a017;
   }
@@ -214,10 +210,6 @@
 
   .purple-stroke {
     color: #a78bfa;
-  }
-
-  .teal-stroke {
-    color: #0ea5a8;
   }
 
   .gold-stroke {
