@@ -1,6 +1,7 @@
 <script>
   import { Button, Input, Label, Textarea } from 'flowbite-svelte';
   import { onMount } from 'svelte';
+  import { trackEvent } from '$lib/utils/analytics';
 
   // Receive form data from SvelteKit form actions
   export let form = undefined;
@@ -59,6 +60,7 @@
 
         if (response.ok) {
           isSuccess = true;
+          trackEvent('contact_form_submit', { subject });
           firstName = '';
           lastName = '';
           email = '';
