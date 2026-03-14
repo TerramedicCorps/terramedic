@@ -71,7 +71,7 @@
       >
         <IconCard
           title="A Growing Field"
-          description="Clean energy, sustainable agriculture, and environmental policy are among the fastest-growing sectors worldwide."
+          description="More organizations than ever are hiring people to work on environmental solutions, from startups to governments to established companies."
           icon={RocketOutline}
           color="blue"
         />
