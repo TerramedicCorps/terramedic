@@ -39,9 +39,6 @@
           ulClass="flex flex-col p-4 mt-4 bg-[#0f1829]/95 border border-white/10 rounded-lg lg:flex-row lg:space-x-4 lg:mt-0 lg:text-sm lg:font-medium lg:border-0 lg:bg-transparent"
           class="nav-menu-wrapper mt-0"
         >
-          <NavLi href="/" active={activeUrl === '/'} class="nav-item">
-            <span class="nav-link">Home</span>
-          </NavLi>
           <NavLi
             class="nav-item about-dropdown-trigger"
             active={activeUrl === '/about' || activeUrl === '/warming-stripes'}
