@@ -2,6 +2,33 @@
  * Google Analytics utility functions for tracking page views and events
  */
 
+import { PUBLIC_GA_MEASUREMENT_ID } from '$env/static/public';
+
+export const GA_MEASUREMENT_ID = PUBLIC_GA_MEASUREMENT_ID;
+
+/**
+ * Dynamically load the Google Analytics gtag.js script and initialize it.
+ * This replaces the hardcoded snippet previously in app.html.
+ */
+export function initAnalytics(): void {
+  if (typeof window === 'undefined' || !GA_MEASUREMENT_ID) return;
+
+  // Avoid loading twice
+  if (document.querySelector(`script[src*="googletagmanager.com/gtag/js"]`)) return;
+
+  const script = document.createElement('script');
+  script.async = true;
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+  document.head.appendChild(script);
+
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function (...args: unknown[]) {
+    window.dataLayer.push(args);
+  };
+  window.gtag('js', new Date());
+  window.gtag('config', GA_MEASUREMENT_ID);
+}
+
 /**
  * Track a page view with Google Analytics
  * @param url - The URL of the page view to track
@@ -9,7 +36,7 @@
  */
 export function trackPageView(url: string, title: string): void {
   if (typeof gtag !== 'undefined') {
-    gtag('config', 'G-MEASUREMENT_ID', {
+    gtag('config', GA_MEASUREMENT_ID, {
       page_path: url,
       page_title: title
     });

@@ -1,9 +1,10 @@
 <script>
   import '../app.css';
   import { page } from '$app/stores';
-  import { initPageTracking } from '$lib/utils/analytics';
+  import { initAnalytics, initPageTracking } from '$lib/utils/analytics';
 
-  // Initialize Google Analytics tracking
+  // Load Google Analytics script and initialize tracking
+  initAnalytics();
   initPageTracking(page);
 </script>
 
