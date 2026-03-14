@@ -76,7 +76,7 @@
             rel="noopener noreferrer"
             class="text-terra-green hover:underline">Make for the Planet</a
           >
-          competition at the inaugural Earth Optimism Summit in Washington, DC in 2017.
+          competition at the inaugural Earth Optimism Summit in 2017 in Washington, DC.
         </p>
         <p class="mb-4 text-gray-300">
           The term is intentionally placed in the public domain under
