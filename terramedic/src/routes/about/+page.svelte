@@ -78,7 +78,7 @@
           >
           competition at the inaugural
           <a
-            href="https://earthoptimism.si.edu/"
+            href="https://en.wikipedia.org/wiki/Earth_Optimism"
             target="_blank"
             rel="noopener noreferrer"
             class="text-terra-green hover:underline">Earth Optimism Summit</a
