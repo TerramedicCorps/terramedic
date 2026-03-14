@@ -11,6 +11,7 @@
     LightbulbOutline,
     FlagOutline
   } from 'flowbite-svelte-icons';
+  import { trackSectionView } from '$lib/utils/analytics';
 
   export let data;
   export let form;
@@ -37,7 +38,11 @@
         can contribute to healing the planet.
       </p>
 
-      <div data-testid="org-card-grid" class="mb-16 grid gap-6 md:grid-cols-2">
+      <div
+        data-testid="org-card-grid"
+        class="mb-16 grid gap-6 md:grid-cols-2"
+        use:trackSectionView={{ section: 'organizations', page: 'other-actions' }}
+      >
         {#each data.organizations as org (org.id)}
           <OrganizationCard
             name={org.name}
@@ -60,7 +65,10 @@
         </p>
       </div>
 
-      <div class="mb-8 grid gap-4 md:grid-cols-2">
+      <div
+        class="mb-8 grid gap-4 md:grid-cols-2"
+        use:trackSectionView={{ section: 'small_steps', page: 'other-actions' }}
+      >
         <IconCard
           title="Start Conversations"
           description="Simply talking about these issues with friends, family, and colleagues helps normalize the topic and spread awareness."
@@ -83,7 +91,10 @@
         />
       </div>
 
-      <div class="bg-navy mb-8 grid gap-6 rounded-lg p-6 shadow-sm md:grid-cols-[1fr_2fr]">
+      <div
+        class="bg-navy mb-8 grid gap-6 rounded-lg p-6 shadow-sm md:grid-cols-[1fr_2fr]"
+        use:trackSectionView={{ section: 'community', page: 'other-actions' }}
+      >
         <div class="flex aspect-square items-center justify-center rounded-2xl bg-purple-500/15">
           <UsersGroupOutline class="h-3/5 w-3/5 text-purple-400" />
         </div>
