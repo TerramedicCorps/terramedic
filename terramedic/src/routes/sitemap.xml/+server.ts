@@ -11,6 +11,7 @@ export const GET: RequestHandler = async () => {
     '/donate',
     '/other-actions',
     '/resources',
+    '/careers',
     '/contact-us',
     '/privacy'
   ];

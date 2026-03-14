@@ -4,7 +4,7 @@
   import Footer from '$lib/components/Footer.svelte';
   import HeroImage from '$lib/components/HeroImage.svelte';
   import ImageModal from '$lib/components/ImageModal.svelte';
-  import { A, Button } from 'flowbite-svelte';
+  import { Button } from 'flowbite-svelte';
   import { ArrowRightOutline } from 'flowbite-svelte-icons';
 
   export let form;
@@ -75,20 +75,6 @@
         <!-- Action Cards -->
         <div class="mx-auto max-w-4xl">
           <ActionCards />
-        </div>
-
-        <!-- Resources Link -->
-        <div class="mt-10 px-4 text-center md:mt-12">
-          <A
-            href="/resources"
-            class="text-terra-green inline-flex flex-wrap items-center justify-center text-lg font-medium transition-colors hover:text-green-400 md:text-xl"
-          >
-            <span class="mr-1">Already taking action?</span>
-            <span class="inline-flex items-center whitespace-nowrap"
-              >Find resources here
-              <ArrowRightOutline class="ml-1 h-5 w-5" />
-            </span>
-          </A>
         </div>
       </div>
     </section>

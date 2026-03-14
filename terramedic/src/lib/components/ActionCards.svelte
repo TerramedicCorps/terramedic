@@ -2,7 +2,7 @@
   import { ICON_PATHS } from '$lib/icons';
 </script>
 
-<div class="cards">
+<div class="primary-cards">
   <a href="/volunteer" class="card-link">
     <div class="card blue">
       <div class="card-accent"></div>
@@ -73,14 +73,87 @@
   </a>
 </div>
 
+<div class="divider"></div>
+
+<p class="section-label">Go further</p>
+
+<div class="secondary-cards">
+  <a href="/resources" class="card-link">
+    <div class="card teal">
+      <div class="card-accent"></div>
+      <div class="card-icon teal-icon">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          class="icon"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d={ICON_PATHS.bookOpen} />
+        </svg>
+      </div>
+      <h3 class="card-title">Already&nbsp;helping?</h3>
+      <p class="card-description">
+        Tools, research, and support for those already engaged in advocacy work.
+      </p>
+      <span class="card-action teal-action">Find resources &rarr;</span>
+    </div>
+  </a>
+  <a href="/careers" class="card-link">
+    <div class="card gold">
+      <div class="card-accent"></div>
+      <div class="card-icon gold-icon">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          class="icon"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d={ICON_PATHS.briefcase} />
+        </svg>
+      </div>
+      <h3 class="card-title">Ready to go&nbsp;pro?</h3>
+      <p class="card-description">
+        Find your next role at organizations working to build a healthier world.
+      </p>
+      <span class="card-action gold-action">Browse job boards &rarr;</span>
+    </div>
+  </a>
+</div>
+
 <style>
-  .cards {
+  .primary-cards,
+  .secondary-cards {
     display: grid;
     grid-template-columns: 1fr;
     gap: 1.5rem;
     max-width: 1000px;
     margin: 0 auto;
     padding: 0 1rem;
+  }
+
+  .section-label {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 0;
+  }
+
+  .divider {
+    max-width: 1000px;
+    margin: 2rem auto 0.75rem;
+    padding: 0 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .secondary-cards {
+    margin-top: 0.75rem;
   }
 
   .card-link {
@@ -125,6 +198,14 @@
     background: var(--color-btn-purple);
   }
 
+  .teal .card-accent {
+    background: #0ea5a8;
+  }
+
+  .gold .card-accent {
+    background: #d4a017;
+  }
+
   .card-icon {
     width: 56px;
     height: 56px;
@@ -145,6 +226,14 @@
 
   .purple-icon {
     background: rgba(124, 58, 237, 0.15);
+  }
+
+  .teal-icon {
+    background: rgba(14, 165, 168, 0.15);
+  }
+
+  .gold-icon {
+    background: rgba(212, 160, 23, 0.15);
   }
 
   .icon {
@@ -184,6 +273,14 @@
     color: var(--color-btn-purple);
   }
 
+  .teal-action {
+    color: #0ea5a8;
+  }
+
+  .gold-action {
+    color: #d4a017;
+  }
+
   .card:hover {
     transform: translateY(-4px);
     border-color: rgba(255, 255, 255, 0.12);
@@ -191,8 +288,12 @@
   }
 
   @media (min-width: 768px) {
-    .cards {
+    .primary-cards {
       grid-template-columns: repeat(3, 1fr);
+    }
+
+    .secondary-cards {
+      grid-template-columns: repeat(2, 1fr);
     }
   }
 </style>

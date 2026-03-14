@@ -66,6 +66,9 @@
           <NavLi href="/other-actions" active={activeUrl === '/other-actions'} class="nav-item">
             <span class="nav-link">Other Actions</span>
           </NavLi>
+          <NavLi href="/careers" active={activeUrl === '/careers'} class="nav-item">
+            <span class="nav-link">Careers</span>
+          </NavLi>
           <NavLi href="/resources" active={activeUrl === '/resources'} class="nav-item">
             <span class="nav-link">Resources</span>
           </NavLi>
