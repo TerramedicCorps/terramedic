@@ -52,8 +52,8 @@
             imageUrl={org.image_url}
             actionText={org.action_text}
             tags={org.tags}
-            tagColor="gold"
-            buttonColor="gold"
+            tagColor="blue"
+            buttonColor="blue"
           />
         {/each}
       </div>
