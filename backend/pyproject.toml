@@ -20,6 +20,7 @@ django-parler = "^2.3"
 boto3 = "^1.42.63"
 zappa = "^0.61.4"
 psycopg = {version = ">=3.2", extras = ["binary"]}
+google-analytics-data = "^0.20.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.11.12"
@@ -42,6 +43,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "*/migrations/*.py" = ["E501", "ANN", "COM"]
 "*/tests/*.py" = ["ARG002"]  # Pytest fixtures are injected via parameter names
+"scripts/*.py" = ["T201"]  # CLI scripts need print for output
 
 [tool.ruff.lint.isort]
 known-first-party = ["terramedic"]

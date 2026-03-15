@@ -21,6 +21,10 @@ Thumbs.db
 !.env.example
 !.env.test
 
+# Google service account keys
+*-sa-key.json
+*-service-account*.json
+
 # TypeScript
 *.tsbuildinfo
 
@@ -48,6 +52,7 @@ backend/.venv/
 backend/zappa_settings.json
 backend/db.sqlite3
 backend/staticfiles/
+backend/.coverage
 backend/htmlcov/
 backend/coverage.xml
 backend/.ruff_cache/
