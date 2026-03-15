@@ -137,6 +137,11 @@ jobs:
         run: |
           poetry run zappa manage ${{ env.DEPLOY_ENV }} "migrate --noinput"
 
+      - name: Load seed data
+        working-directory: ./backend
+        run: |
+          poetry run zappa manage ${{ env.DEPLOY_ENV }} "loaddata seed_data"
+
       - name: Configure API custom domain
         working-directory: ./backend
         env:
