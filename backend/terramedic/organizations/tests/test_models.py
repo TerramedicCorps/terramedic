@@ -67,6 +67,7 @@ class TestOrganization:
         assert Category.VOLUNTEER == "volunteer"
         assert Category.RESOURCE == "resource"
         assert Category.ACTION == "action"
+        assert Category.CAREER == "career"
 
     def test_invalid_category(self) -> None:
         org = Organization(

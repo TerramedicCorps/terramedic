@@ -9,16 +9,29 @@
     SearchOutline,
     RefreshOutline
   } from 'flowbite-svelte-icons';
+  import { trackSectionView } from '$lib/utils/analytics';
 
   export let data;
   export let form;
 </script>
 
 <svelte:head>
-  <title>Donate to Make a Difference | Terramedic</title>
+  <link rel="canonical" href="https://terramedic.org/donate" />
+  <title>Explore Donation Opportunities | Terramedic</title>
   <meta
     name="description"
-    content="Support organizations working for a cleaner, safer world through donations and make a financial impact."
+    content="Explore a sampling of environmental organizations working toward a healthier planet. Learn about their missions and how your donation can help."
+  />
+  <meta property="og:title" content="Explore Donation Opportunities | Terramedic" />
+  <meta
+    property="og:description"
+    content="Explore a sampling of environmental organizations working toward a healthier planet."
+  />
+  <meta property="og:url" content="https://terramedic.org/donate" />
+  <meta name="twitter:title" content="Explore Donation Opportunities | Terramedic" />
+  <meta
+    name="twitter:description"
+    content="Explore a sampling of environmental organizations working toward a healthier planet."
   />
 </svelte:head>
 
@@ -28,14 +41,18 @@
   <main class="flex-grow">
     <div class="container-narrow py-12">
       <h1 class="mb-4 text-center text-3xl font-bold text-white md:text-4xl lg:text-5xl">
-        Power Civic Action
+        Explore Donation Opportunities
       </h1>
       <p class="mx-auto mb-10 max-w-2xl text-center text-lg text-balance text-gray-400">
-        From voter mobilization to grassroots advocacy, these organizations make it easy for
-        everyday people to push for a healthier planet. Your donation keeps that work going.
+        From grassroots education to community engagement, these organizations make it easy for
+        everyday people to support a healthier planet. Learn about their work and how your donation
+        can help.
       </p>
 
-      <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div
+        class="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+        use:trackSectionView={{ section: 'organizations', page: 'donate' }}
+      >
         {#each data.organizations as org (org.id)}
           <OrganizationCard
             name={org.name}
@@ -57,7 +74,10 @@
         </p>
       </div>
 
-      <div class="mb-8 grid gap-4 md:grid-cols-2">
+      <div
+        class="mb-8 grid gap-4 md:grid-cols-2"
+        use:trackSectionView={{ section: 'maximizing_impact', page: 'donate' }}
+      >
         <IconCard
           title="Effectiveness"
           description="Organizations that use evidence-based approaches and measure their results."

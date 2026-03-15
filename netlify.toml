@@ -6,9 +6,11 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# Deploy dev branch for test.terramedic.org
+# Deploy dev branch for dev.terramedic.org
 [context.dev]
   command = "yarn build"
+  [context.dev.environment]
+    API_BASE = "https://test-api.terramedic.org/api"
 
 [forms.newsletter-signup.actions]
   [forms.newsletter-signup.actions.email]

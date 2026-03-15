@@ -1,6 +1,15 @@
 <script>
   import Logo from './Logo.svelte';
-  import { Navbar, NavBrand, NavLi, NavUl, NavHamburger } from 'flowbite-svelte';
+  import {
+    Navbar,
+    NavBrand,
+    NavLi,
+    NavUl,
+    NavHamburger,
+    Dropdown,
+    DropdownItem
+  } from 'flowbite-svelte';
+  import { ChevronDownOutline } from 'flowbite-svelte-icons';
 
   let activeUrl = '';
 
@@ -30,12 +39,21 @@
           ulClass="flex flex-col p-4 mt-4 bg-[#0f1829]/95 border border-white/10 rounded-lg lg:flex-row lg:space-x-4 lg:mt-0 lg:text-sm lg:font-medium lg:border-0 lg:bg-transparent"
           class="nav-menu-wrapper mt-0"
         >
-          <NavLi href="/" active={activeUrl === '/'} class="nav-item">
-            <span class="nav-link">Home</span>
+          <NavLi
+            class="nav-item about-dropdown-trigger"
+            active={activeUrl === '/about' || activeUrl === '/warming-stripes'}
+          >
+            <button class="nav-link about-link" aria-haspopup="true" aria-label="About menu">
+              About
+              <ChevronDownOutline class="ms-1 h-3 w-3" />
+            </button>
           </NavLi>
-          <NavLi href="/about" active={activeUrl === '/about'} class="nav-item">
-            <span class="nav-link">About</span>
-          </NavLi>
+          <Dropdown class="z-50 rounded-lg border border-white/10 bg-[#0f1829] shadow-lg">
+            <DropdownItem href="/about" class="dropdown-link">Terramedic Corps</DropdownItem>
+            <DropdownItem href="/warming-stripes" class="dropdown-link"
+              >Warming Stripes</DropdownItem
+            >
+          </Dropdown>
           <NavLi href="/volunteer" active={activeUrl === '/volunteer'} class="nav-item">
             <span class="nav-link">Volunteer</span>
           </NavLi>
@@ -44,6 +62,9 @@
           </NavLi>
           <NavLi href="/other-actions" active={activeUrl === '/other-actions'} class="nav-item">
             <span class="nav-link">Other Actions</span>
+          </NavLi>
+          <NavLi href="/careers" active={activeUrl === '/careers'} class="nav-item">
+            <span class="nav-link">Careers</span>
           </NavLi>
           <NavLi href="/resources" active={activeUrl === '/resources'} class="nav-item">
             <span class="nav-link">Resources</span>
@@ -75,6 +96,14 @@
     white-space: nowrap;
     display: block;
     width: 100%;
+  }
+
+  :global(.navbar-background .about-link) {
+    display: inline-flex;
+    align-items: center;
+    background: none;
+    border: none;
+    cursor: pointer;
   }
 
   :global(.navbar-background .nav-item:hover .nav-link) {
@@ -134,6 +163,20 @@
       #bd0026 85%,
       #800026 100%
     );
+  }
+
+  /* Dropdown link styles */
+  :global(.dropdown-link) {
+    color: white;
+    font-weight: 600;
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+  }
+
+  :global(.dropdown-link:hover) {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
   }
 
   /* Override Flowbite navbar background */

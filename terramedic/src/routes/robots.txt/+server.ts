@@ -2,10 +2,10 @@
 import type { RequestHandler } from '@sveltejs/kit';
 
 export const GET: RequestHandler = async () => {
-  const robots = `
-    User-agent: *
-    Disallow: /
-  `;
+  const robots = `User-agent: *
+Allow: /
+
+Sitemap: https://terramedic.org/sitemap.xml`;
 
   return new Response(robots.trim(), {
     headers: {

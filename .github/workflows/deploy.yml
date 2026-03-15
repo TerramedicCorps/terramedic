@@ -137,6 +137,14 @@ jobs:
         run: |
           poetry run zappa manage ${{ env.DEPLOY_ENV }} "migrate --noinput"
 
+      # TODO: Remove this step once we are actively adding records via the
+      # admin interface. Running loaddata on every deploy overwrites manual
+      # edits and may break if fixture assumptions drift.
+      - name: Load seed data
+        working-directory: ./backend
+        run: |
+          poetry run zappa manage ${{ env.DEPLOY_ENV }} "loaddata seed_data"
+
       - name: Configure API custom domain
         working-directory: ./backend
         env:

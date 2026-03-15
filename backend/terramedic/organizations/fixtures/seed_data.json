@@ -9,18 +9,18 @@
   { "model": "organizations.tag", "pk": 8, "fields": { "name": "Community" } },
   { "model": "organizations.tag", "pk": 9, "fields": { "name": "Data" } },
   { "model": "organizations.tag", "pk": 10, "fields": { "name": "Data-Driven" } },
-  { "model": "organizations.tag", "pk": 11, "fields": { "name": "Electoral Impact" } },
+  { "model": "organizations.tag", "pk": 11, "fields": { "name": "Public Policy" } },
   { "model": "organizations.tag", "pk": 12, "fields": { "name": "Evidence-Based" } },
   { "model": "organizations.tag", "pk": 13, "fields": { "name": "High-Impact Actions" } },
   { "model": "organizations.tag", "pk": 14, "fields": { "name": "Interactive Guide" } },
   { "model": "organizations.tag", "pk": 15, "fields": { "name": "Lifestyle" } },
-  { "model": "organizations.tag", "pk": 16, "fields": { "name": "Local Politics" } },
+  { "model": "organizations.tag", "pk": 16, "fields": { "name": "Local Government" } },
   { "model": "organizations.tag", "pk": 17, "fields": { "name": "Marketing" } },
   { "model": "organizations.tag", "pk": 18, "fields": { "name": "Networking" } },
   { "model": "organizations.tag", "pk": 19, "fields": { "name": "Policy" } },
   { "model": "organizations.tag", "pk": 20, "fields": { "name": "Policy Resources" } },
-  { "model": "organizations.tag", "pk": 21, "fields": { "name": "Political Action" } },
-  { "model": "organizations.tag", "pk": 22, "fields": { "name": "Political Giving" } },
+  { "model": "organizations.tag", "pk": 21, "fields": { "name": "Policy Advocacy" } },
+  { "model": "organizations.tag", "pk": 22, "fields": { "name": "Policy Support" } },
   { "model": "organizations.tag", "pk": 23, "fields": { "name": "Public Opinion" } },
   { "model": "organizations.tag", "pk": 24, "fields": { "name": "Research" } },
   { "model": "organizations.tag", "pk": 25, "fields": { "name": "Science-Based" } },
@@ -39,7 +39,7 @@
       "website_url": "https://www.climatecabinet.org/donate",
       "image_url": "",
       "category": "donate",
-      "tags": [16, 9, 20],
+      "tags": [16, 20],
       "sort_order": 0,
       "is_active": true,
       "location": null
@@ -67,7 +67,7 @@
       "website_url": "https://www.environmentalvoter.org/donate",
       "image_url": "",
       "category": "donate",
-      "tags": [30, 11, 12],
+      "tags": [30, 12],
       "sort_order": 2,
       "is_active": true,
       "location": null
@@ -77,8 +77,8 @@
     "model": "organizations.organization",
     "pk": 4,
     "fields": {
-      "name": "Climate Changemakers",
-      "website_url": "https://www.climatechangemakers.org/donate",
+      "name": "The Climate Reality Project",
+      "website_url": "https://www.climaterealityproject.org/donate/donate-climate-reality-project",
       "image_url": "",
       "category": "donate",
       "tags": [4, 1, 8],
@@ -95,7 +95,7 @@
       "website_url": "https://citizensclimatelobby.org/donate/",
       "image_url": "",
       "category": "donate",
-      "tags": [1, 2, 3],
+      "tags": [1, 2, 11],
       "sort_order": 4,
       "is_active": true,
       "location": null
@@ -123,7 +123,7 @@
       "website_url": "https://www.environmentalvoter.org/get-involved",
       "image_url": "",
       "category": "volunteer",
-      "tags": [30, 11, 10],
+      "tags": [30, 10],
       "sort_order": 1,
       "is_active": true,
       "location": null
@@ -133,8 +133,8 @@
     "model": "organizations.organization",
     "pk": 8,
     "fields": {
-      "name": "Climate Changemakers",
-      "website_url": "https://www.climatechangemakers.org/",
+      "name": "The Climate Reality Project",
+      "website_url": "https://www.climaterealityproject.org/join-reality",
       "image_url": "",
       "category": "volunteer",
       "tags": [8, 21, 31],
@@ -245,7 +245,7 @@
     "model": "organizations.organization",
     "pk": 16,
     "fields": {
-      "name": "Yale Solutions Hub",
+      "name": "Yale Climate Connections — Solutions",
       "website_url": "https://yaleclimateconnections.org/solutions/",
       "image_url": "",
       "category": "action",
@@ -262,8 +262,8 @@
     "fields": {
       "master": 1,
       "language_code": "en",
-      "description": "Provides local candidates and elected officials with the tools, data, and policy resources they need to run and win on climate action. They enable local action through data-driven tools and resources.",
-      "action_text": "Support Local Climate Action"
+      "description": "A 501(c)(4) organization and PAC focused on supporting state and local candidates committed to environmental policy. Their education arm provides policy resources to elected officials.",
+      "action_text": "Learn More"
     }
   },
   {
@@ -272,8 +272,8 @@
     "fields": {
       "master": 2,
       "language_code": "en",
-      "description": "A platform that helps climate-concerned donors direct their political giving to candidates who are leading on climate action. They vet and highlight candidates at all levels of government who can make a difference on climate policy.",
-      "action_text": "Donate to Candidates"
+      "description": "A fundraising platform that vets and highlights candidates based on their environmental policy positions.",
+      "action_text": "Learn More"
     }
   },
   {
@@ -282,8 +282,8 @@
     "fields": {
       "master": 3,
       "language_code": "en",
-      "description": "A nonpartisan nonprofit focused on identifying non-voting environmentalists and turning them into consistent voters. Your donation helps fund their proven methods to increase environmental voter turnout.",
-      "action_text": "Fund Voter Mobilization"
+      "description": "A 501(c)(4) nonprofit that uses data analytics and behavioral science to identify environmentally concerned citizens who don't regularly vote and runs programs to increase environmental voter turnout.",
+      "action_text": "Learn More"
     }
   },
   {
@@ -292,8 +292,8 @@
     "fields": {
       "master": 4,
       "language_code": "en",
-      "description": "A nationwide advocacy network helping busy people take meaningful civic action on climate. Your donation funds free resources, events, and organizers who equip advocates to engage with policymakers in all 50 states.",
-      "action_text": "Power Civic Engagement"
+      "description": "A global nonprofit that trains everyday people to become leaders in their communities and advocate for practical solutions to the environmental crisis. Funds leadership training, public education, and community advocacy worldwide.",
+      "action_text": "Learn More"
     }
   },
   {
@@ -302,8 +302,8 @@
     "fields": {
       "master": 5,
       "language_code": "en",
-      "description": "A nonpartisan grassroots organization with over 500 chapters worldwide, empowering everyday people to influence climate policy. Your donation funds volunteer training, advocacy tools, and congressional outreach to help pass bipartisan climate bills.",
-      "action_text": "Support Climate Advocacy"
+      "description": "A nonpartisan grassroots organization with hundreds of chapters, empowering everyday people to engage with climate policy. Funds volunteer training, public education tools, and community engagement around bipartisan climate policy.",
+      "action_text": "Learn More"
     }
   },
   {
@@ -312,7 +312,7 @@
     "fields": {
       "master": 6,
       "language_code": "en",
-      "description": "A non-profit, nonpartisan, grassroots advocacy organization focused on national policies to address climate change. Join local chapters and help advocate for climate solutions through bipartisan approaches.",
+      "description": "A non-profit, nonpartisan, grassroots organization focused on national policies to address climate change. Local chapters engage communities around climate solutions through bipartisan approaches.",
       "action_text": "Find Local Chapter"
     }
   },
@@ -322,7 +322,7 @@
     "fields": {
       "master": 7,
       "language_code": "en",
-      "description": "A nonpartisan nonprofit that uses data analytics and behavioral science to identify non-voting environmentalists and then applies targeted get-out-the-vote programs to turn them into consistent voters.",
+      "description": "A 501(c)(4) nonprofit that uses data analytics and behavioral science to identify environmentally concerned citizens and runs programs to increase environmental voter turnout.",
       "action_text": "Become a Volunteer"
     }
   },
@@ -332,8 +332,8 @@
     "fields": {
       "master": 8,
       "language_code": "en",
-      "description": "A community that makes it easy to take impactful climate action. They provide regular opportunities to contact elected officials, alongside educational resources and a supportive community.",
-      "action_text": "Join the Community"
+      "description": "A global network of trained leaders working toward practical solutions to the environmental crisis. The Climate Reality Leadership Corps offers training, events, and community organizing opportunities.",
+      "action_text": "Join the Movement"
     }
   },
   {
@@ -414,6 +414,59 @@
       "language_code": "en",
       "description": "An excellent resource for anyone looking to take meaningful action, regardless of their circumstances. Provides accessible, evidence-based information about solutions at different scales that fit diverse lifestyles and resources.",
       "action_text": "Explore Solutions"
+    }
+  },
+
+  { "model": "organizations.tag", "pk": 32, "fields": { "name": "Job Board" } },
+  { "model": "organizations.tag", "pk": 33, "fields": { "name": "Careers" } },
+
+  {
+    "model": "organizations.organization",
+    "pk": 17,
+    "fields": {
+      "name": "Climatebase",
+      "website_url": "https://climatebase.org/",
+      "image_url": "",
+      "category": "career",
+      "tags": [32, 33, 8],
+      "sort_order": 0,
+      "is_active": true,
+      "location": null
+    }
+  },
+  {
+    "model": "organizations.organization",
+    "pk": 18,
+    "fields": {
+      "name": "Green Jobs Network",
+      "website_url": "https://greenjobs.net/",
+      "image_url": "",
+      "category": "career",
+      "tags": [32, 33, 8],
+      "sort_order": 1,
+      "is_active": true,
+      "location": null
+    }
+  },
+
+  {
+    "model": "organizations.organizationtranslation",
+    "pk": 17,
+    "fields": {
+      "master": 17,
+      "language_code": "en",
+      "description": "A comprehensive platform for finding jobs, fellowships, and companies working on solutions to heal the planet. Browse thousands of roles across sectors like clean energy, sustainable agriculture, and environmental policy.",
+      "action_text": "Browse Jobs"
+    }
+  },
+  {
+    "model": "organizations.organizationtranslation",
+    "pk": 18,
+    "fields": {
+      "master": 18,
+      "language_code": "en",
+      "description": "A long-running network of environmental and social impact job boards, connecting people with careers since 2008. Covers renewable energy, conservation, sustainability, and more, plus a podcast, career coaching, and a mobile app.",
+      "action_text": "Search Green Jobs"
     }
   }
 ]

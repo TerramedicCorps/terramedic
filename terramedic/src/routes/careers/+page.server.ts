@@ -8,7 +8,7 @@ export const load: PageServerLoad = async ({ request }) => {
   // content is English-only but will need revisiting when translations are added.
   const acceptLanguage = request.headers.get('accept-language') ?? undefined;
   try {
-    const organizations = await fetchOrganizations('resource', acceptLanguage);
+    const organizations = await fetchOrganizations('career', acceptLanguage);
     return { organizations };
   } catch (error) {
     console.error('Failed to load organizations:', error);

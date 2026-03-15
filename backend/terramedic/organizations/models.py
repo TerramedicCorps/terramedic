@@ -7,6 +7,7 @@ class Category(models.TextChoices):
     VOLUNTEER = "volunteer"
     RESOURCE = "resource"
     ACTION = "action"
+    CAREER = "career"
 
 
 class Tag(models.Model):
