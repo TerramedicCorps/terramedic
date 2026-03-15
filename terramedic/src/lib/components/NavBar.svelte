@@ -43,7 +43,7 @@
             class="nav-item about-dropdown-trigger"
             active={activeUrl === '/about' || activeUrl === '/warming-stripes'}
           >
-            <button class="nav-link about-link" aria-haspopup="true">
+            <button class="nav-link about-link" aria-haspopup="true" aria-label="About menu">
               About
               <ChevronDownOutline class="ms-1 h-3 w-3" />
             </button>
