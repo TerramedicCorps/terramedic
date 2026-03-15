@@ -17,7 +17,7 @@
   import { trackEvent, trackSectionView } from '$lib/utils/analytics';
 
   // Function to open modal
-  function openModal(src: string, alt: string) {
+  function openModal(src, alt) {
     modalImage = src;
     modalAlt = alt;
     showModal = true;
