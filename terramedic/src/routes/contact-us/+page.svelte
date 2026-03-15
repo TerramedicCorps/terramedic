@@ -2,6 +2,7 @@
   import NavBar from '$lib/components/NavBar.svelte';
   import Footer from '$lib/components/Footer.svelte';
   import ContactForm from '$lib/components/ContactForm.svelte';
+  import { trackSectionView } from '$lib/utils/analytics';
 
   export let form;
 </script>
@@ -35,7 +36,10 @@
         Contact Us
       </h1>
 
-      <div class="bg-navy mx-auto mb-8 max-w-2xl rounded-lg p-6 text-center shadow-sm">
+      <div
+        use:trackSectionView={{ section: 'contact_form', page: 'contact-us' }}
+        class="bg-navy mx-auto mb-8 max-w-2xl rounded-lg p-6 text-center shadow-sm"
+      >
         <p class="mb-4 text-gray-300">
           Have questions, feedback, or want to collaborate? We'd love to hear from you. Fill out the
           form below and we'll get back to you as soon as possible.

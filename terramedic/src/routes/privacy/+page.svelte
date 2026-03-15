@@ -1,6 +1,7 @@
 <script>
   import NavBar from '$lib/components/NavBar.svelte';
   import Footer from '$lib/components/Footer.svelte';
+  import { trackSectionView } from '$lib/utils/analytics';
 
   export let form;
 </script>
@@ -35,7 +36,7 @@
       </h1>
 
       <div class="mx-auto max-w-3xl space-y-10">
-        <section>
+        <section use:trackSectionView={{ section: 'intro', page: 'privacy' }}>
           <p class="text-gray-300">
             Terramedic Corps ("we", "us", "our") respects your privacy. This policy explains what
             information we collect when you visit
