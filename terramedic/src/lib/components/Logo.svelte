@@ -1,40 +1,40 @@
 <script>
   import { GREEN_CROSS } from '$lib/icons';
 
-  export let size = 'medium'; // small, medium, large
+  export let size = 'medium'; // small, medium, large, or inherit
   export let showWordmark = true;
 
-  $: fontSize = size === 'small' ? '1.125rem' : size === 'medium' ? '1.5rem' : '2rem';
+  $: fontSize =
+    size === 'small'
+      ? '1.125rem'
+      : size === 'medium'
+        ? '1.5rem'
+        : size === 'large'
+          ? '2rem'
+          : 'inherit';
 </script>
 
-<div class="logo">
-  <span class="logo-text" style="font-size: {fontSize};">
-    <svg
-      class="logo-t"
-      viewBox={GREEN_CROSS.viewBox}
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      {#each GREEN_CROSS.arms as arm (arm.x)}
-        <rect
-          x={arm.x}
-          y={arm.y}
-          width={arm.width}
-          height={arm.height}
-          rx={arm.rx}
-          fill={GREEN_CROSS.fill}
-        />
-      {/each}
-    </svg>{#if showWordmark}erramedic{/if}
-  </span>
-</div>
+<span class="logo-text" style="font-size: {fontSize};">
+  <span class="sr-only">T</span><svg
+    class="logo-t"
+    viewBox={GREEN_CROSS.viewBox}
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+  >
+    {#each GREEN_CROSS.arms as arm (arm.x)}
+      <rect
+        x={arm.x}
+        y={arm.y}
+        width={arm.width}
+        height={arm.height}
+        rx={arm.rx}
+        fill={GREEN_CROSS.fill}
+      />
+    {/each}
+  </svg>{#if showWordmark}erramedic{/if}
+</span>
 
 <style>
-  .logo {
-    display: inline-flex;
-    align-items: baseline;
-  }
-
   .logo-text {
     font-family: 'Montserrat', sans-serif;
     font-weight: 700;

@@ -6,9 +6,14 @@ import HeroImage from './HeroImage.svelte';
 describe('HeroImage', () => {
   const baseProps = {
     title: 'Welcome to',
-    titleBrand: 'erramedic',
     description: 'Test description'
   };
+
+  test('full brand name is accessible for SEO and screen readers', () => {
+    render(HeroImage, { props: baseProps });
+    const heading = screen.getByRole('heading', { level: 1 });
+    expect(heading.textContent).toMatch(/Terramedic/);
+  });
 
   test('CTA button has dark text on light green background', () => {
     render(HeroImage, { props: baseProps });

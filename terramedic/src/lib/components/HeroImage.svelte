@@ -1,10 +1,9 @@
 <script>
   import { onMount } from 'svelte';
-  import { GREEN_CROSS } from '$lib/icons';
+  import Logo from './Logo.svelte';
 
   export let tagline = 'Your planet needs you';
   export let title = '';
-  export let titleBrand = '';
   export let description = '';
   export let description2 = '';
 
@@ -77,27 +76,12 @@
         </p>
       {/if}
 
-      {#if title || titleBrand}
+      {#if title}
         <h1 class="mx-auto mb-6 max-w-3xl font-bold text-white">
           <span class="block text-2xl md:text-4xl lg:text-5xl">{title}</span>
-          {#if titleBrand}
-            <span class="block text-5xl whitespace-nowrap sm:text-6xl md:text-7xl lg:text-8xl"
-              ><svg
-                class="hero-logo-t"
-                viewBox={GREEN_CROSS.viewBox}
-                xmlns="http://www.w3.org/2000/svg"
-                aria-hidden="true"
-                >{#each GREEN_CROSS.arms as arm (arm.x)}<rect
-                    x={arm.x}
-                    y={arm.y}
-                    width={arm.width}
-                    height={arm.height}
-                    rx={arm.rx}
-                    fill={GREEN_CROSS.fill}
-                  />{/each}</svg
-              >{titleBrand}</span
-            >
-          {/if}
+          <span class="block text-5xl whitespace-nowrap sm:text-6xl md:text-7xl lg:text-8xl">
+            <Logo size="inherit" />
+          </span>
         </h1>
       {/if}
 
@@ -176,15 +160,6 @@
        wider screens (50vh - 5vw), clamped to 42vh max on narrow phones
        and 30vh min on ultrawide displays. */
     padding: calc(var(--navbar-height) + 2rem) 1rem clamp(30vh, 50vh - 5vw, 42vh);
-  }
-
-  /* Green cross as the "t" in terramedic */
-  .hero-logo-t {
-    display: inline-block;
-    height: 0.85em;
-    width: 0.85em;
-    vertical-align: -0.05em;
-    margin-right: 0.03em;
   }
 
   /* Earth video — full-width background */

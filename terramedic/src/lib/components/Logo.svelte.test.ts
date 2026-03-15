@@ -9,6 +9,11 @@ describe('Logo', () => {
     expect(screen.getByText(/erramedic/)).toBeInTheDocument();
   });
 
+  test('full brand name is accessible for SEO and screen readers', () => {
+    const { container } = render(Logo);
+    expect(container.textContent).toMatch(/Terramedic/);
+  });
+
   test('does not render wordmark when showWordmark is false', () => {
     render(Logo, { props: { showWordmark: false } });
     expect(screen.queryByText(/erramedic/)).not.toBeInTheDocument();
