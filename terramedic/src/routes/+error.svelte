@@ -13,7 +13,11 @@
     </h1>
   {:else}
     <h1 class="mb-6 text-3xl font-bold text-white md:text-5xl">Something went wrong.</h1>
-    <p class="mb-6 text-lg text-gray-300">We're working on it. Please try again in a moment.</p>
+    <p class="mb-6 text-lg text-gray-300">
+      If this keeps happening, please <a href="/contact-us" class="text-terra-green hover:underline"
+        >let us know</a
+      >.
+    </p>
   {/if}
   <a
     href="/"
