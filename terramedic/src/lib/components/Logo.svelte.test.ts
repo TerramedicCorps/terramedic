@@ -1,12 +1,14 @@
 import { describe, test, expect } from 'vitest';
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/svelte';
+import { render } from '@testing-library/svelte';
 import Logo from './Logo.svelte';
 
 describe('Logo', () => {
-  test('renders wordmark text by default', () => {
-    render(Logo);
-    expect(screen.getByText(/erramedic/)).toBeInTheDocument();
+  test('renders visible wordmark text by default', () => {
+    const { container } = render(Logo);
+    const visible = container.querySelector('span[aria-hidden="true"]');
+    expect(visible).toBeInTheDocument();
+    expect(visible?.textContent).toBe('erramedic');
   });
 
   test('full brand name is accessible for SEO and screen readers', () => {
@@ -14,9 +16,15 @@ describe('Logo', () => {
     expect(container.textContent).toMatch(/Terramedic/);
   });
 
-  test('does not render wordmark when showWordmark is false', () => {
-    render(Logo, { props: { showWordmark: false } });
-    expect(screen.queryByText(/erramedic/)).not.toBeInTheDocument();
+  test('full brand name is accessible even when wordmark is hidden', () => {
+    const { container } = render(Logo, { props: { showWordmark: false } });
+    expect(container.textContent).toMatch(/Terramedic/);
+  });
+
+  test('does not render visible wordmark when showWordmark is false', () => {
+    const { container } = render(Logo, { props: { showWordmark: false } });
+    const visible = container.querySelector('span[aria-hidden="true"]');
+    expect(visible).not.toBeInTheDocument();
   });
 
   test('renders logo cross SVG', () => {

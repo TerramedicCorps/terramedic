@@ -15,7 +15,7 @@
 </script>
 
 <span class="logo-text" style="font-size: {fontSize};">
-  <span class="sr-only">T</span><svg
+  <span class="sr-only">Terramedic</span><svg
     class="logo-t"
     viewBox={GREEN_CROSS.viewBox}
     xmlns="http://www.w3.org/2000/svg"
@@ -31,7 +31,7 @@
         fill={GREEN_CROSS.fill}
       />
     {/each}
-  </svg>{#if showWordmark}erramedic{/if}
+  </svg>{#if showWordmark}<span aria-hidden="true">erramedic</span>{/if}
 </span>
 
 <style>
