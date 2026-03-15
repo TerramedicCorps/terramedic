@@ -53,7 +53,6 @@
       <HeroImage
         tagline=""
         title="Anyone can be a"
-        titleBrand="erramedic"
         description="Mother Earth is hurting."
         description2="But you can help her."
       />

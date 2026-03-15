@@ -1,10 +1,9 @@
 <script>
   import { onMount } from 'svelte';
-  import { GREEN_CROSS } from '$lib/icons';
+  import Logo from './Logo.svelte';
 
   export let tagline = 'Your planet needs you';
   export let title = '';
-  export let titleBrand = '';
   export let description = '';
   export let description2 = '';
 
@@ -65,7 +64,7 @@
 
     <!-- Content overlay (absolutely positioned via .hero-content in <style>) -->
     <div
-      class="hero-content z-10 flex flex-col items-center justify-center text-center"
+      class="hero-content z-10 flex flex-col items-center justify-start text-center"
       data-og-hero
     >
       {#if tagline}
@@ -77,27 +76,12 @@
         </p>
       {/if}
 
-      {#if title || titleBrand}
+      {#if title}
         <h1 class="mx-auto mb-6 max-w-3xl font-bold text-white">
           <span class="block text-2xl md:text-4xl lg:text-5xl">{title}</span>
-          {#if titleBrand}
-            <span class="block text-5xl whitespace-nowrap sm:text-6xl md:text-7xl lg:text-8xl"
-              ><svg
-                class="hero-logo-t"
-                viewBox={GREEN_CROSS.viewBox}
-                xmlns="http://www.w3.org/2000/svg"
-                aria-hidden="true"
-                >{#each GREEN_CROSS.arms as arm (arm.x)}<rect
-                    x={arm.x}
-                    y={arm.y}
-                    width={arm.width}
-                    height={arm.height}
-                    rx={arm.rx}
-                    fill={GREEN_CROSS.fill}
-                  />{/each}</svg
-              >{titleBrand}</span
-            >
-          {/if}
+          <span class="block text-5xl whitespace-nowrap sm:text-6xl md:text-7xl lg:text-8xl">
+            <Logo size="inherit" />
+          </span>
         </h1>
       {/if}
 
@@ -121,10 +105,10 @@
         </p>
       {/if}
 
-      <div class="flex flex-col gap-4 sm:flex-row" data-og-hide>
+      <div class="mt-16 flex flex-col gap-4 sm:flex-row" data-og-hide>
         <a
           href="#take-action"
-          class="bg-terra-green inline-flex items-center rounded-md px-6 py-3 text-base font-semibold text-[#0a0e17] shadow-lg transition-colors hover:bg-green-400"
+          class="inline-flex items-center rounded-md bg-white px-6 py-3 text-base font-semibold text-[#0a0e17] transition-colors hover:bg-gray-200"
         >
           Pick a path and take a step
           <svg
@@ -148,7 +132,7 @@
 <style>
   .hero-space-bg {
     position: relative;
-    min-height: 36rem;
+    min-height: 33rem;
     display: flex;
     align-items: flex-start;
     justify-content: center;
@@ -158,33 +142,21 @@
 
   @media (min-width: 768px) {
     .hero-space-bg {
-      min-height: 40rem;
+      min-height: 37rem;
     }
   }
 
   @media (min-width: 1024px) {
     .hero-space-bg {
-      min-height: 48rem;
+      min-height: 44rem;
     }
   }
 
   .hero-content {
     position: absolute;
     inset: 0;
-    /* Top: clear sticky navbar + gap.
-       Bottom: keep text above earth horizon — preferred pad shrinks on
-       wider screens (50vh - 5vw), clamped to 42vh max on narrow phones
-       and 30vh min on ultrawide displays. */
-    padding: calc(var(--navbar-height) + 2rem) 1rem clamp(30vh, 50vh - 5vw, 42vh);
-  }
-
-  /* Green cross as the "t" in terramedic */
-  .hero-logo-t {
-    display: inline-block;
-    height: 0.85em;
-    width: 0.85em;
-    vertical-align: -0.05em;
-    margin-right: 0.03em;
+    /* Clear sticky navbar + gap */
+    padding: calc(var(--navbar-height) + 2rem) 1rem 1rem;
   }
 
   /* Earth video — full-width background */
@@ -201,7 +173,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: center center;
+    object-position: center 100%;
   }
 
   /* Dark scrim between video and text */
