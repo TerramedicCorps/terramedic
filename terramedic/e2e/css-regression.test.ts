@@ -13,7 +13,7 @@ test.describe('Navbar responsive layout', () => {
     }
 
     // About dropdown trigger should be visible (it's a button inside NavLi)
-    const aboutTrigger = nav.getByRole('button', { name: 'About' });
+    const aboutTrigger = nav.locator('button.about-link');
     await expect(aboutTrigger).toBeVisible();
 
     // Check that a nav link is on the same row as the logo (not stacked below)
@@ -36,7 +36,7 @@ test.describe('Navbar responsive layout', () => {
     await page.goto('/');
 
     // Nav links should not be visible below the lg breakpoint (1024px)
-    const aboutTrigger = page.locator('nav').getByRole('button', { name: 'About' });
+    const aboutTrigger = page.locator('nav button.about-link');
     await expect(aboutTrigger).not.toBeVisible();
 
     // Hamburger button should be visible
