@@ -193,6 +193,16 @@
         <a href="/privacy" class="text-gray-400 transition-colors hover:text-white">
           Privacy Policy
         </a>
+        ·
+        <button
+          on:click={() => {
+            localStorage.removeItem('cookie-consent');
+            location.reload();
+          }}
+          class="text-gray-400 transition-colors hover:text-white"
+        >
+          Cookie Settings
+        </button>
       </p>
     </div>
   </div>
