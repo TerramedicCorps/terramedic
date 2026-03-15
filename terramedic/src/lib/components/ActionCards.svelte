@@ -38,8 +38,7 @@
       </svg>
       <h3 class="card-title">Have money to&nbsp;spare?</h3>
       <p class="card-description">
-        Put your money to work by supporting the organizations, campaigns, and causes driving real
-        change.
+        Put your money to work by supporting organizations building a healthier planet.
       </p>
       <span class="card-action">See where to give &rarr;</span>
     </div>
@@ -87,7 +86,8 @@
       </svg>
       <h3 class="card-title">Already&nbsp;helping?</h3>
       <p class="card-description">
-        Tools, research, and support for those already engaged in advocacy work.
+        Tools, research, and educational resources for those already working toward a healthier
+        world.
       </p>
       <span class="card-action">Find resources &rarr;</span>
     </div>

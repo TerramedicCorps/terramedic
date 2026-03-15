@@ -17,21 +17,21 @@
 
 <svelte:head>
   <link rel="canonical" href="https://terramedic.org/donate" />
-  <title>Donate to Make a Difference | Terramedic</title>
+  <title>Explore Donation Opportunities | Terramedic</title>
   <meta
     name="description"
-    content="Put your money to work for a healthier planet. Support vetted organizations driving real change through advocacy, voter mobilization, and grassroots action."
+    content="Explore a sampling of environmental organizations working toward a healthier planet. Learn about their missions and how your donation can help."
   />
-  <meta property="og:title" content="Donate to Make a Difference | Terramedic" />
+  <meta property="og:title" content="Explore Donation Opportunities | Terramedic" />
   <meta
     property="og:description"
-    content="Put your money to work for a healthier planet. Support vetted organizations driving real change."
+    content="Explore a sampling of environmental organizations working toward a healthier planet."
   />
   <meta property="og:url" content="https://terramedic.org/donate" />
-  <meta name="twitter:title" content="Donate to Make a Difference | Terramedic" />
+  <meta name="twitter:title" content="Explore Donation Opportunities | Terramedic" />
   <meta
     name="twitter:description"
-    content="Put your money to work for a healthier planet. Support vetted organizations driving real change."
+    content="Explore a sampling of environmental organizations working toward a healthier planet."
   />
 </svelte:head>
 
@@ -41,11 +41,12 @@
   <main class="flex-grow">
     <div class="container-narrow py-12">
       <h1 class="mb-4 text-center text-3xl font-bold text-white md:text-4xl lg:text-5xl">
-        Power Civic Action
+        Explore Donation Opportunities
       </h1>
       <p class="mx-auto mb-10 max-w-2xl text-center text-lg text-balance text-gray-400">
-        From voter mobilization to grassroots advocacy, these organizations make it easy for
-        everyday people to push for a healthier planet. Your donation keeps that work going.
+        From grassroots education to community engagement, these organizations make it easy for
+        everyday people to support a healthier planet. Learn about their work and how your donation
+        can help.
       </p>
 
       <div
