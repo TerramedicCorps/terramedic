@@ -39,7 +39,7 @@
       "website_url": "https://www.climatecabinet.org/donate",
       "image_url": "",
       "category": "donate",
-      "tags": [16, 9, 20],
+      "tags": [16, 20],
       "sort_order": 0,
       "is_active": true,
       "location": null
@@ -67,7 +67,7 @@
       "website_url": "https://www.environmentalvoter.org/donate",
       "image_url": "",
       "category": "donate",
-      "tags": [30, 11, 12],
+      "tags": [30, 12],
       "sort_order": 2,
       "is_active": true,
       "location": null
@@ -95,7 +95,7 @@
       "website_url": "https://citizensclimatelobby.org/donate/",
       "image_url": "",
       "category": "donate",
-      "tags": [1, 2, 3],
+      "tags": [1, 2, 11],
       "sort_order": 4,
       "is_active": true,
       "location": null
@@ -123,7 +123,7 @@
       "website_url": "https://www.environmentalvoter.org/get-involved",
       "image_url": "",
       "category": "volunteer",
-      "tags": [30, 11, 10],
+      "tags": [30, 10],
       "sort_order": 1,
       "is_active": true,
       "location": null

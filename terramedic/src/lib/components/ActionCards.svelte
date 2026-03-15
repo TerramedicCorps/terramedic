@@ -38,7 +38,7 @@
       </svg>
       <h3 class="card-title">Have money to&nbsp;spare?</h3>
       <p class="card-description">
-        Put your money to work by supporting organizations building a healthier planet.
+        Put your money to work by supporting organizations making a real difference.
       </p>
       <span class="card-action">See where to give &rarr;</span>
     </div>
