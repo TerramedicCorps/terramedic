@@ -15,10 +15,10 @@ describe('HeroImage', () => {
     expect(heading.textContent).toMatch(/Terramedic/);
   });
 
-  test('CTA button has dark text on light green background', () => {
+  test('CTA button has dark text on white background', () => {
     render(HeroImage, { props: baseProps });
     const ctaLink = screen.getByRole('link', { name: /Pick a path/i });
     expect(ctaLink.className).toContain('text-[#0a0e17]');
-    expect(ctaLink.className).toContain('bg-terra-green');
+    expect(ctaLink.className).toContain('bg-white');
   });
 });
