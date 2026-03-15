@@ -27,7 +27,7 @@ export function initAnalytics(): void {
     window.dataLayer.push(arguments);
   };
   window.gtag('js', new Date());
-  window.gtag('config', GA_MEASUREMENT_ID);
+  window.gtag('config', GA_MEASUREMENT_ID, { send_page_view: false });
 }
 
 /**
