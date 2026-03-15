@@ -304,15 +304,16 @@ def main(argv: list[str] | None = None) -> None:
         property_id, start_date=args.start, end_date=args.end,
     )
 
-    print(f"Fetching metrics for property {property_id}...")
-    print(f"Date range: {args.start} to {args.end}\n")
+    if not args.json:
+        print(f"Fetching metrics for property {property_id}...")
+        print(f"Date range: {args.start} to {args.end}\n")
 
     reports: list[dict[str, Any]] = []
     for item in report_defs:
         try:
             response = client.run_report(request=item["request"])
             reports.append(parse_report_response(item["name"], response))
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             print(f"Error fetching {item['name']}: {exc}", file=sys.stderr)
             reports.append({"name": item["name"], "rows": []})
 
