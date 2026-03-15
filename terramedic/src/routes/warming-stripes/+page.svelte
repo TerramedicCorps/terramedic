@@ -11,7 +11,7 @@
   let modalImage = '/images/2025GenerationsStripes.jpg';
   let modalAlt = '2025 Generations Stripes';
 
-  function openModal(src, alt) {
+  function openModal(src: string, alt: string) {
     modalImage = src;
     modalAlt = alt;
     showModal = true;
