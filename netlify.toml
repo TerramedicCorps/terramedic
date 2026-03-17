@@ -21,8 +21,3 @@
   [forms.contact-form.actions.email]
     to = "info@terramedic.org"
     subject = "New Contact Form Submission"
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
