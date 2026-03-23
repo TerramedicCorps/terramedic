@@ -11,6 +11,32 @@ on:
       - dev
 
 jobs:
+  python-test:
+    name: Python Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        working-directory: backend
+        run: poetry install --no-interaction
+
+      - name: Run Python tests
+        working-directory: backend
+        env:
+          SECRET_KEY: ci-test-key
+        run: poetry run pytest
+
   test:
     runs-on: ubuntu-latest
     defaults:

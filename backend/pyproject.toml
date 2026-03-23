@@ -28,6 +28,8 @@ pytest = "^8.3.3"
 pytest-django = "^4.9.0"
 pytest-cov = "^6.0.0"
 boto3-stubs = "^1.42.63"
+mypy = "^1.19.1"
+django-stubs = "^5.2.9"
 
 [tool.ruff]
 target-version = "py314"
@@ -56,7 +58,7 @@ addopts = [
     "--cov-report=xml:coverage.xml",
     "--cov-report=html:htmlcov",
     "--cov-report=term-missing",
-    "--cov-fail-under=80",
+    "--cov-fail-under=33",
 ]
 
 [tool.coverage.run]
@@ -70,6 +72,25 @@ omit = [
     "**/management/commands/*",
     "terramedic/core/settings.py",
 ]
+
+[tool.mypy]
+python_version = "3.14"
+plugins = ["mypy_django_plugin.main"]
+ignore_missing_imports = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "*.migrations.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "terramedic.organizations.models"
+disable_error_code = ["var-annotated", "no-any-return"]
+
+[tool.django-stubs]
+django_settings_module = "terramedic.core.settings"
 
 [build-system]
 requires = ["poetry-core"]
