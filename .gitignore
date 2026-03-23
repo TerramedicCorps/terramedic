@@ -21,6 +21,11 @@ Thumbs.db
 !.env.example
 !.env.test
 
+# Private keys and certificates
+*.key
+*.pem
+*.p12
+
 # Google service account keys
 *-sa-key.json
 *-service-account*.json
