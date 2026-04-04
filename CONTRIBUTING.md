@@ -108,6 +108,8 @@ yarn dev
 - Follow the existing design system
 - Ensure responsive design (mobile-first)
 - Test on different screen sizes
+- See [docs/BRAND_GUIDE.md](docs/BRAND_GUIDE.md) for
+  voice, tone, terminology, colors, and typography
 
 ### Accessibility
 
