@@ -25,6 +25,7 @@ DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
 
 # SECURITY WARNING: keep the secret key used in production secret!
 _is_testing = "pytest" in sys.modules or os.getenv("PYTEST_CURRENT_TEST")
+_is_mypy = "mypy" in sys.modules or os.getenv("MYPY_RUNNING")
 _raw_secret_key = os.getenv("SECRET_KEY", "")
 if IS_LAMBDA and _raw_secret_key:
     from terramedic.core.secrets import resolve_secret
@@ -32,7 +33,7 @@ if IS_LAMBDA and _raw_secret_key:
     SECRET_KEY = resolve_secret(_raw_secret_key, "key")
 elif _raw_secret_key:
     SECRET_KEY = _raw_secret_key
-elif DEBUG or _is_testing:
+elif DEBUG or _is_testing or _is_mypy:
     SECRET_KEY = "django-insecure-terramedic-dev-key-change-in-production"
 else:
     raise ValueError("SECRET_KEY environment variable is required in production")
