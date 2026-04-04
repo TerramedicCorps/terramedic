@@ -95,7 +95,7 @@ poetry run python manage.py runserver
 **Frontend** (run from `terramedic/`):
 
 | Command | Description |
-|---|---|
+| --- | --- |
 | `yarn dev` | Start development server |
 | `yarn build` | Build for production |
 | `yarn preview` | Preview production build |
@@ -109,7 +109,7 @@ poetry run python manage.py runserver
 **Backend** (run from `backend/`):
 
 | Command | Description |
-|---|---|
+| --- | --- |
 | `poetry run python manage.py runserver` | Start dev server |
 | `poetry run pytest` | Run tests |
 | `poetry run ruff check .` | Lint Python code |

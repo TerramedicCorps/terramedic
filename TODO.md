@@ -10,7 +10,7 @@ All tasks are drawn from Phase 1 of the
 ## Phase 1: Database and Curation Pipeline
 
 | # | Task | Status | Agent | Issue |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | 1 | Define curation schema | done | Dev | — |
 | 2 | Build curation CLI tool | pending | Dev | [#140](https://github.com/TerramedicCorps/terramedic/issues/140) |
 | 3 | Draft curator system prompt and 5-step checklist | done | Curator | — |

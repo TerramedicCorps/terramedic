@@ -1,8 +1,0 @@
-# Markdownlint configuration
-# Shared by local hooks and CI
-
-config:
-  # Allow compact table style (|---|---|)
-  MD060: false
-  # Allow long lines in markdown (handled by manual wrapping)
-  MD013: false
