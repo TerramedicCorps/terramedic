@@ -79,8 +79,10 @@ in place).
 
 ## Current Status
 
-- Phase 1: Not started. Database schema and Django models
-  exist. Curation pipeline and schema not yet built.
+- Phase 1: Partially started. Database schema, Django
+  models, and curation evaluation schema exist. Curation
+  pipeline CLI tool, review UI, and initial curated
+  dataset not yet built.
 - Phase 2: Partially started. Basic API endpoints exist
   (list, detail, nearby). Public documentation and
   extended schema not yet built.
