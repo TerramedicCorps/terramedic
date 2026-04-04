@@ -4,11 +4,9 @@ on:
   push:
     branches:
       - main
-      - dev
   pull_request:
     branches:
       - main
-      - dev
 
 jobs:
   prettier:
@@ -79,3 +77,60 @@ jobs:
             !LICENSE.md
             !node_modules
             !terramedic/node_modules
+
+  ruff:
+    name: Ruff (Python)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        working-directory: backend
+        run: poetry install --no-interaction
+
+      - name: Run Ruff
+        working-directory: backend
+        run: poetry run ruff check .
+
+  mypy:
+    name: mypy (Python)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install GDAL/SpatiaLite
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gdal-bin libgdal-dev libsqlite3-mod-spatialite
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        working-directory: backend
+        run: poetry install --no-interaction
+
+      - name: Run mypy
+        working-directory: backend
+        env:
+          SECRET_KEY: ci-test-key
+        run: |
+          poetry run mypy terramedic
+          poetry run mypy scripts/ga_metrics.py scripts/configure_zappa.py

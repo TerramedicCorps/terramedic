@@ -31,7 +31,7 @@ This project includes content from third-party organizations licensed under CC B
 
 When using or sharing non-code content from this project, please include the following attribution:
 
-> "Content from terramedic.org, including third-party contributions, licensed under CC BY 4.0. Created by the Terramedic Corps and contributors."
+> "Content from terramedic.org, including third-party contributions, licensed under CC BY 4.0. Created by Terramedic Corps, Inc. and contributors."
 
 ---
 

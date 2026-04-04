@@ -1,0 +1,5 @@
+[allowlist]
+description = "Known false positives"
+
+# Terraform default placeholder password "changeme" — not a real secret
+commits = ["c3746ed07f6e3d09407ad8b6d4ed3790547505f8"]

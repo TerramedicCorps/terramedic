@@ -4,13 +4,46 @@ on:
   push:
     branches:
       - main
-      - dev
   pull_request:
     branches:
       - main
-      - dev
 
 jobs:
+  python-test:
+    name: Python Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install GDAL/SpatiaLite
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gdal-bin libgdal-dev libsqlite3-mod-spatialite
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        working-directory: backend
+        run: poetry install --no-interaction
+
+      - name: Create local DB directory
+        working-directory: backend
+        run: mkdir -p db
+
+      - name: Run Python tests
+        working-directory: backend
+        env:
+          SECRET_KEY: ci-test-key
+        run: poetry run pytest --ignore=scripts/tests/test_configure_zappa.py
+
   test:
     runs-on: ubuntu-latest
     defaults:
@@ -25,7 +58,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Django backend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: backend
           load: true

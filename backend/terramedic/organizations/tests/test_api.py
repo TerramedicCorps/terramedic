@@ -207,8 +207,10 @@ class TestNearbyOrganizations:
         client: Client,
         inactive_org: Organization,
     ) -> None:
+        # radius=500 is the API max (500km); large enough to cover
+        # the DC-area fixture orgs while staying within validation limits
         response = client.get(
-            "/api/organizations/nearby/?lat=38.9&lng=-77.0&radius=5000",
+            "/api/organizations/nearby/?lat=38.9&lng=-77.0&radius=500",
         )
         assert response.status_code == 200
         data = response.json()
