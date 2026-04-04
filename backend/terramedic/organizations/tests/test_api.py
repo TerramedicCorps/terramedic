@@ -208,7 +208,7 @@ class TestNearbyOrganizations:
         inactive_org: Organization,
     ) -> None:
         response = client.get(
-            "/api/organizations/nearby/?lat=38.9&lng=-77.0&radius=5000",
+            "/api/organizations/nearby/?lat=38.9&lng=-77.0&radius=500",
         )
         assert response.status_code == 200
         data = response.json()

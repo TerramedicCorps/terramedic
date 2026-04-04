@@ -37,8 +37,8 @@ class TestSeedDataFixture:
         org = Organization.objects.get(name="Give Green")
         tag_names = set(org.tags.values_list("name", flat=True))
         assert tag_names == {
-            "Political Giving",
-            "Electoral Impact",
+            "Policy Support",
+            "Public Policy",
             "Climate Champions",
         }
 
