@@ -18,6 +18,8 @@ section alone.
 - Python 3.14+ and [Poetry](https://python-poetry.org/)
 - Git
 
+All paths below are relative to the repository root.
+
 ### Frontend
 
 ```bash
@@ -32,25 +34,27 @@ The frontend runs at `http://localhost:5173`.
 ### Backend
 
 ```bash
-cd terramedic/backend
+cd ../backend  # or cd terramedic/backend from repo root
+poetry env use python3.14  # if Python 3.14 isn't default
 poetry install
-poetry run python manage.py migrate
-poetry run python manage.py runserver
+mkdir -p db
+DEBUG=true poetry run python manage.py migrate
+DEBUG=true poetry run python manage.py runserver
 ```
 
-The backend runs at `http://localhost:8000`. No environment
-variables are required for local development — the app
-falls back to safe defaults.
+The backend runs at `http://localhost:8000`. `DEBUG=true`
+is required for local development — it tells Django to
+use a dev secret key and enables debug mode.
 
 ### Verify Everything Works
 
 ```bash
 # Frontend (from terramedic/)
-yarn lint && yarn test:unit && yarn build
+yarn lint && yarn test:unit --run && yarn build
 
 # Backend (from backend/)
 poetry run ruff check .
-poetry run mypy terramedic
+SECRET_KEY=test poetry run mypy terramedic
 poetry run pytest
 ```
 
@@ -64,13 +68,13 @@ Before submitting a PR, run:
 # Frontend (from terramedic/)
 yarn format
 yarn lint
-yarn test:unit
+yarn test:unit --run
 yarn test:e2e
 yarn build
 
 # Backend (from backend/)
 poetry run ruff check .
-poetry run mypy terramedic
+SECRET_KEY=test poetry run mypy terramedic
 poetry run pytest
 ```
 
