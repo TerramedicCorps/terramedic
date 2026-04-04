@@ -3,7 +3,7 @@
   "title": "Organization Evaluation",
   "description": "Output format for the Terramedic curation pipeline. Each evaluation assesses a candidate environmental organization for inclusion in the database.",
   "type": "object",
-  "required": ["org_metadata", "sdg_alignment", "evidence_of_work", "accessibility", "evidence_score", "curator_notes"],
+  "required": ["org_metadata", "sdg_alignment", "evidence_of_work", "accessibility", "evidence_score", "curator_notes", "evaluated_at", "evaluated_by"],
   "properties": {
     "org_metadata": {
       "type": "object",
@@ -154,6 +154,7 @@
     "curator_notes": {
       "type": "object",
       "description": "Additional context for the human reviewer.",
+      "required": ["recommendation"],
       "properties": {
         "flags": {
           "type": "array",
