@@ -1,7 +1,9 @@
 # Contributing to Terramedic
 
-Thank you for your interest in contributing to Terramedic! This project aims to provide resources and opportunities
-for climate action, and we welcome contributions from everyone who shares this mission.
+Thank you for your interest in contributing to Terramedic!
+This project connects people and AI to environmental
+organizations, and we welcome contributions from everyone
+who shares this mission.
 
 ## Table of Contents
 
@@ -15,16 +17,20 @@ for climate action, and we welcome contributions from everyone who shares this m
 
 ## Code of Conduct
 
-This project adheres to a Code of Conduct that all contributors are expected to follow.
-Please read [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before contributing.
+This project adheres to a Code of Conduct that all
+contributors are expected to follow. Please read
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before
+contributing.
 
 ## How Can I Contribute?
 
 ### Reporting Bugs
 
-- Check if the bug has already been reported in [Issues](https://github.com/terramediccorps/terramedic/issues)
+- Check if the bug has already been reported in
+  [Issues](https://github.com/TerramedicCorps/terramedic/issues)
 - If not, create a new issue using the bug report template
-- Include as much detail as possible: steps to reproduce, expected vs actual behavior, screenshots, etc.
+- Include as much detail as possible: steps to reproduce,
+  expected vs actual behavior, screenshots, etc.
 
 ### Suggesting Enhancements
 
@@ -35,7 +41,8 @@ Please read [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before contributing.
 ### Code Contributions
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+2. Create a feature branch
+   (`git checkout -b feature/amazing-feature`)
 3. Make your changes following our coding guidelines
 4. Test your changes thoroughly
 5. Commit using conventional commit messages
@@ -46,11 +53,11 @@ Please read [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before contributing.
 
 ### Prerequisites
 
-- Node.js 20.x or higher
-- Yarn package manager
+- Node.js 20+ and Yarn
+- Python 3.14+ and [Poetry](https://python-poetry.org/)
 - Git
 
-### Installation
+### Frontend
 
 ```bash
 # Clone your fork
@@ -58,7 +65,7 @@ git clone https://github.com/YOUR_USERNAME/terramedic.git
 cd terramedic/terramedic
 
 # Or clone the main repo
-git clone https://github.com/terramediccorps/terramedic.git
+git clone https://github.com/TerramedicCorps/terramedic.git
 cd terramedic/terramedic
 
 # Install dependencies
@@ -68,26 +75,54 @@ yarn install
 yarn dev
 ```
 
+The frontend runs at `http://localhost:5173`.
+
+### Backend
+
+```bash
+cd ../backend  # or cd terramedic/backend from repo root
+poetry env use python3.14  # if Python 3.14 isn't default
+poetry install
+mkdir -p db
+DEBUG=true poetry run python manage.py migrate
+DEBUG=true poetry run python manage.py runserver
+```
+
+The backend runs at `http://localhost:8000`.
+
 ### Available Scripts
 
-- `yarn dev` - Start development server
-- `yarn build` - Build for production
-- `yarn preview` - Preview production build
-- `yarn test` - Run all tests (unit + e2e)
-- `yarn test:unit` - Run unit tests
-- `yarn test:e2e` - Run e2e tests
-- `yarn lint` - Run ESLint and Prettier checks
-- `yarn format` - Format code with Prettier
-- `yarn storybook` - Launch Storybook for component development
+**Frontend** (run from `terramedic/`):
+
+- `yarn dev` — Start development server
+- `yarn build` — Build for production
+- `yarn preview` — Preview production build
+- `yarn test` — Run all tests (unit + e2e)
+- `yarn test:unit --run` — Run unit tests
+- `yarn test:e2e` — Run e2e tests
+- `yarn lint` — Run ESLint and Prettier checks
+- `yarn format` — Format code with Prettier
+- `yarn storybook` — Launch Storybook
+
+**Backend** (run from `backend/`):
+
+- `poetry run python manage.py runserver` — Start dev
+  server
+- `poetry run pytest` — Run tests
+- `poetry run ruff check .` — Lint Python code
+- `poetry run ruff format .` — Format Python code
+- `poetry run mypy terramedic` — Type-check Python code
 
 ## Coding Guidelines
 
 ### Code Style
 
-- We use **Prettier** for code formatting (automatically enforced)
-- We use **ESLint** for code quality
-- Run `yarn format` before committing
-- Run `yarn lint` to check for issues
+- We use **Prettier** for frontend code formatting
+  (automatically enforced)
+- We use **ESLint** for frontend code quality
+- We use **Ruff** for Python linting and formatting
+- Run `yarn format` before committing frontend changes
+- Run `yarn lint` to check for frontend issues
 
 ### TypeScript
 
@@ -100,7 +135,8 @@ yarn dev
 - Use Svelte 5 syntax and features
 - Keep components focused and reusable
 - Use props for component configuration
-- Follow existing component patterns in `/src/lib/components`
+- Follow existing component patterns in
+  `/src/lib/components`
 
 ### Styling
 
@@ -122,12 +158,15 @@ yarn dev
 
 - Write unit tests for new components using Vitest
 - Write e2e tests for critical user flows using Playwright
+- Write backend tests using pytest
 - Ensure all tests pass before submitting PR
 - Aim for meaningful test coverage
 
 ## Commit Message Guidelines
 
-We follow [Conventional Commits](https://www.conventionalcommits.org/) specification:
+We follow
+[Conventional Commits](https://www.conventionalcommits.org/)
+specification:
 
 ### Format
 
@@ -144,7 +183,7 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/) specifica
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
-- `style`: Code style changes (formatting, semicolons, etc.)
+- `style`: Code style changes (formatting, etc.)
 - `refactor`: Code refactoring
 - `test`: Adding or updating tests
 - `chore`: Maintenance tasks, dependencies
@@ -154,8 +193,9 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/) specifica
 ```text
 feat(search): add filter functionality for organizations
 
-Implemented client-side filtering for volunteer opportunities
-with support for keyword search and category filters.
+Implemented client-side filtering for volunteer
+opportunities with support for keyword search and
+category filters.
 
 Closes #123
 ```
@@ -163,20 +203,25 @@ Closes #123
 ```text
 fix(navigation): correct mobile menu behavior
 
-The mobile navigation was not closing after selecting a link.
-Fixed event handler to properly toggle menu state.
+The mobile navigation was not closing after selecting a
+link. Fixed event handler to properly toggle menu state.
 ```
 
 ## Pull Request Process
 
-1. **Update Documentation**: If you've added features, update the README or relevant docs
+1. **Update Documentation**: If you've added features,
+   update the README or relevant docs
 2. **Add Tests**: Include tests for new functionality
-3. **Run All Checks**: Ensure `yarn lint` and `yarn test` pass
-4. **Fill Out Template**: Complete the PR template with all relevant information
+3. **Run All Checks**: Ensure linting and tests pass for
+   both frontend and backend
+4. **Fill Out Template**: Complete the PR template with all
+   relevant information
 5. **Link Issues**: Reference any related issues
 6. **Request Review**: Tag maintainers if needed
-7. **Address Feedback**: Respond to review comments promptly
-8. **Keep Updated**: Rebase or merge main if your branch falls behind
+7. **Address Feedback**: Respond to review comments
+   promptly
+8. **Keep Updated**: Rebase or merge main if your branch
+   falls behind
 
 ### PR Title Format
 
@@ -192,7 +237,8 @@ Use conventional commit format in PR titles:
 
 - Search existing issues to avoid duplicates
 - Check if it's already fixed in the latest version
-- Gather relevant information (browser, OS, steps to reproduce)
+- Gather relevant information (browser, OS, steps to
+  reproduce)
 
 ### Issue Templates
 
@@ -204,7 +250,8 @@ Use the appropriate template:
 ### Writing Good Issues
 
 - **Clear Title**: Descriptive and specific
-- **Detailed Description**: Explain the problem or suggestion thoroughly
+- **Detailed Description**: Explain the problem or
+  suggestion thoroughly
 - **Steps to Reproduce** (for bugs): List exact steps
 - **Expected Behavior**: What should happen
 - **Actual Behavior**: What actually happens
@@ -213,13 +260,17 @@ Use the appropriate template:
 
 ## AI-Assisted Development
 
-This project welcomes contributions made with AI assistance. If you're using AI tools like GitHub Copilot, Claude, or ChatGPT:
+This project welcomes contributions made with AI
+assistance. If you're using AI tools like GitHub Copilot,
+Claude, or ChatGPT:
 
 - Review all AI-generated code carefully
 - Ensure it follows our coding guidelines
 - Test thoroughly
-- Feel free to mention AI assistance in PR descriptions (optional)
-- See [CLAUDE.md](CLAUDE.md) for project-specific AI development guidelines
+- Feel free to mention AI assistance in PR descriptions
+  (optional)
+- See [AGENTS.md](AGENTS.md) for AI-specific development
+  guidelines
 
 ## Questions?
 
@@ -232,9 +283,11 @@ If you have questions about contributing:
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under:
+By contributing, you agree that your contributions will be
+licensed under:
 
 - **Code**: GNU General Public License v3.0
-- **Non-code content**: Creative Commons Attribution 4.0 International License (CC BY 4.0)
+- **Non-code content**: Creative Commons Attribution 4.0
+  International License (CC BY 4.0)
 
-Thank you for contributing to climate action through Terramedic!
+Thank you for contributing to Terramedic!
