@@ -38,8 +38,8 @@
       <div class="mx-auto max-w-3xl space-y-10">
         <section use:trackSectionView={{ section: 'intro', page: 'privacy' }}>
           <p class="text-gray-300">
-            Terramedic Corps ("we", "us", "our") respects your privacy. This policy explains what
-            information we collect when you visit
+            Terramedic Corps, Inc. ("we", "us", "our") respects your privacy. This policy explains
+            what information we collect when you visit
             <a href="https://terramedic.org" class="text-terra-green hover:underline"
               >terramedic.org</a
             >, how we use it, and your choices.

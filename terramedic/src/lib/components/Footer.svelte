@@ -189,7 +189,7 @@
         any political candidate or legislative position.
       </p>
       <p class="mt-2 text-center text-sm text-balance text-gray-400">
-        © {new Date().getFullYear()} Terramedic Corps. Created for a healthier planet.
+        © {new Date().getFullYear()} Terramedic Corps, Inc. Created for a healthier planet.
         <a href="/privacy" class="text-gray-400 transition-colors hover:text-white">
           Privacy Policy
         </a>
