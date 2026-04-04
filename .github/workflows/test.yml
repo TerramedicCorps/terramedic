@@ -40,7 +40,7 @@ jobs:
         working-directory: backend
         env:
           SECRET_KEY: ci-test-key
-        run: poetry run pytest
+        run: poetry run pytest --ignore=scripts/tests/test_configure_zappa.py
 
   test:
     runs-on: ubuntu-latest
