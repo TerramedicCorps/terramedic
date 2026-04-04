@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Organization Evaluation",
+  "description": "Output format for the Terramedic curation pipeline. Each evaluation assesses a candidate environmental organization for inclusion in the database.",
+  "type": "object",
+  "required": ["org_metadata", "sdg_alignment", "evidence_of_work", "accessibility", "evidence_score", "curator_notes"],
+  "properties": {
+    "org_metadata": {
+      "type": "object",
+      "description": "Basic information about the organization.",
+      "required": ["name", "website_url"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Official name of the organization."
+        },
+        "website_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Primary website URL."
+        },
+        "country": {
+          "type": "string",
+          "description": "Country where the organization is headquartered (ISO 3166-1 alpha-2)."
+        },
+        "region": {
+          "type": "string",
+          "description": "Geographic region or state/province."
+        },
+        "legal_status": {
+          "type": "string",
+          "description": "Legal form (e.g., 501(c)(3), registered charity, NGO)."
+        },
+        "registration_info": {
+          "type": "string",
+          "description": "Registration number or ID if publicly available."
+        },
+        "year_founded": {
+          "type": "integer",
+          "description": "Year the organization was established."
+        },
+        "description": {
+          "type": "string",
+          "description": "Brief description of the organization's mission and work."
+        },
+        "image_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to the organization's logo or representative image."
+        }
+      }
+    },
+    "sdg_alignment": {
+      "type": "array",
+      "description": "Which SDGs (13, 14, 15) the organization's work aligns with, and the evidence for each.",
+      "items": {
+        "type": "object",
+        "required": ["sdg", "evidence"],
+        "properties": {
+          "sdg": {
+            "type": "integer",
+            "enum": [13, 14, 15],
+            "description": "UN Sustainable Development Goal number."
+          },
+          "evidence": {
+            "type": "string",
+            "description": "Brief explanation of how the org's work aligns with this SDG."
+          },
+          "evidence_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "URLs supporting the alignment claim."
+          }
+        }
+      }
+    },
+    "evidence_of_work": {
+      "type": "array",
+      "description": "Concrete activities demonstrating the organization does real environmental work.",
+      "items": {
+        "type": "object",
+        "required": ["activity", "type"],
+        "properties": {
+          "activity": {
+            "type": "string",
+            "description": "Description of the activity or project."
+          },
+          "type": {
+            "type": "string",
+            "enum": ["advocacy", "conservation", "education", "litigation", "policy", "research", "restoration", "other"],
+            "description": "Category of work."
+          },
+          "date": {
+            "type": "string",
+            "description": "Date or date range (approximate is fine)."
+          },
+          "source_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to a source confirming this activity."
+          }
+        }
+      }
+    },
+    "accessibility": {
+      "type": "object",
+      "description": "How people can engage with this organization.",
+      "properties": {
+        "volunteer_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to volunteer signup or opportunities page."
+        },
+        "donate_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to donation page."
+        },
+        "toolkit_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to toolkits, petitions, or action guides."
+        },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["donate", "volunteer", "resource", "action", "career"]
+          },
+          "description": "Which Terramedic pathways this org fits into."
+        }
+      }
+    },
+    "evidence_score": {
+      "type": "object",
+      "description": "Overall assessment of the organization's legitimacy and impact.",
+      "required": ["score", "rationale"],
+      "properties": {
+        "score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5,
+          "description": "0 = no evidence, 1 = minimal, 2 = some, 3 = moderate, 4 = strong, 5 = exceptional."
+        },
+        "rationale": {
+          "type": "string",
+          "description": "Explanation of why this score was given."
+        }
+      }
+    },
+    "curator_notes": {
+      "type": "object",
+      "description": "Additional context for the human reviewer.",
+      "properties": {
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Issues or uncertainties the curator wants the reviewer to check."
+        },
+        "recommendation": {
+          "type": "string",
+          "enum": ["include", "exclude", "needs_review"],
+          "description": "Curator's recommendation. Use needs_review when uncertain."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Free-form notes for the reviewer."
+        }
+      }
+    },
+    "evaluated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this evaluation was performed."
+    },
+    "evaluated_by": {
+      "type": "string",
+      "description": "The AI model used to produce this evaluation (e.g., claude-opus-4-6)."
+    }
+  }
+}
