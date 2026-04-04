@@ -126,6 +126,7 @@ All workflows in `.github/workflows/`:
 | `lint.yml` | Push, PRs | Prettier, ESLint, YAML lint, markdown lint, Ruff, mypy |
 | `test.yml` | Push, PRs | pytest (backend), Vitest + Playwright (frontend) |
 | `security.yml` | Push, PRs, weekly | CodeQL analysis |
+| `secret-scan.yml` | PRs to main | Gitleaks secret detection |
 | `secret-scan.yml` | Push, PRs | Gitleaks secret detection |
 | `deploy.yml` | Push to main/dev | Build Docker image, push to ECR, deploy via Zappa |
 | `dev_cost_control.yml` | Schedule | AWS dev environment cost monitoring |
