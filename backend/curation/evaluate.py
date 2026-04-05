@@ -101,6 +101,25 @@ def _extract_json(text: str) -> dict[str, Any]:
     return result
 
 
+_VALID_ACTIVITY_TYPES = frozenset({
+    "advocacy",
+    "conservation",
+    "education",
+    "litigation",
+    "policy",
+    "research",
+    "restoration",
+    "other",
+})
+
+
+def _coerce_activity_types(data: dict[str, Any]) -> None:
+    """Replace unknown evidence_of_work type values with 'other'."""
+    for item in data.get("evidence_of_work", []):
+        if item.get("type") not in _VALID_ACTIVITY_TYPES:
+            item["type"] = "other"
+
+
 def evaluate_org(
     url: str,
     model: str,
@@ -141,6 +160,8 @@ def evaluate_org(
     )
 
     result = _extract_json(response.content[0].text)  # type: ignore[union-attr]
+
+    _coerce_activity_types(result)
 
     result["evaluated_at"] = (
         datetime.datetime.now(datetime.UTC).isoformat()
