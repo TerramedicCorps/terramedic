@@ -373,7 +373,7 @@ def evaluate_org(
         except ImportError:
             print(
                 "Error: anthropic package not installed.\n"
-                "Install it with: poetry add anthropic",
+                "Install it with: poetry install --with curation",
                 file=sys.stderr,
             )
             sys.exit(1)
@@ -425,7 +425,7 @@ def evaluate_org(
     except ImportError:
         print(
             "Error: jsonschema package not installed.\n"
-            "Install it with: poetry add jsonschema",
+            "Install it with: poetry install --with curation",
             file=sys.stderr,
         )
         sys.exit(1)
