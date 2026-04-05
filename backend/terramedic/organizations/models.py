@@ -9,7 +9,7 @@ class Category(models.TextChoices):
     DONATE = "donate"
     VOLUNTEER = "volunteer"
     RESOURCE = "resource"
-    ACTION = "action"
+    EVERYDAY = "everyday"
     CAREER = "career"
 
 
@@ -38,6 +38,7 @@ class Organization(TranslatableModel):
     sort_order = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
     location = models.PointField(null=True, blank=True, geography=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
 
     translations = TranslatedFields(
         description=models.TextField(),

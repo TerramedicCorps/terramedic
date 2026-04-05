@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.contrib import admin, messages
 from django.db.models import QuerySet
 from django.http import HttpRequest
@@ -39,8 +41,11 @@ def _create_org_from_evaluation(
 
     categories = accessibility.get("categories", [])
     valid_values = set(Category.values)
-    first = categories[0] if categories else None
-    category = first if first in valid_values else Category.RESOURCE
+    category = Category.RESOURCE
+    for cat in categories:
+        if cat in valid_values:
+            category = cat
+            break
 
     org = Organization(
         name=meta.get("name", ""),
@@ -55,6 +60,105 @@ def _create_org_from_evaluation(
     org.action_text = action_text[:100]
     org.save()
     return org
+
+
+def _render_sources(sources: list[dict[str, str]]) -> str:
+    """Render a sources array as a small HTML list."""
+    if not sources:
+        return ""
+    items: list[str] = []
+    for src in sources:
+        url = escape(str(src.get("source_url", "")))
+        excerpt = escape(str(src.get("excerpt", "")))
+        line = f'<a href="{url}">{url}</a>'
+        if excerpt:
+            line += f" — <em>{excerpt}</em>"
+        items.append(f"<li>{line}</li>")
+    return "<ul>" + "".join(items) + "</ul>"
+
+
+def _render_sdg_section(data: dict[str, Any]) -> str:
+    """Render SDG alignment as HTML."""
+    sdgs = data.get("sdg_alignment", [])
+    if not sdgs:
+        return ""
+    parts = ["<h3>SDG Alignment</h3><ul>"]
+    for item in sdgs:
+        sdg = escape(str(item.get("sdg", "?")))
+        evidence = escape(str(item.get("evidence", "")))
+        sources_html = _render_sources(item.get("sources", []))
+        parts.append(
+            f"<li><strong>SDG {sdg}</strong>: "
+            f"{evidence}{sources_html}</li>",
+        )
+    parts.append("</ul>")
+    return "\n".join(parts)
+
+
+def _render_evidence_section(data: dict[str, Any]) -> str:
+    """Render evidence of work as HTML."""
+    activities = data.get("evidence_of_work", [])
+    if not activities:
+        return ""
+    parts = ["<h3>Evidence of Work</h3><ul>"]
+    for item in activities:
+        activity = escape(str(item.get("activity", "")))
+        act_type = escape(str(item.get("type", "")))
+        sources_html = _render_sources(item.get("sources", []))
+        parts.append(
+            f"<li><strong>{act_type}</strong>: "
+            f"{activity}{sources_html}</li>",
+        )
+    parts.append("</ul>")
+    return "\n".join(parts)
+
+
+def _render_score_section(data: dict[str, Any]) -> str:
+    """Render evidence score as HTML."""
+    score_data = data.get("evidence_score", {})
+    if not score_data:
+        return ""
+    score = escape(str(score_data.get("score", "?")))
+    rationale = escape(str(score_data.get("rationale", "")))
+    return (
+        f"<h3>Evidence Score: {score} / 5</h3>"
+        f"<p>{rationale}</p>"
+    )
+
+
+def _render_curator_notes(data: dict[str, Any]) -> str:
+    """Render curator notes as HTML."""
+    notes = data.get("curator_notes", {})
+    if not notes:
+        return ""
+    parts: list[str] = []
+    rec = escape(str(notes.get("recommendation", "")))
+    note_text = escape(str(notes.get("notes", "")))
+    flags = notes.get("flags", [])
+    parts.append("<h3>Curator Notes</h3>")
+    parts.append(f"<p><strong>Recommendation:</strong> {rec}</p>")
+    if note_text:
+        parts.append(f"<p>{note_text}</p>")
+    if flags:
+        escaped = ", ".join(escape(str(f)) for f in flags)
+        parts.append(f"<p><strong>Flags:</strong> {escaped}</p>")
+    return "\n".join(parts)
+
+
+def _render_eval_history(data: dict[str, Any]) -> str:
+    """Render evaluation history as HTML."""
+    history = data.get("evaluation_history", [])
+    if not history:
+        return ""
+    parts = ["<h3>Evaluation History</h3><ul>"]
+    for entry in history:
+        ver = escape(str(entry.get("prompt_version", "?")))
+        sc = escape(str(entry.get("score", "?")))
+        rec = escape(str(entry.get("recommendation", "?")))
+        at = escape(str(entry.get("evaluated_at", "")))
+        parts.append(f"<li>v{ver}: {sc}/5, {rec} ({at})</li>")
+    parts.append("</ul>")
+    return "\n".join(parts)
 
 
 @admin.register(OrganizationEvaluation)
@@ -162,61 +266,23 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         data = obj.evaluation_data or {}
         parts: list[str] = []
 
-        # SDG alignment
-        sdgs = data.get("sdg_alignment", [])
-        if sdgs:
-            parts.append("<h3>SDG Alignment</h3><ul>")
-            for item in sdgs:
-                sdg = escape(str(item.get("sdg", "?")))
-                evidence = escape(str(item.get("evidence", "")))
-                parts.append(
-                    f"<li><strong>SDG {sdg}</strong>: "
-                    f"{evidence}</li>",
-                )
-            parts.append("</ul>")
-
-        # Evidence of work
-        activities = data.get("evidence_of_work", [])
-        if activities:
-            parts.append("<h3>Evidence of Work</h3><ul>")
-            for item in activities:
-                activity = escape(str(item.get("activity", "")))
-                act_type = escape(str(item.get("type", "")))
-                parts.append(
-                    f"<li><strong>{act_type}</strong>: "
-                    f"{activity}</li>",
-                )
-            parts.append("</ul>")
-
-        # Evidence score
-        score_data = data.get("evidence_score", {})
-        if score_data:
-            score = escape(str(score_data.get("score", "?")))
-            rationale = escape(
-                str(score_data.get("rationale", "")),
-            )
+        prompt_ver = data.get("prompt_version")
+        if prompt_ver:
             parts.append(
-                f"<h3>Evidence Score: {score} / 5</h3>"
-                f"<p>{rationale}</p>",
+                "<p><strong>Prompt version:</strong> "
+                f"{escape(str(prompt_ver))}</p>",
             )
 
-        # Curator notes
-        notes = data.get("curator_notes", {})
-        if notes:
-            rec = escape(str(notes.get("recommendation", "")))
-            note_text = escape(str(notes.get("notes", "")))
-            flags = notes.get("flags", [])
-            parts.append("<h3>Curator Notes</h3>")
-            parts.append(
-                f"<p><strong>Recommendation:</strong> {rec}</p>",
-            )
-            if note_text:
-                parts.append(f"<p>{note_text}</p>")
-            if flags:
-                escaped = ", ".join(escape(str(f)) for f in flags)
-                parts.append(
-                    f"<p><strong>Flags:</strong> {escaped}</p>",
-                )
+        for renderer in (
+            _render_sdg_section,
+            _render_evidence_section,
+            _render_score_section,
+            _render_curator_notes,
+            _render_eval_history,
+        ):
+            section = renderer(data)
+            if section:
+                parts.append(section)
 
         html = "\n".join(parts) if parts else "<p>No data.</p>"
         return mark_safe(html)  # noqa: S308

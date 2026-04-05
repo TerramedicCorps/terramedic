@@ -25,7 +25,7 @@ class TestSeedDataFixture:
         assert Organization.objects.filter(category=Category.DONATE).count() == 5
         assert Organization.objects.filter(category=Category.VOLUNTEER).count() == 3
         assert Organization.objects.filter(category=Category.RESOURCE).count() == 6
-        assert Organization.objects.filter(category=Category.ACTION).count() == 2
+        assert Organization.objects.filter(category=Category.EVERYDAY).count() == 2
 
     def test_all_orgs_have_translations(self) -> None:
         for org in Organization.objects.all():

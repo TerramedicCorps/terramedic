@@ -27,14 +27,22 @@ def _make_evaluation_data(**overrides: Any) -> dict[str, Any]:
             {
                 "sdg": 15,
                 "evidence": "Protects forest ecosystems.",
-                "evidence_urls": ["https://example.com/evidence"],
+                "sources": [
+                    {
+                        "source_url": "https://example.com/evidence",
+                        "date_accessed": "2026-03-15",
+                        "excerpt": "Forest certification program.",
+                    },
+                ],
             },
         ],
         "evidence_of_work": [
             {
                 "activity": "Certified 5 million hectares of forest.",
                 "type": "conservation",
-                "source_url": "https://example.com/source",
+                "sources": [
+                    {"source_url": "https://example.com/source"},
+                ],
             },
         ],
         "accessibility": {
@@ -51,6 +59,7 @@ def _make_evaluation_data(**overrides: Any) -> dict[str, Any]:
         },
         "evaluated_at": "2026-03-15T10:30:00Z",
         "evaluated_by": "claude-opus-4-6",
+        "prompt_version": "2026.04.1",
     }
     data.update(overrides)
     return data
@@ -390,3 +399,77 @@ class TestEvaluationAdminReadonlyPresentation:
         assert ReviewStatus.PENDING == "pending"
         assert ReviewStatus.APPROVED == "approved"
         assert ReviewStatus.REJECTED == "rejected"
+
+
+@pytest.mark.django_db
+class TestApproveWithOtherCategory:
+    """Evaluations with 'other' categories should fall back to a valid one."""
+
+    def test_skips_other_uses_first_valid(
+        self,
+        admin_client: Client,
+    ) -> None:
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                accessibility={
+                    "categories": ["other", "volunteer"],
+                },
+            ),
+        )
+        admin_client.post(
+            "/admin/organizations/organizationevaluation/",
+            {
+                "action": "approve_evaluations",
+                "_selected_action": [ev.pk],
+            },
+        )
+        ev.refresh_from_db()
+        assert ev.organization is not None
+        assert ev.organization.category == "volunteer"
+
+    def test_all_other_defaults_to_resource(
+        self,
+        admin_client: Client,
+    ) -> None:
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                accessibility={"categories": ["other"]},
+            ),
+        )
+        admin_client.post(
+            "/admin/organizations/organizationevaluation/",
+            {
+                "action": "approve_evaluations",
+                "_selected_action": [ev.pk],
+            },
+        )
+        ev.refresh_from_db()
+        assert ev.organization is not None
+        assert ev.organization.category == "resource"
+
+
+@pytest.mark.django_db
+class TestDetailShowsNewSchemaFields:
+    def test_detail_shows_prompt_version(
+        self,
+        admin_client: Client,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        response = admin_client.get(
+            f"/admin/organizations/organizationevaluation/"
+            f"{pending_evaluation.pk}/change/",
+        )
+        content = response.content.decode()
+        assert "2026.04.1" in content
+
+    def test_detail_shows_source_excerpt(
+        self,
+        admin_client: Client,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        response = admin_client.get(
+            f"/admin/organizations/organizationevaluation/"
+            f"{pending_evaluation.pk}/change/",
+        )
+        content = response.content.decode()
+        assert "Forest certification program." in content
