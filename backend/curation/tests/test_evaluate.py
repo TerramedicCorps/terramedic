@@ -293,6 +293,20 @@ class TestCleanResponse:
         _clean_response(data)
         assert data["accessibility"]["categories"] == ["other", "donate"]
 
+    def test_mixed_valid_and_unknown_categories(self) -> None:
+        data: dict[str, Any] = {
+            "accessibility": {
+                "categories": ["volunteer", "education", "donate"],
+            },
+            "evidence_of_work": [],
+        }
+        _clean_response(data)
+        assert data["accessibility"]["categories"] == [
+            "volunteer",
+            "other",
+            "donate",
+        ]
+
     def test_all_unknown_categories_become_other(self) -> None:
         data: dict[str, Any] = {
             "accessibility": {"categories": ["certification", "awareness"]},
