@@ -46,7 +46,8 @@ def _create_org_from_evaluation(
     )
     org.set_current_language("en")
     org.description = meta.get("description", "")
-    org.action_text = f"Support {meta.get('name', 'this organization')}"
+    action_text = f"Support {meta.get('name', 'this organization')}"
+    org.action_text = action_text[:100]
     org.save()
     return org
 
