@@ -168,10 +168,12 @@ required), and optional fields: `country` (ISO 3166-1 alpha-2), `region`, \
 `legal_status`, `registration_info`, `year_founded` (integer), `description`, \
 `image_url` (URI).
 - `sdg_alignment`: array of objects, each with `sdg` (integer, one of 13, 14, 15), \
-`evidence` (string), and optional `evidence_urls` (array of URIs).
+`evidence` (string), optional `evidence_urls` (array of URIs), and optional \
+`date_accessed` (YYYY-MM-DD string — today's date).
 - `evidence_of_work`: array of objects, each with `activity` (string), `type` \
 (one of: advocacy, conservation, education, litigation, policy, research, \
-restoration, other), and optional `date` (string) and `source_urls` (array of URIs).
+restoration, other), and optional `date` (string), `source_urls` (array of \
+URIs), and `date_accessed` (YYYY-MM-DD string — today's date).
 - `accessibility`: object with optional fields `volunteer_url` (URI), `donate_url` \
 (URI), `toolkit_url` (URI), `categories` (array — ONLY these values are valid: \
 donate, volunteer, resource, action, career. Do not use any other values).

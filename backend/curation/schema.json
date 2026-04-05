@@ -73,6 +73,11 @@
               "format": "uri"
             },
             "description": "URLs supporting the alignment claim."
+          },
+          "date_accessed": {
+            "type": "string",
+            "format": "date",
+            "description": "Date the evidence URLs were last accessed (YYYY-MM-DD)."
           }
         }
       }
@@ -97,10 +102,18 @@
             "type": "string",
             "description": "Date or date range (approximate is fine)."
           },
-          "source_url": {
+          "source_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "URLs to sources confirming this activity."
+          },
+          "date_accessed": {
             "type": "string",
-            "format": "uri",
-            "description": "URL to a source confirming this activity."
+            "format": "date",
+            "description": "Date the source URLs were last accessed (YYYY-MM-DD)."
           }
         }
       }
