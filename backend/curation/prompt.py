@@ -9,35 +9,47 @@ and evaluate a candidate organization for inclusion in the Terramedic database.
 
 ## What Terramedic is looking for
 
-Terramedic helps people take **direct, local action** on climate and the environment. \
+Terramedic helps people take **direct action** on climate and the environment. \
 The database prioritizes organizations where everyday people can get meaningfully \
-involved — not just write a check.
+involved — through hands-on participation OR through high-impact giving to focused, \
+accountable organizations.
 
 **Ideal organizations:**
 - Offer **direct engagement**: volunteer shifts, phone banks, canvassing, postcard \
-writing, community organizing, local chapter meetings, hands-on restoration work.
-- Have **local or regional relevance**: chapters, events, or programs tied to \
-specific geographies so users can be matched by location.
+writing, community organizing, local chapter meetings, hands-on restoration work, \
+citizen science, community-led conservation.
+- Have **local or regional focus**: chapters, events, or programs tied to \
+specific geographies so users can be matched by location. This includes \
+organizations based in the US with local chapters AND organizations doing \
+focused work in specific regions worldwide (e.g., East African wildlife \
+corridors, Indonesian rainforest communities).
 - Provide **high-impact pathways**: voter mobilization (GOTV), policy advocacy, \
 civic engagement, community science, direct conservation action.
+- Enable **high-impact giving**: focused organizations where donations create \
+outsized impact through a specific, accountable model — such as directly \
+funding community rangers, putting resources into the hands of rainforest \
+communities, or supporting targeted GOTV campaigns. The key distinction is a \
+clear theory of change with measurable outcomes, not just a generic donate button.
 - Are **underserved by visibility**: smaller or specialized orgs that people \
 wouldn't easily find via a Google search.
 - Offer **tools and resources**: evidence-based action guides, climate data \
 visualizations, campaign strategy resources, career platforms for environmental work.
 
 **Organizations that do NOT fit:**
-- Large international NGOs with their own fundraising machinery (e.g., WWF, \
-The Nature Conservancy, Greenpeace, Rainforest Alliance). These organizations are \
-already well-known and well-funded — Terramedic's value is surfacing orgs people \
-don't already know about.
-- Organizations where "get involved" effectively means "donate money" with no \
-pathway to direct participation.
-- Organizations that are primarily awareness campaigns with no concrete engagement \
-pathways.
+- **Large, household-name NGOs** with their own fundraising machinery (e.g., WWF, \
+The Nature Conservancy, Greenpeace, Sierra Club, Rainforest Alliance). These \
+organizations are already well-known and well-funded — Terramedic's value is \
+surfacing orgs people don't already know about.
+- Organizations that are primarily **awareness campaigns** with no concrete \
+engagement pathways or specific theory of change.
 
-If the candidate is a large, internationally recognized organization, recommend \
-**exclude** and explain that Terramedic focuses on surfacing less visible orgs \
-with direct engagement pathways.
+The key question is: does this org offer something people can't easily find on \
+their own? A focused conservation org protecting a specific ecosystem with a clear \
+model (like Big Life Foundation or Health in Harmony) belongs. A massive NGO that \
+everyone already knows about does not.
+
+If the candidate is a large, household-name organization, recommend \
+**exclude** and explain that Terramedic focuses on surfacing less visible orgs.
 
 ## Evaluation criteria
 
@@ -58,7 +70,13 @@ What can a person actually DO through this organization? Look for:
 tree planting, beach cleanups, citizen science, testimony at hearings
    - Career or professional development opportunities in the environmental sector
    - Toolkits, guides, or resources that enable independent action
-   If the only engagement pathway is donating money, flag this as a concern.
+   - A **focused, high-impact giving model** where donations have a clear, \
+specific use — such as funding community rangers, supporting rainforest \
+communities, or enabling targeted campaigns. This is different from a generic \
+"donate to help the planet" button.
+   An org with only a donate button AND no clear theory of change is a concern. \
+But an org with a compelling, specific model for how donations create impact \
+(e.g., "$50 funds a ranger patrol") is valuable.
 
 3. **Local relevance** — Does the organization operate in specific geographies? \
 Does it have local chapters, region-specific programs, or location-based matching? \
