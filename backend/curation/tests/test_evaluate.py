@@ -277,26 +277,6 @@ class TestCleanResponse:
         assert data["evidence_of_work"][1]["type"] == "advocacy"
         assert data["evidence_of_work"][2]["type"] == "other"
 
-    def test_known_category_unchanged(self) -> None:
-        data = {"accessibility": {"categories": ["donate", "volunteer"]}}
-        _clean_response(data)
-        assert data["accessibility"]["categories"] == ["donate", "volunteer"]
-
-    def test_unknown_category_removed(self) -> None:
-        data = {"accessibility": {"categories": ["donate", "education"]}}
-        _clean_response(data)
-        assert data["accessibility"]["categories"] == ["donate"]
-
-    def test_missing_accessibility_is_noop(self) -> None:
-        data: dict[str, Any] = {}
-        _clean_response(data)
-        assert "accessibility" not in data
-
-    def test_missing_categories_is_noop(self) -> None:
-        data: dict[str, Any] = {"accessibility": {}}
-        _clean_response(data)
-        assert "categories" not in data["accessibility"]
-
     def test_null_values_removed(self) -> None:
         data: dict[str, Any] = {
             "org_metadata": {

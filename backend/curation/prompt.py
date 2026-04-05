@@ -133,9 +133,11 @@ recent activity may not belong in the database. Flag this.
 - **One evaluation per organization.** If an org has multiple branches or chapters, \
 evaluate the parent organization unless the candidate URL specifically points to \
 a chapter.
-- **Categories must be earned.** Only assign a category (donate, volunteer, \
-resource, action, career) if you can identify a specific, working engagement \
-pathway for it. Do not assign "volunteer" just because an org exists — there must \
+- **Categories must be earned.** The only valid categories are: `donate`, \
+`volunteer`, `resource`, `action`, `career`. Do NOT invent categories like \
+"education", "certification", or "conservation" — these are not valid. Only \
+assign a category if you can identify a specific, working engagement pathway \
+for it. Do not assign "volunteer" just because an org exists — there must \
 be an actual volunteer program.
 
 ## Output format
@@ -152,8 +154,8 @@ required), and optional fields: `country` (ISO 3166-1 alpha-2), `region`, \
 (one of: advocacy, conservation, education, litigation, policy, research, \
 restoration, other), and optional `date` (string) and `source_urls` (array of URIs).
 - `accessibility`: object with optional fields `volunteer_url` (URI), `donate_url` \
-(URI), `toolkit_url` (URI), `categories` (array of: donate, volunteer, resource, \
-action, career).
+(URI), `toolkit_url` (URI), `categories` (array — ONLY these values are valid: \
+donate, volunteer, resource, action, career. Do not use any other values).
 - `evidence_score`: object with `score` (integer 0-5) and `rationale` (string).
 - `curator_notes`: object with `recommendation` (one of: include, exclude, \
 needs_review), optional `flags` (array of strings for issues to check), and \

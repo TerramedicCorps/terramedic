@@ -191,27 +191,11 @@ _VALID_ACTIVITY_TYPES = frozenset({
     "other",
 })
 
-_VALID_CATEGORIES = frozenset({
-    "donate",
-    "volunteer",
-    "resource",
-    "action",
-    "career",
-})
-
-
 def _clean_response(data: dict[str, Any]) -> None:
     """Fix common model output issues before schema validation."""
     for item in data.get("evidence_of_work", []):
         if item.get("type") not in _VALID_ACTIVITY_TYPES:
             item["type"] = "other"
-
-    accessibility = data.get("accessibility")
-    if accessibility and "categories" in accessibility:
-        accessibility["categories"] = [
-            c for c in accessibility["categories"]
-            if c in _VALID_CATEGORIES
-        ]
 
     # Remove null values for optional fields — the schema uses
     # type-specific validation, so null isn't valid; omission is.
