@@ -8,6 +8,11 @@ def rename_action_to_everyday(apps, schema_editor):
     Organization.objects.filter(category="action").update(category="everyday")
 
 
+def rename_everyday_to_action(apps, schema_editor):
+    Organization = apps.get_model("organizations", "Organization")
+    Organization.objects.filter(category="everyday").update(category="action")
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -17,7 +22,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(
             rename_action_to_everyday,
-            reverse_code=migrations.RunPython.noop,
+            reverse_code=rename_everyday_to_action,
         ),
         migrations.AlterField(
             model_name="organization",
