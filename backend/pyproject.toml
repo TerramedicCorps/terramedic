@@ -22,6 +22,14 @@ zappa = "^0.61.4"
 psycopg = {version = ">=3.2", extras = ["binary"]}
 google-analytics-data = "^0.20.0"
 
+[tool.poetry.group.curation]
+optional = true
+
+[tool.poetry.group.curation.dependencies]
+anthropic = "^0.89.0"
+jsonschema = "^4.26.0"
+beautifulsoup4 = "^4.14.3"
+
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.11.12"
 pytest = "^8.3.3"
@@ -46,6 +54,7 @@ ignore = [
 "*/migrations/*.py" = ["E501", "ANN", "COM"]
 "*/tests/*.py" = ["ARG002"]  # Pytest fixtures are injected via parameter names
 "scripts/*.py" = ["T201"]  # CLI scripts need print for output
+"curation/*.py" = ["T201"]  # CLI scripts need print for output
 
 [tool.ruff.lint.isort]
 known-first-party = ["terramedic"]

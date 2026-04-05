@@ -66,7 +66,7 @@ class TestOrganization:
         assert Category.DONATE == "donate"
         assert Category.VOLUNTEER == "volunteer"
         assert Category.RESOURCE == "resource"
-        assert Category.ACTION == "action"
+        assert Category.EVERYDAY == "everyday"
         assert Category.CAREER == "career"
 
     def test_invalid_category(self) -> None:
@@ -146,3 +146,6 @@ class TestOrganization:
 
     def test_image_url_is_optional(self, org: Organization) -> None:
         assert org.image_url == ""
+
+    def test_created_at_auto_set(self, org: Organization) -> None:
+        assert org.created_at is not None

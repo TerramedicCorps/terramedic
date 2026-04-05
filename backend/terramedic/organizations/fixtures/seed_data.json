@@ -75,34 +75,6 @@
   },
   {
     "model": "organizations.organization",
-    "pk": 4,
-    "fields": {
-      "name": "The Climate Reality Project",
-      "website_url": "https://www.climaterealityproject.org/donate/donate-climate-reality-project",
-      "image_url": "",
-      "category": "donate",
-      "tags": [4, 1, 8],
-      "sort_order": 3,
-      "is_active": true,
-      "location": null
-    }
-  },
-  {
-    "model": "organizations.organization",
-    "pk": 5,
-    "fields": {
-      "name": "Citizens' Climate Lobby",
-      "website_url": "https://citizensclimatelobby.org/donate/",
-      "image_url": "",
-      "category": "donate",
-      "tags": [1, 2, 11],
-      "sort_order": 4,
-      "is_active": true,
-      "location": null
-    }
-  },
-  {
-    "model": "organizations.organization",
     "pk": 6,
     "fields": {
       "name": "Citizens' Climate Lobby",
@@ -133,8 +105,8 @@
     "model": "organizations.organization",
     "pk": 8,
     "fields": {
-      "name": "The Climate Reality Project",
-      "website_url": "https://www.climaterealityproject.org/join-reality",
+      "name": "Climate Changemakers",
+      "website_url": "https://www.climatechangemakers.org/events",
       "image_url": "",
       "category": "volunteer",
       "tags": [8, 21, 31],
@@ -234,7 +206,7 @@
       "name": "SHIFT",
       "website_url": "https://jointheshift.earth/",
       "image_url": "",
-      "category": "action",
+      "category": "everyday",
       "tags": [14, 13, 25],
       "sort_order": 0,
       "is_active": true,
@@ -248,7 +220,7 @@
       "name": "Yale Climate Connections — Solutions",
       "website_url": "https://yaleclimateconnections.org/solutions/",
       "image_url": "",
-      "category": "action",
+      "category": "everyday",
       "tags": [27, 12, 15],
       "sort_order": 1,
       "is_active": true,
@@ -288,26 +260,6 @@
   },
   {
     "model": "organizations.organizationtranslation",
-    "pk": 4,
-    "fields": {
-      "master": 4,
-      "language_code": "en",
-      "description": "A global nonprofit that trains everyday people to become leaders in their communities and advocate for practical solutions to the environmental crisis. Funds leadership training, public education, and community advocacy worldwide.",
-      "action_text": "Learn More"
-    }
-  },
-  {
-    "model": "organizations.organizationtranslation",
-    "pk": 5,
-    "fields": {
-      "master": 5,
-      "language_code": "en",
-      "description": "A nonpartisan grassroots organization with hundreds of chapters, empowering everyday people to engage with climate policy. Funds volunteer training, public education tools, and community engagement around bipartisan climate policy.",
-      "action_text": "Learn More"
-    }
-  },
-  {
-    "model": "organizations.organizationtranslation",
     "pk": 6,
     "fields": {
       "master": 6,
@@ -332,8 +284,8 @@
     "fields": {
       "master": 8,
       "language_code": "en",
-      "description": "A global network of trained leaders working toward practical solutions to the environmental crisis. The Climate Reality Leadership Corps offers training, events, and community organizing opportunities.",
-      "action_text": "Join the Movement"
+      "description": "Join weekly Hour of Action events — virtual or in-person at local Action Teams in 20+ U.S. cities. Each session provides guided advocacy activities like contacting elected officials, with step-by-step playbooks for newcomers.",
+      "action_text": "Find an Event"
     }
   },
   {
