@@ -140,7 +140,7 @@ def evaluate_org(
         ],
     )
 
-    result = _extract_json(response.content[0].text)
+    result = _extract_json(response.content[0].text)  # type: ignore[union-attr]
 
     result["evaluated_at"] = (
         datetime.datetime.now(datetime.UTC).isoformat()
@@ -158,8 +158,12 @@ def evaluate_org(
         sys.exit(1)
 
     schema = _load_schema()
+    validator = jsonschema.Draft202012Validator(
+        schema,
+        format_checker=jsonschema.FormatChecker(),
+    )
     try:
-        jsonschema.validate(instance=result, schema=schema)
+        validator.validate(result)
     except jsonschema.ValidationError as exc:
         msg = f"Output failed schema validation: {exc.message}"
         raise ValueError(msg) from exc
@@ -169,7 +173,9 @@ def evaluate_org(
 
 def _save_evaluation(data: dict[str, Any], output_path: str) -> None:
     """Save evaluation data as JSON to the given path."""
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    output_parent = Path(output_path).parent
+    if output_parent != Path("."):
+        output_parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w") as f:
         json.dump(data, f, indent=2)
         f.write("\n")
