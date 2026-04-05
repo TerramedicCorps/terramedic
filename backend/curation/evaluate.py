@@ -112,12 +112,27 @@ _VALID_ACTIVITY_TYPES = frozenset({
     "other",
 })
 
+_VALID_CATEGORIES = frozenset({
+    "donate",
+    "volunteer",
+    "resource",
+    "action",
+    "career",
+})
 
-def _coerce_activity_types(data: dict[str, Any]) -> None:
-    """Replace unknown evidence_of_work type values with 'other'."""
+
+def _coerce_enums(data: dict[str, Any]) -> None:
+    """Coerce model-generated enum values to valid schema values."""
     for item in data.get("evidence_of_work", []):
         if item.get("type") not in _VALID_ACTIVITY_TYPES:
             item["type"] = "other"
+
+    accessibility = data.get("accessibility")
+    if accessibility and "categories" in accessibility:
+        accessibility["categories"] = [
+            c for c in accessibility["categories"]
+            if c in _VALID_CATEGORIES
+        ]
 
 
 def evaluate_org(
@@ -161,7 +176,7 @@ def evaluate_org(
 
     result = _extract_json(response.content[0].text)  # type: ignore[union-attr]
 
-    _coerce_activity_types(result)
+    _coerce_enums(result)
 
     result["evaluated_at"] = (
         datetime.datetime.now(datetime.UTC).isoformat()

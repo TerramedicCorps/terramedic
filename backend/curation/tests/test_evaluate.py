@@ -11,7 +11,7 @@ import pytest
 
 from curation.evaluate import (
     _build_arg_parser,
-    _coerce_activity_types,
+    _coerce_enums,
     _save_evaluation,
     _url_to_slug,
     _validate_url,
@@ -246,23 +246,23 @@ class TestEvaluateOrg:
             )
 
 
-class TestCoerceActivityTypes:
-    def test_known_type_unchanged(self) -> None:
+class TestCoerceEnums:
+    def test_known_activity_type_unchanged(self) -> None:
         data = {"evidence_of_work": [{"activity": "x", "type": "conservation"}]}
-        _coerce_activity_types(data)
+        _coerce_enums(data)
         assert data["evidence_of_work"][0]["type"] == "conservation"
 
-    def test_unknown_type_becomes_other(self) -> None:
+    def test_unknown_activity_type_becomes_other(self) -> None:
         data = {"evidence_of_work": [{"activity": "x", "type": "certification"}]}
-        _coerce_activity_types(data)
+        _coerce_enums(data)
         assert data["evidence_of_work"][0]["type"] == "other"
 
     def test_missing_evidence_of_work_is_noop(self) -> None:
         data: dict[str, Any] = {}
-        _coerce_activity_types(data)
+        _coerce_enums(data)
         assert "evidence_of_work" not in data
 
-    def test_multiple_items(self) -> None:
+    def test_multiple_activity_items(self) -> None:
         data = {
             "evidence_of_work": [
                 {"activity": "a", "type": "certification"},
@@ -270,10 +270,30 @@ class TestCoerceActivityTypes:
                 {"activity": "c", "type": "capacity_building"},
             ],
         }
-        _coerce_activity_types(data)
+        _coerce_enums(data)
         assert data["evidence_of_work"][0]["type"] == "other"
         assert data["evidence_of_work"][1]["type"] == "advocacy"
         assert data["evidence_of_work"][2]["type"] == "other"
+
+    def test_known_category_unchanged(self) -> None:
+        data = {"accessibility": {"categories": ["donate", "volunteer"]}}
+        _coerce_enums(data)
+        assert data["accessibility"]["categories"] == ["donate", "volunteer"]
+
+    def test_unknown_category_removed(self) -> None:
+        data = {"accessibility": {"categories": ["donate", "education"]}}
+        _coerce_enums(data)
+        assert data["accessibility"]["categories"] == ["donate"]
+
+    def test_missing_accessibility_is_noop(self) -> None:
+        data: dict[str, Any] = {}
+        _coerce_enums(data)
+        assert "accessibility" not in data
+
+    def test_missing_categories_is_noop(self) -> None:
+        data: dict[str, Any] = {"accessibility": {}}
+        _coerce_enums(data)
+        assert "categories" not in data["accessibility"]
 
 
 class TestSaveEvaluation:
