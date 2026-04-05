@@ -77,8 +77,8 @@
     "model": "organizations.organization",
     "pk": 4,
     "fields": {
-      "name": "The Climate Reality Project",
-      "website_url": "https://www.climaterealityproject.org/donate/donate-climate-reality-project",
+      "name": "Climate Changemakers",
+      "website_url": "https://www.climatechangemakers.org/",
       "image_url": "",
       "category": "donate",
       "tags": [4, 1, 8],
@@ -133,8 +133,8 @@
     "model": "organizations.organization",
     "pk": 8,
     "fields": {
-      "name": "The Climate Reality Project",
-      "website_url": "https://www.climaterealityproject.org/join-reality",
+      "name": "Climate Changemakers",
+      "website_url": "https://www.climatechangemakers.org/events",
       "image_url": "",
       "category": "volunteer",
       "tags": [8, 21, 31],
@@ -292,7 +292,7 @@
     "fields": {
       "master": 4,
       "language_code": "en",
-      "description": "A global nonprofit that trains everyday people to become leaders in their communities and advocate for practical solutions to the environmental crisis. Funds leadership training, public education, and community advocacy worldwide.",
+      "description": "A modern climate advocacy network built for busy people seeking meaningful civic engagement. Drives U.S. climate policy solutions forward through weekly Hour of Action events, local Action Teams in 20+ cities, and step-by-step advocacy playbooks.",
       "action_text": "Learn More"
     }
   },
@@ -332,8 +332,8 @@
     "fields": {
       "master": 8,
       "language_code": "en",
-      "description": "A global network of trained leaders working toward practical solutions to the environmental crisis. The Climate Reality Leadership Corps offers training, events, and community organizing opportunities.",
-      "action_text": "Join the Movement"
+      "description": "Join weekly Hour of Action events — virtual or in-person at local Action Teams in 20+ U.S. cities. Each session provides guided advocacy activities like contacting elected officials, with step-by-step playbooks for newcomers.",
+      "action_text": "Find an Event"
     }
   },
   {
