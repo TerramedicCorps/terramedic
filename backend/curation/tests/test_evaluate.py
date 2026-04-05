@@ -12,6 +12,7 @@ import pytest
 from curation.evaluate import (
     _build_arg_parser,
     _clean_response,
+    _extract_subpage_urls,
     _html_to_text,
     _save_evaluation,
     _url_to_slug,
@@ -336,6 +337,74 @@ class TestHtmlToText:
         html = f"<html><body><p>{'x' * 20000}</p></body></html>"
         result = _html_to_text(html)
         assert len(result) <= 15000
+
+
+class TestExtractSubpageUrls:
+    def test_finds_volunteer_link(self) -> None:
+        html = (
+            '<html><body>'
+            '<a href="/volunteer">Volunteer</a>'
+            '<a href="/blog">Blog</a>'
+            '</body></html>'
+        )
+        urls = _extract_subpage_urls(html, "https://example.org")
+        assert "https://example.org/volunteer" in urls
+
+    def test_finds_engagement_patterns(self) -> None:
+        html = (
+            '<html><body>'
+            '<a href="/get-involved">Get Involved</a>'
+            '<a href="/events">Events</a>'
+            '<a href="/donate">Donate</a>'
+            '<a href="/about-us">About</a>'
+            '<a href="/careers">Careers</a>'
+            '</body></html>'
+        )
+        urls = _extract_subpage_urls(html, "https://example.org")
+        assert "https://example.org/get-involved" in urls
+        assert "https://example.org/events" in urls
+        assert "https://example.org/donate" in urls
+        assert "https://example.org/about-us" in urls
+        assert "https://example.org/careers" in urls
+
+    def test_ignores_non_engagement_links(self) -> None:
+        html = (
+            '<html><body>'
+            '<a href="/blog">Blog</a>'
+            '<a href="/press">Press</a>'
+            '<a href="/login">Login</a>'
+            '</body></html>'
+        )
+        urls = _extract_subpage_urls(html, "https://example.org")
+        assert len(urls) == 0
+
+    def test_ignores_external_links(self) -> None:
+        html = (
+            '<html><body>'
+            '<a href="https://other.org/volunteer">Volunteer</a>'
+            '</body></html>'
+        )
+        urls = _extract_subpage_urls(html, "https://example.org")
+        assert len(urls) == 0
+
+    def test_handles_absolute_internal_links(self) -> None:
+        html = (
+            '<html><body>'
+            '<a href="https://example.org/volunteer">Volunteer</a>'
+            '</body></html>'
+        )
+        urls = _extract_subpage_urls(html, "https://example.org")
+        assert "https://example.org/volunteer" in urls
+
+    def test_deduplicates(self) -> None:
+        html = (
+            '<html><body>'
+            '<a href="/volunteer">Vol 1</a>'
+            '<a href="/volunteer">Vol 2</a>'
+            '</body></html>'
+        )
+        urls = _extract_subpage_urls(html, "https://example.org")
+        assert urls.count("https://example.org/volunteer") == 1
 
 
 class TestSaveEvaluation:

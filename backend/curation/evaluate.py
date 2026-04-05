@@ -100,6 +100,55 @@ def _html_to_text(html: str) -> str:
     return text[:_MAX_PAGE_CHARS]
 
 
+_SUBPAGE_PATTERNS = (
+    "volunteer", "get-involved", "get_involved", "getinvolved",
+    "event", "action", "donate", "giving", "support",
+    "about", "mission", "team", "staff", "leadership",
+    "career", "job", "work-with", "program", "project",
+    "what-we-do", "our-work", "impact", "conservation",
+    "community", "chapter", "local", "visit",
+)
+_MAX_SUBPAGES = 5
+
+
+def _extract_subpage_urls(html: str, base_url: str) -> list[str]:
+    """Extract internal links that likely contain engagement info."""
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup(html, "html.parser")
+    parsed_base = urlparse(base_url)
+    base_domain = parsed_base.netloc
+    base_origin = f"{parsed_base.scheme}://{base_domain}"
+
+    seen: set[str] = set()
+    results: list[str] = []
+
+    for anchor in soup.find_all("a", href=True):
+        href = anchor["href"]
+
+        if href.startswith("/"):
+            full_url = base_origin + href
+        elif href.startswith(("http://", "https://")):
+            if urlparse(href).netloc != base_domain:
+                continue
+            full_url = href
+        else:
+            continue
+
+        full_url = full_url.rstrip("/").split("?")[0].split("#")[0]
+
+        path_lower = urlparse(full_url).path.lower()
+        if not any(p in path_lower for p in _SUBPAGE_PATTERNS):
+            continue
+
+        if full_url in seen:
+            continue
+        seen.add(full_url)
+        results.append(full_url)
+
+    return results[:_MAX_SUBPAGES]
+
+
 def _fetch_page_text(url: str) -> str | None:
     """Fetch a URL and return its text content, or None on failure."""
     import httpx
@@ -182,6 +231,58 @@ def _strip_nulls(obj: Any) -> None:
             _strip_nulls(item)
 
 
+def _build_user_message(url: str) -> str:
+    """Fetch the org's website and build the user message for the model."""
+    import httpx
+
+    print(f"Fetching {url} ...", file=sys.stderr)
+    homepage_html = None
+    try:
+        resp = httpx.get(
+            url,
+            timeout=_FETCH_TIMEOUT,
+            follow_redirects=True,
+            headers={"User-Agent": "Terramedic-Curator/1.0"},
+        )
+        resp.raise_for_status()
+        homepage_html = resp.text
+    except (httpx.HTTPError, httpx.InvalidURL):
+        pass
+
+    page_text = _html_to_text(homepage_html) if homepage_html else None
+
+    subpage_texts: list[str] = []
+    if homepage_html:
+        subpage_urls = _extract_subpage_urls(homepage_html, url)
+        for sub_url in subpage_urls:
+            print(f"  Fetching {sub_url} ...", file=sys.stderr)
+            sub_text = _fetch_page_text(sub_url)
+            if sub_text:
+                subpage_texts.append(f"### {sub_url}\n\n{sub_text}")
+
+    message = f"Evaluate this organization: {url}"
+    if page_text:
+        message += (
+            "\n\n## Homepage content\n\n"
+            "Below is text extracted from the organization's website. "
+            "Use this as primary evidence — do not fabricate information "
+            "that contradicts what is shown here.\n\n"
+            f"{page_text}"
+        )
+        if subpage_texts:
+            message += (
+                "\n\n## Additional pages\n\n"
+                + "\n\n".join(subpage_texts)
+            )
+    else:
+        message += (
+            "\n\nNote: the homepage could not be fetched. "
+            "Evaluate based on your training data and flag "
+            "that the website was unreachable in curator_notes.flags."
+        )
+    return message
+
+
 def evaluate_org(
     url: str,
     model: str,
@@ -209,24 +310,7 @@ def evaluate_org(
             sys.exit(1)
         client = Anthropic(api_key=api_key)
 
-    print(f"Fetching {url} ...", file=sys.stderr)
-    page_text = _fetch_page_text(url)
-
-    user_content = f"Evaluate this organization: {url}"
-    if page_text:
-        user_content += (
-            "\n\n## Website content\n\n"
-            "Below is the text extracted from the organization's homepage. "
-            "Use this as primary evidence — do not fabricate information "
-            "that contradicts what is shown here.\n\n"
-            f"{page_text}"
-        )
-    else:
-        user_content += (
-            "\n\nNote: the homepage could not be fetched. "
-            "Evaluate based on your training data and flag "
-            "that the website was unreachable in curator_notes.flags."
-        )
+    user_content = _build_user_message(url)
 
     response = client.messages.create(
         model=model,
