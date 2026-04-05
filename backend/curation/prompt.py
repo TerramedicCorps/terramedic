@@ -29,8 +29,8 @@ issue advocacy, civic engagement, community science, direct conservation action.
 outsized impact through a specific, accountable model — such as directly \
 funding community rangers, putting resources into the hands of rainforest \
 communities, or supporting targeted non-partisan GOTV campaigns. The key \
-distinction is a \
-clear theory of change with measurable outcomes, not just a generic donate button.
+distinction is a clear theory of change with measurable outcomes, not \
+just a generic donate button.
 - Are **underserved by visibility**: smaller or specialized orgs that people \
 wouldn't easily find via a Google search.
 - Offer **tools and resources**: evidence-based action guides, climate data \
