@@ -69,7 +69,7 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         "reviewed_at",
     ]
     list_filter = ["status"]
-    search_fields = ["evaluation_data"]
+    search_fields: list[str] = []
     readonly_fields = [
         "evaluation_data",
         "created_at",
@@ -114,6 +114,24 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         ),
     )
     actions = ["approve_evaluations", "reject_evaluations"]
+
+    def get_search_results(
+        self,
+        request: HttpRequest,
+        queryset: QuerySet[OrganizationEvaluation],
+        search_term: str,
+    ) -> tuple[QuerySet[OrganizationEvaluation], bool]:
+        """Search by org name extracted from JSON data."""
+        qs, use_distinct = super().get_search_results(
+            request,
+            queryset,
+            search_term,
+        )
+        if search_term:
+            qs |= queryset.filter(
+                evaluation_data__org_metadata__name__icontains=search_term,
+            )
+        return qs, use_distinct
 
     @admin.display(description="Organization")
     def org_name_display(self, obj: OrganizationEvaluation) -> str:
