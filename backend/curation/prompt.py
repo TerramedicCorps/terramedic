@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 # Bump this version whenever SYSTEM_PROMPT is modified.
-# Format: YYYY.MM.DD.N where N resets to 1 each day.
-PROMPT_VERSION: str = "2026.04.05.1"
+# Format: YYYY.MM.N where N resets to 1 each month.
+PROMPT_VERSION: str = "2026.04.1"
 
 SYSTEM_PROMPT: str = """\
 You are an environmental organization evaluator for Terramedic, a platform that \
