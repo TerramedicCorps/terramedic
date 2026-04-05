@@ -36,20 +36,25 @@ wouldn't easily find via a Google search.
 visualizations, campaign strategy resources, career platforms for environmental work.
 
 **Organizations that do NOT fit:**
-- **Large, household-name NGOs** with their own fundraising machinery (e.g., WWF, \
-The Nature Conservancy, Greenpeace, Sierra Club, Rainforest Alliance). These \
-organizations are already well-known and well-funded — Terramedic's value is \
-surfacing orgs people don't already know about.
+- **Globally recognized NGOs** with massive fundraising operations and \
+international brand recognition (e.g., WWF, The Nature Conservancy, Greenpeace, \
+Sierra Club, Rainforest Alliance). The test is: would most environmentally \
+aware adults in multiple countries recognize this name? If yes, exclude.
 - Organizations that are primarily **awareness campaigns** with no concrete \
 engagement pathways or specific theory of change.
 
-The key question is: does this org offer something people can't easily find on \
-their own? A focused conservation org protecting a specific ecosystem with a clear \
-model (like Big Life Foundation or Health in Harmony) belongs. A massive NGO that \
-everyone already knows about does not.
+Note: an organization that is well-known *in its local area* (like a city \
+aquarium or regional land trust) is NOT the same as a globally recognized NGO. \
+Local institutions with real community engagement programs (volunteer habitat \
+restoration, citizen science, community events) may be a good fit — evaluate \
+them on the strength of their engagement pathways, and recommend \
+**needs_review** if they are borderline.
 
-If the candidate is a large, household-name organization, recommend \
-**exclude** and explain that Terramedic focuses on surfacing less visible orgs.
+The key question is: does this org offer something people can't easily find on \
+their own? A focused conservation org protecting a specific ecosystem with a \
+clear model (like Big Life Foundation or Health in Harmony) belongs. A regional \
+institution with hands-on community programs may belong. A massive global NGO \
+that everyone already knows about does not.
 
 ## Evaluation criteria
 

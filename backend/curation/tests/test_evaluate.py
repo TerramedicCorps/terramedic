@@ -11,7 +11,8 @@ import pytest
 
 from curation.evaluate import (
     _build_arg_parser,
-    _coerce_enums,
+    _clean_response,
+    _html_to_text,
     _save_evaluation,
     _url_to_slug,
     _validate_url,
@@ -246,20 +247,20 @@ class TestEvaluateOrg:
             )
 
 
-class TestCoerceEnums:
+class TestCleanResponse:
     def test_known_activity_type_unchanged(self) -> None:
         data = {"evidence_of_work": [{"activity": "x", "type": "conservation"}]}
-        _coerce_enums(data)
+        _clean_response(data)
         assert data["evidence_of_work"][0]["type"] == "conservation"
 
     def test_unknown_activity_type_becomes_other(self) -> None:
         data = {"evidence_of_work": [{"activity": "x", "type": "certification"}]}
-        _coerce_enums(data)
+        _clean_response(data)
         assert data["evidence_of_work"][0]["type"] == "other"
 
     def test_missing_evidence_of_work_is_noop(self) -> None:
         data: dict[str, Any] = {}
-        _coerce_enums(data)
+        _clean_response(data)
         assert "evidence_of_work" not in data
 
     def test_multiple_activity_items(self) -> None:
@@ -270,30 +271,71 @@ class TestCoerceEnums:
                 {"activity": "c", "type": "capacity_building"},
             ],
         }
-        _coerce_enums(data)
+        _clean_response(data)
         assert data["evidence_of_work"][0]["type"] == "other"
         assert data["evidence_of_work"][1]["type"] == "advocacy"
         assert data["evidence_of_work"][2]["type"] == "other"
 
     def test_known_category_unchanged(self) -> None:
         data = {"accessibility": {"categories": ["donate", "volunteer"]}}
-        _coerce_enums(data)
+        _clean_response(data)
         assert data["accessibility"]["categories"] == ["donate", "volunteer"]
 
     def test_unknown_category_removed(self) -> None:
         data = {"accessibility": {"categories": ["donate", "education"]}}
-        _coerce_enums(data)
+        _clean_response(data)
         assert data["accessibility"]["categories"] == ["donate"]
 
     def test_missing_accessibility_is_noop(self) -> None:
         data: dict[str, Any] = {}
-        _coerce_enums(data)
+        _clean_response(data)
         assert "accessibility" not in data
 
     def test_missing_categories_is_noop(self) -> None:
         data: dict[str, Any] = {"accessibility": {}}
-        _coerce_enums(data)
+        _clean_response(data)
         assert "categories" not in data["accessibility"]
+
+    def test_null_values_removed(self) -> None:
+        data: dict[str, Any] = {
+            "org_metadata": {
+                "name": "Test",
+                "website_url": "https://example.org",
+                "year_founded": None,
+                "region": None,
+            },
+            "evidence_of_work": [],
+        }
+        _clean_response(data)
+        assert "year_founded" not in data["org_metadata"]
+        assert "region" not in data["org_metadata"]
+        assert data["org_metadata"]["name"] == "Test"
+
+
+class TestHtmlToText:
+    def test_extracts_text_from_html(self) -> None:
+        html = "<html><body><h1>Hello</h1><p>World</p></body></html>"
+        result = _html_to_text(html)
+        assert "Hello" in result
+        assert "World" in result
+
+    def test_strips_script_and_style(self) -> None:
+        html = (
+            "<html><body>"
+            "<script>var x = 1;</script>"
+            "<style>.foo { color: red; }</style>"
+            "<p>Content</p>"
+            "</body></html>"
+        )
+        result = _html_to_text(html)
+        assert "var x" not in result
+        assert "color" not in result
+        assert "Content" in result
+
+    def test_truncates_long_content(self) -> None:
+        html = f"<html><body><p>{'x' * 20000}</p></body></html>"
+        result = _html_to_text(html)
+        assert len(result) <= 15000
 
 
 class TestSaveEvaluation:

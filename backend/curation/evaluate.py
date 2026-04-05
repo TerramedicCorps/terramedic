@@ -22,6 +22,8 @@ from urllib.parse import urlparse
 from curation.prompt import SYSTEM_PROMPT
 
 _SCHEMA_PATH = Path(__file__).parent / "schema.json"
+_MAX_PAGE_CHARS = 12000
+_FETCH_TIMEOUT = 15
 
 
 def _build_arg_parser() -> argparse.ArgumentParser:
@@ -87,6 +89,34 @@ def _load_schema() -> dict[str, Any]:
         return json.load(f)
 
 
+def _html_to_text(html: str) -> str:
+    """Convert HTML to plain text, stripping scripts/styles."""
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup(html, "html.parser")
+    for tag in soup(["script", "style", "nav", "footer", "header"]):
+        tag.decompose()
+    text = soup.get_text(separator="\n", strip=True)
+    return text[:_MAX_PAGE_CHARS]
+
+
+def _fetch_page_text(url: str) -> str | None:
+    """Fetch a URL and return its text content, or None on failure."""
+    import httpx
+
+    try:
+        resp = httpx.get(
+            url,
+            timeout=_FETCH_TIMEOUT,
+            follow_redirects=True,
+            headers={"User-Agent": "Terramedic-Curator/1.0"},
+        )
+        resp.raise_for_status()
+    except (httpx.HTTPError, httpx.InvalidURL):
+        return None
+    return _html_to_text(resp.text)
+
+
 def _extract_json(text: str) -> dict[str, Any]:
     """Extract a JSON object from model response text."""
     text = text.strip()
@@ -121,8 +151,8 @@ _VALID_CATEGORIES = frozenset({
 })
 
 
-def _coerce_enums(data: dict[str, Any]) -> None:
-    """Coerce model-generated enum values to valid schema values."""
+def _clean_response(data: dict[str, Any]) -> None:
+    """Fix common model output issues before schema validation."""
     for item in data.get("evidence_of_work", []):
         if item.get("type") not in _VALID_ACTIVITY_TYPES:
             item["type"] = "other"
@@ -133,6 +163,23 @@ def _coerce_enums(data: dict[str, Any]) -> None:
             c for c in accessibility["categories"]
             if c in _VALID_CATEGORIES
         ]
+
+    # Remove null values for optional fields — the schema uses
+    # type-specific validation, so null isn't valid; omission is.
+    _strip_nulls(data)
+
+
+def _strip_nulls(obj: Any) -> None:
+    """Recursively remove keys with None values from dicts."""
+    if isinstance(obj, dict):
+        for key in list(obj.keys()):
+            if obj[key] is None:
+                del obj[key]
+            else:
+                _strip_nulls(obj[key])
+    elif isinstance(obj, list):
+        for item in obj:
+            _strip_nulls(item)
 
 
 def evaluate_org(
@@ -162,6 +209,25 @@ def evaluate_org(
             sys.exit(1)
         client = Anthropic(api_key=api_key)
 
+    print(f"Fetching {url} ...", file=sys.stderr)
+    page_text = _fetch_page_text(url)
+
+    user_content = f"Evaluate this organization: {url}"
+    if page_text:
+        user_content += (
+            "\n\n## Website content\n\n"
+            "Below is the text extracted from the organization's homepage. "
+            "Use this as primary evidence — do not fabricate information "
+            "that contradicts what is shown here.\n\n"
+            f"{page_text}"
+        )
+    else:
+        user_content += (
+            "\n\nNote: the homepage could not be fetched. "
+            "Evaluate based on your training data and flag "
+            "that the website was unreachable in curator_notes.flags."
+        )
+
     response = client.messages.create(
         model=model,
         max_tokens=4096,
@@ -169,14 +235,14 @@ def evaluate_org(
         messages=[
             {
                 "role": "user",
-                "content": f"Evaluate this organization: {url}",
+                "content": user_content,
             },
         ],
     )
 
     result = _extract_json(response.content[0].text)  # type: ignore[union-attr]
 
-    _coerce_enums(result)
+    _clean_response(result)
 
     result["evaluated_at"] = (
         datetime.datetime.now(datetime.UTC).isoformat()
