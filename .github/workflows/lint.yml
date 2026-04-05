@@ -96,7 +96,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: backend
-        run: poetry install --no-interaction
+        run: poetry install --no-interaction --with curation
 
       - name: Run Ruff
         working-directory: backend
@@ -125,7 +125,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: backend
-        run: poetry install --no-interaction
+        run: poetry install --no-interaction --with curation
 
       - name: Run mypy
         working-directory: backend
