@@ -23,12 +23,13 @@ specific geographies so users can be matched by location. This includes \
 organizations based in the US with local chapters AND organizations doing \
 focused work in specific regions worldwide (e.g., East African wildlife \
 corridors, Indonesian rainforest communities).
-- Provide **high-impact pathways**: voter mobilization (GOTV), policy advocacy, \
-civic engagement, community science, direct conservation action.
+- Provide **high-impact pathways**: non-partisan voter mobilization (GOTV), \
+issue advocacy, civic engagement, community science, direct conservation action.
 - Enable **high-impact giving**: focused organizations where donations create \
 outsized impact through a specific, accountable model — such as directly \
 funding community rangers, putting resources into the hands of rainforest \
-communities, or supporting targeted GOTV campaigns. The key distinction is a \
+communities, or supporting targeted non-partisan GOTV campaigns. The key \
+distinction is a \
 clear theory of change with measurable outcomes, not just a generic donate button.
 - Are **underserved by visibility**: smaller or specialized orgs that people \
 wouldn't easily find via a Google search.
@@ -42,6 +43,11 @@ Sierra Club, Rainforest Alliance). The test is: would most environmentally \
 aware adults in multiple countries recognize this name? If yes, exclude.
 - Organizations that are primarily **awareness campaigns** with no concrete \
 engagement pathways or specific theory of change.
+- **Partisan political organizations** — any org that endorses, opposes, or \
+campaigns for or against candidates for public office. Terramedic is a \
+501(c)(3) and cannot promote organizations engaged in partisan campaign \
+activity. Non-partisan civic engagement (issue advocacy, non-partisan \
+GOTV, testimony on environmental policy) is fine.
 
 Note: an organization that is well-known *in its local area* (like a city \
 aquarium or regional land trust) is NOT the same as a globally recognized NGO. \
@@ -130,6 +136,9 @@ exist based on common site structure. If you are unsure whether a specific page 
 exists, omit the URL and note it as unverified.
 - **Check recency.** An organization that was active five years ago but has no \
 recent activity may not belong in the database. Flag this.
+- **Flag partisan activity.** If an organization endorses candidates, runs \
+PACs, or does partisan campaign work, recommend exclusion and note it in \
+`curator_notes.flags`. Non-partisan civic engagement is acceptable.
 - **One evaluation per organization.** If an org has multiple branches or chapters, \
 evaluate the parent organization unless the candidate URL specifically points to \
 a chapter.
