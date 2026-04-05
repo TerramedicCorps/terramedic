@@ -138,7 +138,9 @@ When in doubt, choose needs_review. Flag uncertainty rather than guess.
 ## Important guidelines
 
 - **Cite sources.** Every claim should have a URL. Use the `sources` array \
-with `source_url` and `date_accessed` (today's date, YYYY-MM-DD) for each. \
+with `source_url`, `date_accessed` (today's date, YYYY-MM-DD), and \
+`excerpt` (a short verbatim quote from the page that supports the claim — \
+copy the exact text so a reviewer can search for it on the page). \
 If you cannot find a source, note the claim as unverified in \
 `curator_notes.flags`.
 - **Verify URLs.** Do not fabricate URLs. Only include URLs you are confident \
@@ -170,11 +172,13 @@ required), and optional fields: `country` (ISO 3166-1 alpha-2), `region`, \
 `image_url` (URI).
 - `sdg_alignment`: array of objects, each with `sdg` (integer, one of 13, 14, 15), \
 `evidence` (string), and optional `sources` (array of objects, each with \
-`source_url` (URI) and `date_accessed` (YYYY-MM-DD)).
+`source_url` (URI), `date_accessed` (YYYY-MM-DD), and `excerpt` (verbatim \
+quote from the page)).
 - `evidence_of_work`: array of objects, each with `activity` (string), `type` \
 (one of: advocacy, conservation, education, litigation, policy, research, \
 restoration, other), optional `date` (string), and optional `sources` (array \
-of objects, each with `source_url` (URI) and `date_accessed` (YYYY-MM-DD)).
+of objects, each with `source_url` (URI), `date_accessed` (YYYY-MM-DD), and \
+`excerpt` (verbatim quote from the page)).
 - `accessibility`: object with optional fields `volunteer_url` (URI), `donate_url` \
 (URI), `toolkit_url` (URI), `categories` (array — ONLY these values are valid: \
 donate, volunteer, resource, action, career. Do not use any other values).

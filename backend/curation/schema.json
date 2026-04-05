@@ -81,6 +81,10 @@
                   "type": "string",
                   "format": "date",
                   "description": "Date this URL was last accessed (YYYY-MM-DD)."
+                },
+                "excerpt": {
+                  "type": "string",
+                  "description": "Short verbatim passage from the source page that supports this claim. Should be searchable on the page."
                 }
               }
             },
@@ -124,6 +128,10 @@
                   "type": "string",
                   "format": "date",
                   "description": "Date this URL was last accessed (YYYY-MM-DD)."
+                },
+                "excerpt": {
+                  "type": "string",
+                  "description": "Short verbatim passage from the source page that supports this claim. Should be searchable on the page."
                 }
               }
             },
