@@ -6,7 +6,7 @@ class Category(models.TextChoices):
     DONATE = "donate"
     VOLUNTEER = "volunteer"
     RESOURCE = "resource"
-    ACTION = "action"
+    EVERYDAY = "everyday"
     CAREER = "career"
 
 

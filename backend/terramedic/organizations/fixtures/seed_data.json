@@ -75,34 +75,6 @@
   },
   {
     "model": "organizations.organization",
-    "pk": 4,
-    "fields": {
-      "name": "Climate Changemakers",
-      "website_url": "https://www.climatechangemakers.org/",
-      "image_url": "",
-      "category": "donate",
-      "tags": [4, 1, 8],
-      "sort_order": 3,
-      "is_active": true,
-      "location": null
-    }
-  },
-  {
-    "model": "organizations.organization",
-    "pk": 5,
-    "fields": {
-      "name": "Citizens' Climate Lobby",
-      "website_url": "https://citizensclimatelobby.org/donate/",
-      "image_url": "",
-      "category": "donate",
-      "tags": [1, 2, 11],
-      "sort_order": 4,
-      "is_active": true,
-      "location": null
-    }
-  },
-  {
-    "model": "organizations.organization",
     "pk": 6,
     "fields": {
       "name": "Citizens' Climate Lobby",
@@ -234,7 +206,7 @@
       "name": "SHIFT",
       "website_url": "https://jointheshift.earth/",
       "image_url": "",
-      "category": "action",
+      "category": "everyday",
       "tags": [14, 13, 25],
       "sort_order": 0,
       "is_active": true,
@@ -248,7 +220,7 @@
       "name": "Yale Climate Connections — Solutions",
       "website_url": "https://yaleclimateconnections.org/solutions/",
       "image_url": "",
-      "category": "action",
+      "category": "everyday",
       "tags": [27, 12, 15],
       "sort_order": 1,
       "is_active": true,
@@ -283,26 +255,6 @@
       "master": 3,
       "language_code": "en",
       "description": "A 501(c)(4) nonprofit that uses data analytics and behavioral science to identify environmentally concerned citizens who don't regularly vote and runs programs to increase environmental voter turnout.",
-      "action_text": "Learn More"
-    }
-  },
-  {
-    "model": "organizations.organizationtranslation",
-    "pk": 4,
-    "fields": {
-      "master": 4,
-      "language_code": "en",
-      "description": "A modern climate advocacy network built for busy people seeking meaningful civic engagement. Drives U.S. climate policy solutions forward through weekly Hour of Action events, local Action Teams in 20+ cities, and step-by-step advocacy playbooks.",
-      "action_text": "Learn More"
-    }
-  },
-  {
-    "model": "organizations.organizationtranslation",
-    "pk": 5,
-    "fields": {
-      "master": 5,
-      "language_code": "en",
-      "description": "A nonpartisan grassroots organization with hundreds of chapters, empowering everyday people to engage with climate policy. Funds volunteer training, public education tools, and community engagement around bipartisan climate policy.",
       "action_text": "Learn More"
     }
   },

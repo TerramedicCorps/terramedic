@@ -163,7 +163,7 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["donate", "volunteer", "resource", "action", "career", "other"]
+            "enum": ["donate", "volunteer", "resource", "everyday", "career", "other"]
           },
           "description": "Which Terramedic pathways this org fits into."
         }

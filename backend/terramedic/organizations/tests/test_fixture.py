@@ -22,10 +22,10 @@ class TestSeedDataFixture:
         assert Tag.objects.count() > 0
 
     def test_category_counts(self) -> None:
-        assert Organization.objects.filter(category=Category.DONATE).count() == 5
+        assert Organization.objects.filter(category=Category.DONATE).count() == 3
         assert Organization.objects.filter(category=Category.VOLUNTEER).count() == 3
         assert Organization.objects.filter(category=Category.RESOURCE).count() == 6
-        assert Organization.objects.filter(category=Category.ACTION).count() == 2
+        assert Organization.objects.filter(category=Category.EVERYDAY).count() == 2
 
     def test_all_orgs_have_translations(self) -> None:
         for org in Organization.objects.all():
@@ -49,7 +49,7 @@ class TestSeedDataFixture:
             .values_list("name", flat=True),
         )
         assert donate_orgs[0] == "Climate Cabinet"
-        assert donate_orgs[-1] == "Citizens' Climate Lobby"
+        assert donate_orgs[-1] == "Environmental Voter Project"
 
     def test_all_orgs_active(self) -> None:
         assert Organization.objects.filter(is_active=False).count() == 0
