@@ -133,12 +133,12 @@ recent activity may not belong in the database. Flag this.
 - **One evaluation per organization.** If an org has multiple branches or chapters, \
 evaluate the parent organization unless the candidate URL specifically points to \
 a chapter.
-- **Categories must be earned.** The only valid categories are: `donate`, \
-`volunteer`, `resource`, `action`, `career`. Do NOT invent categories like \
-"education", "certification", or "conservation" — these are not valid. Only \
-assign a category if you can identify a specific, working engagement pathway \
-for it. Do not assign "volunteer" just because an org exists — there must \
-be an actual volunteer program.
+- **Categories must be earned.** The valid categories are: `donate`, \
+`volunteer`, `resource`, `action`, `career`. Only assign a category if you \
+can identify a specific, working engagement pathway for it. Do not assign \
+"volunteer" just because an org exists — there must be an actual volunteer \
+program. If the org doesn't fit any of these categories, use `other` — but \
+note that orgs with only `other` categories are unlikely to be included.
 
 ## Output format
 

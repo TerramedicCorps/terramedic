@@ -277,6 +277,43 @@ class TestCleanResponse:
         assert data["evidence_of_work"][1]["type"] == "advocacy"
         assert data["evidence_of_work"][2]["type"] == "other"
 
+    def test_known_category_unchanged(self) -> None:
+        data: dict[str, Any] = {
+            "accessibility": {"categories": ["donate", "volunteer"]},
+            "evidence_of_work": [],
+        }
+        _clean_response(data)
+        assert data["accessibility"]["categories"] == ["donate", "volunteer"]
+
+    def test_unknown_category_becomes_other(self) -> None:
+        data: dict[str, Any] = {
+            "accessibility": {"categories": ["education", "donate"]},
+            "evidence_of_work": [],
+        }
+        _clean_response(data)
+        assert data["accessibility"]["categories"] == ["other", "donate"]
+
+    def test_all_unknown_categories_become_other(self) -> None:
+        data: dict[str, Any] = {
+            "accessibility": {"categories": ["certification", "awareness"]},
+            "evidence_of_work": [],
+        }
+        _clean_response(data)
+        assert data["accessibility"]["categories"] == ["other", "other"]
+
+    def test_missing_accessibility_is_noop(self) -> None:
+        data: dict[str, Any] = {"evidence_of_work": []}
+        _clean_response(data)
+        assert "accessibility" not in data
+
+    def test_accessibility_without_categories_is_noop(self) -> None:
+        data: dict[str, Any] = {
+            "accessibility": {"donate_url": "https://example.org/donate"},
+            "evidence_of_work": [],
+        }
+        _clean_response(data)
+        assert "categories" not in data["accessibility"]
+
     def test_null_values_removed(self) -> None:
         data: dict[str, Any] = {
             "org_metadata": {
