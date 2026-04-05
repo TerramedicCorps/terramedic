@@ -11,7 +11,9 @@ import pytest
 
 from curation.evaluate import (
     _build_arg_parser,
+    _build_user_message,
     _clean_response,
+    _extract_json,
     _extract_subpage_urls,
     _html_to_text,
     _save_evaluation,
@@ -79,6 +81,16 @@ class TestArgParser:
         )
         assert args.output == "/tmp/out.json"
 
+    def test_categories_flag(self) -> None:
+        args = _build_arg_parser().parse_args(
+            ["https://example.org", "--categories", "donate", "resource"],
+        )
+        assert args.categories == ["donate", "resource"]
+
+    def test_categories_default_empty(self) -> None:
+        args = _build_arg_parser().parse_args(["https://example.org"])
+        assert args.categories == []
+
 
 class TestValidateUrl:
     def test_valid_https_url(self) -> None:
@@ -120,6 +132,7 @@ class TestEvaluateOrg:
         client = MagicMock()
         message = MagicMock()
         block = MagicMock()
+        block.type = "text"
         block.text = response_text
         message.content = [block]
         message.model = "claude-sonnet-4-20250514"
@@ -150,6 +163,53 @@ class TestEvaluateOrg:
         call_kwargs = client.messages.create.call_args.kwargs
         assert call_kwargs["model"] == "claude-sonnet-4-20250514"
         assert "example.org" in call_kwargs["messages"][0]["content"]
+
+    def test_enables_web_search_tool(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+        evaluation = _make_valid_evaluation()
+        del evaluation["evaluated_at"]
+        del evaluation["evaluated_by"]
+        client = self._mock_client(json.dumps(evaluation))
+
+        evaluate_org(
+            "https://example.org",
+            model="claude-sonnet-4-20250514",
+            client=client,
+        )
+
+        call_kwargs = client.messages.create.call_args.kwargs
+        assert "tools" in call_kwargs
+        tool_types = [t["type"] for t in call_kwargs["tools"]]
+        assert "web_search_20250305" in tool_types
+
+    def test_extracts_text_from_mixed_content_blocks(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """When web search is used, response has non-text blocks too."""
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+        evaluation = _make_valid_evaluation()
+        del evaluation["evaluated_at"]
+        del evaluation["evaluated_by"]
+
+        client = MagicMock()
+        message = MagicMock()
+        search_block = MagicMock()
+        search_block.type = "web_search_tool_result"
+        search_block.text = None
+        text_block = MagicMock()
+        text_block.type = "text"
+        text_block.text = json.dumps(evaluation)
+        message.content = [search_block, text_block]
+        client.messages.create.return_value = message
+
+        result = evaluate_org(
+            "https://example.org",
+            model="claude-sonnet-4-20250514",
+            client=client,
+        )
+        assert result["org_metadata"]["name"] == "Test Org"
 
     def test_parses_json_response(
         self, monkeypatch: pytest.MonkeyPatch,
@@ -345,6 +405,37 @@ class TestCleanResponse:
         assert data["org_metadata"]["name"] == "Test"
 
 
+class TestExtractJson:
+    def test_plain_json(self) -> None:
+        result = _extract_json('{"name": "test"}')
+        assert result == {"name": "test"}
+
+    def test_markdown_fenced_json(self) -> None:
+        result = _extract_json('```json\n{"name": "test"}\n```')
+        assert result == {"name": "test"}
+
+    def test_json_with_preamble_text(self) -> None:
+        text = (
+            "Based on my research, here is the evaluation:\n\n"
+            '{"name": "test", "score": 4}'
+        )
+        result = _extract_json(text)
+        assert result == {"name": "test", "score": 4}
+
+    def test_json_with_preamble_and_trailing_text(self) -> None:
+        text = (
+            "Here is my evaluation:\n\n"
+            '{"name": "test"}\n\n'
+            "Let me know if you need anything else."
+        )
+        result = _extract_json(text)
+        assert result == {"name": "test"}
+
+    def test_no_json_raises(self) -> None:
+        with pytest.raises(ValueError, match="JSON"):
+            _extract_json("This has no JSON at all")
+
+
 class TestHtmlToText:
     def test_extracts_text_from_html(self) -> None:
         html = "<html><body><h1>Hello</h1><p>World</p></body></html>"
@@ -437,6 +528,59 @@ class TestExtractSubpageUrls:
         )
         urls = _extract_subpage_urls(html, "https://example.org")
         assert urls.count("https://example.org/volunteer") == 1
+
+
+class TestBuildUserMessage:
+    def test_includes_todays_date(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        import httpx as _httpx
+
+        html = "<html><body>Hello world</body></html>"
+
+        def fake_get(*args: Any, **kwargs: Any) -> MagicMock:
+            resp = MagicMock()
+            resp.text = html
+            return resp
+
+        monkeypatch.setattr(_httpx, "get", fake_get)
+        message = _build_user_message("https://example.org")
+        assert "Today's date is 2026-04-05" in message
+
+    def test_includes_categories_hint(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        import httpx as _httpx
+
+        html = "<html><body>Hello</body></html>"
+
+        def fake_get(*args: Any, **kwargs: Any) -> MagicMock:
+            resp = MagicMock()
+            resp.text = html
+            return resp
+
+        monkeypatch.setattr(_httpx, "get", fake_get)
+        message = _build_user_message(
+            "https://example.org",
+            categories=["donate", "resource"],
+        )
+        assert "donate" in message
+        assert "resource" in message
+        assert "nominated" in message.lower() or "categor" in message.lower()
+
+    def test_no_categories_no_hint(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        import httpx as _httpx
+
+        html = "<html><body>Hello</body></html>"
+
+        def fake_get(*args: Any, **kwargs: Any) -> MagicMock:
+            resp = MagicMock()
+            resp.text = html
+            return resp
+
+        monkeypatch.setattr(_httpx, "get", fake_get)
+        message = _build_user_message("https://example.org")
+        assert "nominated" not in message.lower()
 
 
 class TestSaveEvaluation:

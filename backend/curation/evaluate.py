@@ -3,6 +3,7 @@
 
 Usage:
     python -m curation.evaluate https://example.org
+    python -m curation.evaluate https://example.org --categories donate resource
     python -m curation.evaluate https://example.org --dry-run
     python -m curation.evaluate https://example.org --output /tmp/eval.json
     python -m curation.evaluate https://example.org --model claude-opus-4-20250514
@@ -48,6 +49,12 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         "--model",
         default="claude-sonnet-4-20250514",
         help="Anthropic model to use (default: claude-sonnet-4-20250514).",
+    )
+    parser.add_argument(
+        "--categories",
+        nargs="*",
+        default=[],
+        help="Nominated categories (e.g. donate volunteer resource action career).",
     )
     return parser
 
@@ -166,18 +173,67 @@ def _fetch_page_text(url: str) -> str | None:
     return _html_to_text(resp.text)
 
 
+def _find_json_end(text: str, start: int) -> int | None:
+    """Find the closing brace of a top-level JSON object.
+
+    Returns the index of the closing ``}`` or ``None`` if not found.
+    """
+    depth = 0
+    in_string = False
+    escape = False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if escape:
+            escape = False
+            continue
+        if ch == "\\":
+            escape = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return i
+    return None
+
+
 def _extract_json(text: str) -> dict[str, Any]:
-    """Extract a JSON object from model response text."""
+    """Extract a JSON object from model response text.
+
+    Handles plain JSON, markdown-fenced JSON, and JSON embedded
+    in surrounding prose (common with web-search-enabled responses).
+    """
     text = text.strip()
     if text.startswith("```"):
         lines = text.split("\n")
         text = "\n".join(lines[1:-1])
+
+    # Try parsing the full text first.
     try:
         result: dict[str, Any] = json.loads(text)
-    except json.JSONDecodeError as exc:
-        msg = f"Failed to parse JSON from model response: {exc}"
-        raise ValueError(msg) from exc
-    return result
+        return result
+    except json.JSONDecodeError:
+        pass
+
+    # Find the first top-level JSON object in the text.
+    start = text.find("{")
+    if start != -1:
+        end = _find_json_end(text, start)
+        if end is not None:
+            try:
+                result = json.loads(text[start:end + 1])
+                return result
+            except json.JSONDecodeError:
+                pass
+
+    msg = "Failed to parse JSON from model response: no valid JSON found"
+    raise ValueError(msg)
 
 
 _VALID_ACTIVITY_TYPES = frozenset({
@@ -195,7 +251,7 @@ _VALID_CATEGORIES = frozenset({
     "donate",
     "volunteer",
     "resource",
-    "action",
+    "everyday",
     "career",
     "other",
 })
@@ -232,7 +288,10 @@ def _strip_nulls(obj: Any) -> None:
             _strip_nulls(item)
 
 
-def _build_user_message(url: str) -> str:
+def _build_user_message(
+    url: str,
+    categories: list[str] | None = None,
+) -> str:
     """Fetch the org's website and build the user message for the model."""
     import httpx
 
@@ -261,7 +320,15 @@ def _build_user_message(url: str) -> str:
             if sub_text:
                 subpage_texts.append(f"### {sub_url}\n\n{sub_text}")
 
-    message = f"Evaluate this organization: {url}"
+    today = datetime.datetime.now(datetime.UTC).date().isoformat()
+    message = f"Today's date is {today}.\n\nEvaluate this organization: {url}"
+    if categories:
+        cats = ", ".join(categories)
+        message += (
+            f"\n\nThis organization was nominated under these categories: "
+            f"{cats}. Pay special attention to evidence supporting these "
+            f"categories during your evaluation."
+        )
     if page_text:
         message += (
             "\n\n## Homepage content\n\n"
@@ -288,6 +355,7 @@ def evaluate_org(
     url: str,
     model: str,
     client: Any | None = None,
+    categories: list[str] | None = None,
 ) -> dict[str, Any]:
     """Evaluate an organization and return a validated evaluation dict."""
     _validate_url(url)
@@ -311,7 +379,7 @@ def evaluate_org(
             sys.exit(1)
         client = Anthropic(api_key=api_key)
 
-    user_content = _build_user_message(url)
+    user_content = _build_user_message(url, categories=categories)
 
     response = client.messages.create(
         model=model,
@@ -323,9 +391,26 @@ def evaluate_org(
                 "content": user_content,
             },
         ],
+        tools=[
+            {
+                "type": "web_search_20250305",
+                "name": "web_search",
+                "max_uses": 10,
+            },
+        ],
     )
 
-    result = _extract_json(response.content[0].text)  # type: ignore[union-attr]
+    # With web search, response may contain non-text blocks.
+    # Find the last text block which contains the JSON output.
+    text_block = None
+    for block in response.content:
+        if getattr(block, "type", None) == "text":
+            text_block = block
+    if text_block is None:
+        msg = "No text block found in model response"
+        raise ValueError(msg)
+
+    result = _extract_json(text_block.text)  # type: ignore[union-attr]
 
     _clean_response(result)
 
@@ -397,7 +482,11 @@ def main(argv: list[str] | None = None) -> None:
     args = _build_arg_parser().parse_args(argv)
 
     try:
-        result = evaluate_org(args.url, model=args.model)
+        result = evaluate_org(
+            args.url,
+            model=args.model,
+            categories=args.categories or None,
+        )
     except (ValueError, RuntimeError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
