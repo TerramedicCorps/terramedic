@@ -66,18 +66,25 @@
             "type": "string",
             "description": "Brief explanation of how the org's work aligns with this SDG."
           },
-          "evidence_urls": {
+          "sources": {
             "type": "array",
             "items": {
-              "type": "string",
-              "format": "uri"
+              "type": "object",
+              "required": ["source_url"],
+              "properties": {
+                "source_url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "URL supporting this claim."
+                },
+                "date_accessed": {
+                  "type": "string",
+                  "format": "date",
+                  "description": "Date this URL was last accessed (YYYY-MM-DD)."
+                }
+              }
             },
-            "description": "URLs supporting the alignment claim."
-          },
-          "date_accessed": {
-            "type": "string",
-            "format": "date",
-            "description": "Date the evidence URLs were last accessed (YYYY-MM-DD)."
+            "description": "Sources supporting the alignment claim."
           }
         }
       }
@@ -102,18 +109,25 @@
             "type": "string",
             "description": "Date or date range (approximate is fine)."
           },
-          "source_urls": {
+          "sources": {
             "type": "array",
             "items": {
-              "type": "string",
-              "format": "uri"
+              "type": "object",
+              "required": ["source_url"],
+              "properties": {
+                "source_url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "URL to a source confirming this activity."
+                },
+                "date_accessed": {
+                  "type": "string",
+                  "format": "date",
+                  "description": "Date this URL was last accessed (YYYY-MM-DD)."
+                }
+              }
             },
-            "description": "URLs to sources confirming this activity."
-          },
-          "date_accessed": {
-            "type": "string",
-            "format": "date",
-            "description": "Date the source URLs were last accessed (YYYY-MM-DD)."
+            "description": "Sources confirming this activity."
           }
         }
       }

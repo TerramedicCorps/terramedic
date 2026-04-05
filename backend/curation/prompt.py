@@ -137,9 +137,10 @@ When in doubt, choose needs_review. Flag uncertainty rather than guess.
 
 ## Important guidelines
 
-- **Cite sources.** Every claim should have a URL. Use the `source_urls` array \
-and `evidence_urls` fields. If you cannot find a source, note the claim as \
-unverified in `curator_notes.flags`.
+- **Cite sources.** Every claim should have a URL. Use the `sources` array \
+with `source_url` and `date_accessed` (today's date, YYYY-MM-DD) for each. \
+If you cannot find a source, note the claim as unverified in \
+`curator_notes.flags`.
 - **Verify URLs.** Do not fabricate URLs. Only include URLs you are confident \
 exist based on common site structure. If you are unsure whether a specific page \
 exists, omit the URL and note it as unverified.
@@ -168,12 +169,12 @@ required), and optional fields: `country` (ISO 3166-1 alpha-2), `region`, \
 `legal_status`, `registration_info`, `year_founded` (integer), `description`, \
 `image_url` (URI).
 - `sdg_alignment`: array of objects, each with `sdg` (integer, one of 13, 14, 15), \
-`evidence` (string), optional `evidence_urls` (array of URIs), and optional \
-`date_accessed` (YYYY-MM-DD string — today's date).
+`evidence` (string), and optional `sources` (array of objects, each with \
+`source_url` (URI) and `date_accessed` (YYYY-MM-DD)).
 - `evidence_of_work`: array of objects, each with `activity` (string), `type` \
 (one of: advocacy, conservation, education, litigation, policy, research, \
-restoration, other), and optional `date` (string), `source_urls` (array of \
-URIs), and `date_accessed` (YYYY-MM-DD string — today's date).
+restoration, other), optional `date` (string), and optional `sources` (array \
+of objects, each with `source_url` (URI) and `date_accessed` (YYYY-MM-DD)).
 - `accessibility`: object with optional fields `volunteer_url` (URI), `donate_url` \
 (URI), `toolkit_url` (URI), `categories` (array — ONLY these values are valid: \
 donate, volunteer, resource, action, career. Do not use any other values).
