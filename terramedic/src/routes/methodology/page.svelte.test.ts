@@ -9,19 +9,20 @@ describe('/methodology', () => {
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
   });
 
-  test('should explain the 5-step evaluation criteria', () => {
+  test('should explain the 6-step evaluation criteria', () => {
     render(Page);
     expect(screen.getByRole('heading', { name: /1\. Mission Fit/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /2\. Transparency/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /3\. Accessibility/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /4\. Legitimacy/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /5\. Evidence Score/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /2\. Direct Engagement/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /3\. Local Relevance/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /4\. Transparency/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /5\. Legitimacy/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /6\. Evidence Score/i })).toBeInTheDocument();
   });
 
   test('should display the evidence scoring rubric (0–5)', () => {
     render(Page);
     expect(screen.getByText('No evidence')).toBeInTheDocument();
-    expect(screen.getByText('Rigorous')).toBeInTheDocument();
+    expect(screen.getByText('Exceptional')).toBeInTheDocument();
   });
 
   test('should mention human review of AI-assisted research', () => {

@@ -11,18 +11,18 @@
   <title>Our Methodology | Terramedic</title>
   <meta
     name="description"
-    content="How Terramedic selects and evaluates environmental organizations — our 5-step criteria, evidence scoring rubric, and human review process."
+    content="How Terramedic selects and evaluates environmental organizations — our 6-step criteria, evidence scoring rubric, and human review process."
   />
   <meta property="og:title" content="Our Methodology | Terramedic" />
   <meta
     property="og:description"
-    content="How Terramedic selects and evaluates environmental organizations — our 5-step criteria, evidence scoring rubric, and human review process."
+    content="How Terramedic selects and evaluates environmental organizations — our 6-step criteria, evidence scoring rubric, and human review process."
   />
   <meta property="og:url" content="https://terramedic.org/methodology" />
   <meta name="twitter:title" content="Our Methodology | Terramedic" />
   <meta
     name="twitter:description"
-    content="How Terramedic selects and evaluates environmental organizations — our 5-step criteria, evidence scoring rubric, and human review process."
+    content="How Terramedic selects and evaluates environmental organizations — our 6-step criteria, evidence scoring rubric, and human review process."
   />
 </svelte:head>
 
@@ -57,52 +57,67 @@
         </p>
       </section>
 
-      <!-- 5-Step Evaluation Criteria -->
+      <!-- 6-Step Evaluation Criteria -->
       <section
         class="bg-navy mb-10 rounded-lg p-8 shadow-sm"
         use:trackSectionView={{ section: 'evaluation_criteria', page: 'methodology' }}
       >
-        <h2 class="mb-6 text-xl font-bold text-white md:text-2xl">5-Step Evaluation Criteria</h2>
+        <h2 class="mb-6 text-xl font-bold text-white md:text-2xl">6-Step Evaluation Criteria</h2>
         <p class="mb-6 text-gray-300">
-          Each candidate organization is assessed on five dimensions:
+          Each candidate organization is assessed on six dimensions, in order. If an organization
+          fails Step 1 (no SDG alignment), the evaluation stops there.
         </p>
 
         <div class="space-y-6">
           <div class="border-terra-green border-l-4 pl-5">
             <h3 class="mb-1 text-lg font-bold text-white">1. Mission Fit</h3>
             <p class="text-gray-300">
-              Does the organization's mission directly address environmental protection,
-              restoration, or sustainability? We look for a clear connection to SDG 13, 14, or 15.
+              Does the organization's work align with UN Sustainable Development Goals 13 (Climate
+              Action), 14 (Life Below Water), or 15 (Life on Land)? We look for specific programs or
+              initiatives as evidence. If no alignment is found, the organization is not included.
             </p>
           </div>
 
           <div class="border-terra-green border-l-4 pl-5">
-            <h3 class="mb-1 text-lg font-bold text-white">2. Transparency</h3>
+            <h3 class="mb-1 text-lg font-bold text-white">2. Direct Engagement</h3>
             <p class="text-gray-300">
-              Does the organization publish its financials, leadership, and impact data? We look for
-              public annual reports, tax filings (990s for US nonprofits), or equivalent
-              disclosures.
+              This is the most important criterion after mission fit. What can a person actually do
+              through this organization? We look for volunteer opportunities, local chapters, action
+              pathways (canvassing, tree planting, citizen science), career opportunities, toolkits,
+              or a focused giving model where donations have a clear, specific use.
             </p>
           </div>
 
           <div class="border-terra-green border-l-4 pl-5">
-            <h3 class="mb-1 text-lg font-bold text-white">3. Accessibility</h3>
+            <h3 class="mb-1 text-lg font-bold text-white">3. Local Relevance</h3>
             <p class="text-gray-300">
-              Can someone actually get involved? We verify that the organization offers clear
-              pathways for volunteers, donors, or other supporters to participate.
+              Does the organization operate in specific geographies? Does it have local chapters,
+              region-specific programs, or location-based matching? Organizations with local
+              presence are strongly preferred because Terramedic matches users to organizations by
+              location.
             </p>
           </div>
 
           <div class="border-terra-green border-l-4 pl-5">
-            <h3 class="mb-1 text-lg font-bold text-white">4. Legitimacy</h3>
+            <h3 class="mb-1 text-lg font-bold text-white">4. Transparency</h3>
             <p class="text-gray-300">
-              Is the organization a registered nonprofit, accredited institution, or otherwise
-              verifiable entity? We check legal status, third-party ratings, and public reputation.
+              Does the organization clearly describe its programs, name its leadership, and provide
+              financial disclosures? We look for annual reports, tax filings (990s for US
+              nonprofits), or audited statements.
             </p>
           </div>
 
           <div class="border-terra-green border-l-4 pl-5">
-            <h3 class="mb-1 text-lg font-bold text-white">5. Evidence Score</h3>
+            <h3 class="mb-1 text-lg font-bold text-white">5. Legitimacy</h3>
+            <p class="text-gray-300">
+              Is the organization legally registered (e.g., 501(c)(3), registered charity, NGO)? How
+              long has it been operating? Are there third-party references such as news coverage,
+              watchdog ratings, or partner mentions?
+            </p>
+          </div>
+
+          <div class="border-terra-green border-l-4 pl-5">
+            <h3 class="mb-1 text-lg font-bold text-white">6. Evidence Score</h3>
             <p class="text-gray-300">
               How strong is the evidence that this organization delivers real environmental
               outcomes? Each organization receives a score from 0 to 5 using the rubric below.
@@ -135,43 +150,35 @@
               <tr class="border-b border-gray-700/50">
                 <td class="px-4 py-3 font-bold text-white">0</td>
                 <td class="px-4 py-3">No evidence</td>
-                <td class="px-4 py-3">No public information about outcomes or impact.</td>
+                <td class="px-4 py-3">No evidence of real work.</td>
               </tr>
               <tr class="border-b border-gray-700/50">
                 <td class="px-4 py-3 font-bold text-white">1</td>
                 <td class="px-4 py-3">Minimal</td>
-                <td class="px-4 py-3"
-                  >Basic claims on website, but no supporting data or reports.</td
-                >
+                <td class="px-4 py-3">Website exists but little else.</td>
               </tr>
               <tr class="border-b border-gray-700/50">
                 <td class="px-4 py-3 font-bold text-white">2</td>
                 <td class="px-4 py-3">Some evidence</td>
-                <td class="px-4 py-3"
-                  >Self-reported metrics or anecdotal success stories published.</td
-                >
+                <td class="px-4 py-3">A few programs described, limited external references.</td>
               </tr>
               <tr class="border-b border-gray-700/50">
                 <td class="px-4 py-3 font-bold text-white">3</td>
                 <td class="px-4 py-3">Moderate</td>
-                <td class="px-4 py-3"
-                  >Annual reports with measurable outcomes. Third-party ratings available.</td
-                >
+                <td class="px-4 py-3">Clear programs, some third-party validation.</td>
               </tr>
               <tr class="border-b border-gray-700/50">
                 <td class="px-4 py-3 font-bold text-white">4</td>
                 <td class="px-4 py-3">Strong</td>
                 <td class="px-4 py-3"
-                  >Independent evaluations or audited impact data. Recognized by watchdog
-                  organizations.</td
+                  >Detailed programs, financials, media coverage, clear engagement pathways.</td
                 >
               </tr>
               <tr>
                 <td class="px-4 py-3 font-bold text-white">5</td>
-                <td class="px-4 py-3">Rigorous</td>
+                <td class="px-4 py-3">Exceptional</td>
                 <td class="px-4 py-3"
-                  >Peer-reviewed research or longitudinal studies demonstrating impact.
-                  Gold-standard evidence.</td
+                  >Strong track record, clear local impact, well-documented engagement outcomes.</td
                 >
               </tr>
             </tbody>
