@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+# Bump this version whenever SYSTEM_PROMPT is modified.
 PROMPT_VERSION: str = "1.0"
 
 SYSTEM_PROMPT: str = """\
