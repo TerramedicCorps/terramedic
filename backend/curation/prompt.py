@@ -94,10 +94,9 @@ communities, or enabling targeted campaigns. This is different from a generic \
    An org with only a donate button AND no clear theory of change is a concern. \
 But an org with a compelling, specific model for how donations create impact \
 (e.g., "$50 funds a ranger patrol") is valuable.
-   Check whether the organization has **absorbed or merged with** other \
-organizations — inherited programs (e.g., volunteer events, chapters) may \
-not be prominently featured on the current website but still represent real \
-engagement pathways.
+   **Be thorough.** Engagement pathways are often buried in subpages, event \
+calendars, or program descriptions — not just the homepage. Look beyond the \
+top-level navigation before concluding an org lacks engagement opportunities.
 
 3. **Local relevance** — Does the organization operate in specific geographies? \
 Does it have local chapters, region-specific programs, or location-based matching? \
