@@ -2,6 +2,8 @@ from django.contrib import admin, messages
 from django.db.models import QuerySet
 from django.http import HttpRequest
 from django.utils import timezone
+from django.utils.html import escape
+from django.utils.safestring import mark_safe
 from parler.admin import TranslatableAdmin
 
 from terramedic.organizations.models import (
@@ -133,7 +135,7 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
 
     @admin.display(description="Evaluation Detail")
     def evaluation_detail(self, obj: OrganizationEvaluation) -> str:
-        """Render evaluation data as readable HTML for the detail page."""
+        """Render evaluation data as safe HTML for the detail page."""
         data = obj.evaluation_data or {}
         parts: list[str] = []
 
@@ -142,9 +144,12 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         if sdgs:
             parts.append("<h3>SDG Alignment</h3><ul>")
             for item in sdgs:
-                sdg = item.get("sdg", "?")
-                evidence = item.get("evidence", "")
-                parts.append(f"<li><strong>SDG {sdg}</strong>: {evidence}</li>")
+                sdg = escape(str(item.get("sdg", "?")))
+                evidence = escape(str(item.get("evidence", "")))
+                parts.append(
+                    f"<li><strong>SDG {sdg}</strong>: "
+                    f"{evidence}</li>",
+                )
             parts.append("</ul>")
 
         # Evidence of work
@@ -152,18 +157,21 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         if activities:
             parts.append("<h3>Evidence of Work</h3><ul>")
             for item in activities:
-                activity = item.get("activity", "")
-                act_type = item.get("type", "")
+                activity = escape(str(item.get("activity", "")))
+                act_type = escape(str(item.get("type", "")))
                 parts.append(
-                    f"<li><strong>{act_type}</strong>: {activity}</li>",
+                    f"<li><strong>{act_type}</strong>: "
+                    f"{activity}</li>",
                 )
             parts.append("</ul>")
 
         # Evidence score
         score_data = data.get("evidence_score", {})
         if score_data:
-            score = score_data.get("score", "?")
-            rationale = score_data.get("rationale", "")
+            score = escape(str(score_data.get("score", "?")))
+            rationale = escape(
+                str(score_data.get("rationale", "")),
+            )
             parts.append(
                 f"<h3>Evidence Score: {score} / 5</h3>"
                 f"<p>{rationale}</p>",
@@ -172,21 +180,23 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         # Curator notes
         notes = data.get("curator_notes", {})
         if notes:
-            rec = notes.get("recommendation", "")
-            note_text = notes.get("notes", "")
+            rec = escape(str(notes.get("recommendation", "")))
+            note_text = escape(str(notes.get("notes", "")))
             flags = notes.get("flags", [])
             parts.append("<h3>Curator Notes</h3>")
-            parts.append(f"<p><strong>Recommendation:</strong> {rec}</p>")
+            parts.append(
+                f"<p><strong>Recommendation:</strong> {rec}</p>",
+            )
             if note_text:
                 parts.append(f"<p>{note_text}</p>")
             if flags:
+                escaped = ", ".join(escape(str(f)) for f in flags)
                 parts.append(
-                    "<p><strong>Flags:</strong> "
-                    + ", ".join(flags)
-                    + "</p>",
+                    f"<p><strong>Flags:</strong> {escaped}</p>",
                 )
 
-        return "\n".join(parts) if parts else "<p>No evaluation data.</p>"
+        html = "\n".join(parts) if parts else "<p>No data.</p>"
+        return mark_safe(html)  # noqa: S308
 
     @admin.action(description="Approve selected evaluations")
     def approve_evaluations(
