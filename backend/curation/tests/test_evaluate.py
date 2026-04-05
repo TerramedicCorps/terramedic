@@ -20,7 +20,7 @@ from curation.evaluate import (
 
 
 def _make_valid_evaluation() -> dict[str, Any]:
-    """Return a minimal valid evaluation dict (without evaluated_at/by)."""
+    """Return a minimal valid evaluation dict."""
     return {
         "org_metadata": {
             "name": "Test Org",
