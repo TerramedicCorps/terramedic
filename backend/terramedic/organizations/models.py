@@ -108,8 +108,12 @@ class OrganizationEvaluation(models.Model):
     @property
     def sdg_numbers(self) -> list[int]:
         data = self.evaluation_data or {}
-        return [
-            item["sdg"]
-            for item in data.get("sdg_alignment", [])
-            if "sdg" in item
-        ]
+        sdg_numbers: list[int] = []
+        for item in data.get("sdg_alignment", []):
+            if not isinstance(item, dict) or "sdg" not in item:
+                continue
+            try:
+                sdg_numbers.append(int(item["sdg"]))
+            except (TypeError, ValueError):
+                continue
+        return sdg_numbers
