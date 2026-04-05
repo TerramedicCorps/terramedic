@@ -49,13 +49,82 @@
         <p class="mb-4 text-gray-300">
           Terramedic connects people with environmental organizations aligned with three UN
           Sustainable Development Goals: SDG 13 (Climate Action), SDG 14 (Life Below Water), and SDG
-          15 (Life on Land).
+          15 (Life on Land). We prioritize organizations where everyday people can get meaningfully
+          involved — through hands-on participation, high-impact giving, learning, advocacy, or
+          career development.
         </p>
-        <p class="text-gray-300">
+        <p class="mb-4 text-gray-300">
           We evaluate every candidate organization against a consistent set of criteria before it
           enters our database. No organization is included automatically. AI assists with research,
           but humans review and approve every organization.
         </p>
+        <p class="text-gray-300">
+          The key question is: does this organization offer something people can't easily find on
+          their own? Focused conservation groups, regional volunteer networks, niche career
+          platforms, and research groups producing guides for advocates all belong. Globally
+          recognized NGOs that everyone already knows about do not — we focus on organizations that
+          are underserved by visibility.
+        </p>
+      </section>
+
+      <!-- Nomination Categories -->
+      <section
+        class="bg-navy mb-10 rounded-lg p-8 shadow-sm"
+        use:trackSectionView={{ section: 'nomination_categories', page: 'methodology' }}
+      >
+        <h2 class="mb-6 text-xl font-bold text-white md:text-2xl">Nomination Categories</h2>
+        <p class="mb-6 text-gray-300">
+          Each organization is evaluated for fit in one or more of these categories, based on the
+          engagement pathways it offers:
+        </p>
+
+        <div class="space-y-6">
+          <div class="border-terra-green border-l-4 pl-5">
+            <h3 class="mb-1 text-lg font-bold text-white">Volunteer</h3>
+            <p class="text-gray-300">
+              Direct, hands-on engagement people can show up to — volunteer shifts, canvassing,
+              community organizing, restoration work, citizen science, local chapter meetings, or
+              civic engagement like voter mobilization and testimony at public hearings.
+            </p>
+          </div>
+
+          <div class="border-terra-green border-l-4 pl-5">
+            <h3 class="mb-1 text-lg font-bold text-white">Donate</h3>
+            <p class="text-gray-300">
+              Organizations where donations create outsized impact through a specific, accountable
+              model — not just a generic donate button. We look for a clear theory of change with
+              measurable outcomes, like funding community rangers or supporting targeted campaigns.
+            </p>
+          </div>
+
+          <div class="border-terra-green border-l-4 pl-5">
+            <h3 class="mb-1 text-lg font-bold text-white">Everyday</h3>
+            <p class="text-gray-300">
+              Organizations that help people take everyday actions — small, practical steps that fit
+              into daily life, requiring little or no spare time or money. Guides to reducing
+              personal environmental impact, carbon footprint calculators, or community action
+              checklists.
+            </p>
+          </div>
+
+          <div class="border-terra-green border-l-4 pl-5">
+            <h3 class="mb-1 text-lg font-bold text-white">Resource</h3>
+            <p class="text-gray-300">
+              Organizations that produce tools, research, or educational content that help people
+              take informed action — advocate resources, messaging guides, data visualizations, or
+              solutions journalism.
+            </p>
+          </div>
+
+          <div class="border-terra-green border-l-4 pl-5">
+            <h3 class="mb-1 text-lg font-bold text-white">Career</h3>
+            <p class="text-gray-300">
+              Organizations that help people find or transition into environmental work — job
+              boards, professional development, training programs, or community networks for
+              environmental professionals.
+            </p>
+          </div>
+        </div>
       </section>
 
       <!-- 6-Step Evaluation Criteria -->
@@ -80,12 +149,12 @@
           </div>
 
           <div class="border-terra-green border-l-4 pl-5">
-            <h3 class="mb-1 text-lg font-bold text-white">2. Direct Engagement</h3>
+            <h3 class="mb-1 text-lg font-bold text-white">2. Category Fit</h3>
             <p class="text-gray-300">
-              This is the most important criterion after mission fit. What can a person actually do
-              through this organization? We look for volunteer opportunities, local chapters, action
-              pathways (canvassing, tree planting, citizen science), career opportunities, toolkits,
-              or a focused giving model where donations have a clear, specific use.
+              This is the most important criterion after mission fit. Which nomination categories
+              does the organization fit? For each category assigned, we identify the specific
+              engagement pathway that earns it. Engagement pathways are often buried in subpages or
+              event calendars — we look beyond the homepage.
             </p>
           </div>
 
@@ -104,7 +173,8 @@
             <p class="text-gray-300">
               Does the organization clearly describe its programs, name its leadership, and provide
               financial disclosures? We look for annual reports, tax filings (990s for US
-              nonprofits), or audited statements.
+              nonprofits), audited statements, and third-party ratings from services like Charity
+              Navigator.
             </p>
           </div>
 
@@ -113,7 +183,7 @@
             <p class="text-gray-300">
               Is the organization legally registered (e.g., 501(c)(3), registered charity, NGO)? How
               long has it been operating? Are there third-party references such as news coverage,
-              watchdog ratings, or partner mentions?
+              Charity Navigator ratings, GuideStar/Candid profiles, or partner mentions?
             </p>
           </div>
 
