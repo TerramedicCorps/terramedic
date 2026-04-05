@@ -228,7 +228,7 @@ a chapter. When evaluating a local chapter, assess it on its own local \
 engagement pathways — even if the parent org would be excluded as a \
 globally recognized NGO.
 - **Categories must be earned.** The valid categories are: `donate`, \
-`volunteer`, `resource`, `action`, `career`. Only assign a category if you \
+`volunteer`, `resource`, `everyday`, `career`. Only assign a category if you \
 can identify a specific, working engagement pathway for it. Do not assign \
 "volunteer" just because an org exists — there must be an actual volunteer \
 program. If the org doesn't fit any of these categories, use `other` — but \

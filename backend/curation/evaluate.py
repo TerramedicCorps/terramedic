@@ -54,7 +54,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         "--categories",
         nargs="*",
         default=[],
-        help="Nominated categories (e.g. donate volunteer resource action career).",
+        help="Nominated categories (e.g. donate volunteer resource everyday career).",
     )
     return parser
 
