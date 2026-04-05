@@ -8,30 +8,11 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("organizations", "0002_add_career_category"),
+        ("organizations", "0004_add_created_at"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="organization",
-            name="created_at",
-            field=models.DateTimeField(auto_now_add=True, null=True),
-        ),
-        migrations.AlterField(
-            model_name="organization",
-            name="category",
-            field=models.CharField(
-                choices=[
-                    ("donate", "Donate"),
-                    ("volunteer", "Volunteer"),
-                    ("resource", "Resource"),
-                    ("everyday", "Everyday"),
-                    ("career", "Career"),
-                ],
-                max_length=20,
-            ),
-        ),
         migrations.CreateModel(
             name="OrganizationEvaluation",
             fields=[
