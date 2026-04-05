@@ -248,15 +248,17 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         queryset: QuerySet[OrganizationEvaluation],
     ) -> None:
         now = timezone.now()
+        rejected_count = 0
         for evaluation in queryset:
-            if evaluation.status == ReviewStatus.REJECTED:
+            if evaluation.status != ReviewStatus.PENDING:
                 continue
             evaluation.status = ReviewStatus.REJECTED
             evaluation.reviewer = request.user  # type: ignore[assignment]
             evaluation.reviewed_at = now
             evaluation.save()
+            rejected_count += 1
         self.message_user(
             request,
-            f"Rejected {queryset.count()} evaluation(s).",
+            f"Rejected {rejected_count} evaluation(s).",
             messages.SUCCESS,
         )
