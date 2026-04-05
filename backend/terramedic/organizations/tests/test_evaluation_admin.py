@@ -381,6 +381,11 @@ class TestEvaluationAdminReadonlyPresentation:
         admin = OrganizationEvaluationAdmin(OrganizationEvaluation, site)
         assert "evaluation_data" in admin.readonly_fields
 
+    def test_status_is_readonly(self) -> None:
+        site = AdminSite()
+        admin = OrganizationEvaluationAdmin(OrganizationEvaluation, site)
+        assert "status" in admin.readonly_fields
+
     def test_status_choices(self) -> None:
         assert ReviewStatus.PENDING == "pending"
         assert ReviewStatus.APPROVED == "approved"

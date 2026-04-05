@@ -72,6 +72,7 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     search_fields: list[str] = []
     readonly_fields = [
         "evaluation_data",
+        "status",
         "created_at",
         "reviewed_at",
         "reviewer",
@@ -85,6 +86,10 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
                 "fields": (
                     "status",
                     "reviewer_reasoning",
+                ),
+                "description": (
+                    "Use bulk actions to approve or reject."
+                    " Status cannot be changed manually."
                 ),
             },
         ),
