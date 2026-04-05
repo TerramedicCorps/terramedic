@@ -222,18 +222,22 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         request: HttpRequest,
         queryset: QuerySet[OrganizationEvaluation],
     ) -> None:
+        approved_count = 0
         for evaluation in queryset:
             if evaluation.status == ReviewStatus.APPROVED:
                 continue
-            org = _create_org_from_evaluation(evaluation)
+            org = evaluation.organization
+            if org is None:
+                org = _create_org_from_evaluation(evaluation)
             evaluation.organization = org
             evaluation.status = ReviewStatus.APPROVED
             evaluation.reviewer = request.user  # type: ignore[assignment]
             evaluation.reviewed_at = timezone.now()
             evaluation.save()
+            approved_count += 1
         self.message_user(
             request,
-            f"Approved {queryset.count()} evaluation(s).",
+            f"Approved {approved_count} evaluation(s).",
             messages.SUCCESS,
         )
 
