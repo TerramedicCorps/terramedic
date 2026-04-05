@@ -34,7 +34,9 @@ just a generic donate button.
 - Are **underserved by visibility**: smaller or specialized orgs that people \
 wouldn't easily find via a Google search.
 - Offer **tools and resources**: evidence-based action guides, climate data \
-visualizations, campaign strategy resources, career platforms for environmental work.
+visualizations, campaign strategy resources, research reports that help \
+advocates communicate or act more effectively, career platforms for \
+environmental work.
 
 **Organizations that do NOT fit:**
 - **Globally recognized NGOs** with massive fundraising operations and \
@@ -42,7 +44,10 @@ international brand recognition (e.g., WWF, The Nature Conservancy, Greenpeace, 
 Sierra Club, Rainforest Alliance). The test is: would most environmentally \
 aware adults in multiple countries recognize this name? If yes, exclude.
 - Organizations that are primarily **awareness campaigns** with no concrete \
-engagement pathways or specific theory of change.
+engagement pathways or specific theory of change. Note: an org that \
+produces actionable research, reports, or messaging guides used by \
+advocates is a **resource**, not an awareness campaign — evaluate it \
+under the resource category.
 - **Purely partisan organizations** with no environmental mission — orgs \
 whose primary purpose is electing candidates rather than environmental \
 work. However, environmental organizations that also do electoral or \
@@ -89,6 +94,10 @@ communities, or enabling targeted campaigns. This is different from a generic \
    An org with only a donate button AND no clear theory of change is a concern. \
 But an org with a compelling, specific model for how donations create impact \
 (e.g., "$50 funds a ranger patrol") is valuable.
+   Check whether the organization has **absorbed or merged with** other \
+organizations — inherited programs (e.g., volunteer events, chapters) may \
+not be prominently featured on the current website but still represent real \
+engagement pathways.
 
 3. **Local relevance** — Does the organization operate in specific geographies? \
 Does it have local chapters, region-specific programs, or location-based matching? \
