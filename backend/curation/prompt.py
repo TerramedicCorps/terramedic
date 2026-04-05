@@ -43,11 +43,12 @@ Sierra Club, Rainforest Alliance). The test is: would most environmentally \
 aware adults in multiple countries recognize this name? If yes, exclude.
 - Organizations that are primarily **awareness campaigns** with no concrete \
 engagement pathways or specific theory of change.
-- **Partisan political organizations** — any org that endorses, opposes, or \
-campaigns for or against candidates for public office. Terramedic is a \
-501(c)(3) and cannot promote organizations engaged in partisan campaign \
-activity. Non-partisan civic engagement (issue advocacy, non-partisan \
-GOTV, testimony on environmental policy) is fine.
+- **Purely partisan organizations** with no environmental mission — orgs \
+whose primary purpose is electing candidates rather than environmental \
+work. However, environmental organizations that also do electoral or \
+legislative advocacy (e.g., Climate Cabinet, LCV) CAN be included — \
+Terramedic's database is an educational resource and listings do not \
+constitute endorsement of any political candidate or legislative position.
 
 Note: an organization that is well-known *in its local area* (like a city \
 aquarium or regional land trust) is NOT the same as a globally recognized NGO. \
@@ -136,9 +137,10 @@ exist based on common site structure. If you are unsure whether a specific page 
 exists, omit the URL and note it as unverified.
 - **Check recency.** An organization that was active five years ago but has no \
 recent activity may not belong in the database. Flag this.
-- **Flag partisan activity.** If an organization endorses candidates, runs \
-PACs, or does partisan campaign work, recommend exclusion and note it in \
-`curator_notes.flags`. Non-partisan civic engagement is acceptable.
+- **Note political activity.** If an organization does electoral or \
+legislative advocacy alongside environmental work, note this in \
+`curator_notes.flags` for reviewer awareness — but it is not grounds \
+for exclusion. Only exclude if the org has no environmental mission.
 - **One evaluation per organization.** If an org has multiple branches or chapters, \
 evaluate the parent organization unless the candidate URL specifically points to \
 a chapter.
