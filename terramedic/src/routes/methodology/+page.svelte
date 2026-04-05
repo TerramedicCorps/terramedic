@@ -34,10 +34,11 @@
       <h1 class="mb-6 text-center text-3xl font-bold text-white md:text-4xl lg:text-5xl">
         Our Methodology
       </h1>
-      <p class="mx-auto mb-12 max-w-2xl text-center text-lg text-gray-300">
+      <p class="mx-auto mb-4 max-w-2xl text-center text-lg text-gray-300">
         Every organization in our database earned its place through a structured evaluation. Here's
         how it works.
       </p>
+      <p class="mb-12 text-center text-sm text-gray-400">Criteria version 2026.04.6</p>
 
       <!-- How We Select Organizations -->
       <section

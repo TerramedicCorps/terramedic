@@ -37,4 +37,9 @@ describe('/methodology', () => {
     const link = screen.getByRole('link', { name: /suggest/i });
     expect(link).toBeInTheDocument();
   });
+
+  test('should display the criteria version number', () => {
+    render(Page);
+    expect(screen.getByText(/Criteria version/i)).toBeInTheDocument();
+  });
 });
