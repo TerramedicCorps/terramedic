@@ -3,7 +3,7 @@
   "title": "Organization Evaluation",
   "description": "Output format for the Terramedic curation pipeline. Each evaluation assesses a candidate environmental organization for inclusion in the database.",
   "type": "object",
-  "required": ["org_metadata", "sdg_alignment", "evidence_of_work", "accessibility", "evidence_score", "curator_notes", "evaluated_at", "evaluated_by"],
+  "required": ["org_metadata", "sdg_alignment", "evidence_of_work", "accessibility", "evidence_score", "curator_notes", "evaluated_at", "evaluated_by", "prompt_version"],
   "properties": {
     "org_metadata": {
       "type": "object",
@@ -217,6 +217,44 @@
     "evaluated_by": {
       "type": "string",
       "description": "The AI model used to produce this evaluation (e.g., claude-opus-4-6)."
+    },
+    "prompt_version": {
+      "type": "string",
+      "description": "Version of the curation prompt used for this evaluation."
+    },
+    "evaluation_history": {
+      "type": "array",
+      "description": "Prior evaluations of this organization, preserved when re-evaluating with a new prompt version.",
+      "items": {
+        "type": "object",
+        "required": ["prompt_version", "evaluated_at", "evaluated_by", "score", "recommendation"],
+        "properties": {
+          "prompt_version": {
+            "type": "string",
+            "description": "Prompt version used for this prior evaluation."
+          },
+          "evaluated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this prior evaluation was performed."
+          },
+          "evaluated_by": {
+            "type": "string",
+            "description": "The AI model used for this prior evaluation."
+          },
+          "score": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5,
+            "description": "Evidence score from this prior evaluation."
+          },
+          "recommendation": {
+            "type": "string",
+            "enum": ["include", "exclude", "needs_review"],
+            "description": "Recommendation from this prior evaluation."
+          }
+        }
+      }
     }
   }
 }

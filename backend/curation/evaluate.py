@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from curation.prompt import SYSTEM_PROMPT
+from curation.prompt import PROMPT_VERSION, SYSTEM_PROMPT
 
 _SCHEMA_PATH = Path(__file__).parent / "schema.json"
 _MAX_PAGE_CHARS = 12000
@@ -333,6 +333,7 @@ def evaluate_org(
         datetime.datetime.now(datetime.UTC).isoformat()
     )
     result["evaluated_by"] = model
+    result["prompt_version"] = PROMPT_VERSION
 
     try:
         import jsonschema
@@ -359,10 +360,34 @@ def evaluate_org(
 
 
 def _save_evaluation(data: dict[str, Any], output_path: str) -> None:
-    """Save evaluation data as JSON to the given path."""
+    """Save evaluation data as JSON to the given path.
+
+    If a prior evaluation exists at the same path, its metadata is
+    appended to the ``evaluation_history`` array so reviewers can
+    compare scores across prompt versions.
+    """
     output_parent = Path(output_path).parent
     if output_parent != Path("."):
         output_parent.mkdir(parents=True, exist_ok=True)
+
+    path = Path(output_path)
+    if path.exists():
+        with open(path) as f:
+            prior = json.load(f)
+        history: list[dict[str, Any]] = prior.get(
+            "evaluation_history", [],
+        )
+        history.append({
+            "prompt_version": prior.get("prompt_version", "unknown"),
+            "evaluated_at": prior.get("evaluated_at", ""),
+            "evaluated_by": prior.get("evaluated_by", ""),
+            "score": prior.get("evidence_score", {}).get("score", 0),
+            "recommendation": prior.get(
+                "curator_notes", {},
+            ).get("recommendation", ""),
+        })
+        data["evaluation_history"] = history
+
     with open(output_path, "w") as f:
         json.dump(data, f, indent=2)
         f.write("\n")

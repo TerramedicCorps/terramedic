@@ -40,6 +40,7 @@ def _make_valid_evaluation() -> dict[str, Any]:
         "curator_notes": {"recommendation": "include"},
         "evaluated_at": "2026-04-04T12:00:00+00:00",
         "evaluated_by": "claude-sonnet-4-20250514",
+        "prompt_version": "1.0",
     }
 
 
@@ -465,6 +466,44 @@ class TestSaveEvaluation:
 
         content = Path(output_path).read_text()
         assert "  " in content  # indented
+
+    def test_preserves_evaluation_history(self, tmp_path: Path) -> None:
+        output_path = str(tmp_path / "eval.json")
+        prior = _make_valid_evaluation()
+        prior["prompt_version"] = "0.9"
+        _save_evaluation(prior, output_path)
+
+        new_eval = _make_valid_evaluation()
+        new_eval["prompt_version"] = "1.0"
+        new_eval["evidence_score"]["score"] = 4
+        _save_evaluation(new_eval, output_path)
+
+        with open(output_path) as f:
+            loaded = json.load(f)
+        assert len(loaded["evaluation_history"]) == 1
+        assert loaded["evaluation_history"][0]["prompt_version"] == "0.9"
+        assert loaded["evaluation_history"][0]["score"] == 3
+        assert loaded["evaluation_history"][0]["recommendation"] == "include"
+
+    def test_appends_to_existing_history(self, tmp_path: Path) -> None:
+        output_path = str(tmp_path / "eval.json")
+        first = _make_valid_evaluation()
+        first["prompt_version"] = "0.8"
+        _save_evaluation(first, output_path)
+
+        second = _make_valid_evaluation()
+        second["prompt_version"] = "0.9"
+        _save_evaluation(second, output_path)
+
+        third = _make_valid_evaluation()
+        third["prompt_version"] = "1.0"
+        _save_evaluation(third, output_path)
+
+        with open(output_path) as f:
+            loaded = json.load(f)
+        assert len(loaded["evaluation_history"]) == 2
+        assert loaded["evaluation_history"][0]["prompt_version"] == "0.8"
+        assert loaded["evaluation_history"][1]["prompt_version"] == "0.9"
 
 
 class TestMain:

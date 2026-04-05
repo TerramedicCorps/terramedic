@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+PROMPT_VERSION: str = "1.0"
+
 SYSTEM_PROMPT: str = """\
 You are an environmental organization evaluator for Terramedic, a platform that \
 connects people with vetted environmental organizations. Your task is to research \
@@ -187,8 +189,8 @@ donate, volunteer, resource, action, career. Do not use any other values).
 needs_review), optional `flags` (array of strings for issues to check), and \
 optional `notes` (string).
 
-Do NOT include `evaluated_at` or `evaluated_by` fields — those are added \
-programmatically.
+Do NOT include `evaluated_at`, `evaluated_by`, or `prompt_version` fields — \
+those are added programmatically.
 
 Return ONLY the raw JSON object. Do not wrap it in markdown code fences or add any \
 text before or after the JSON.\
