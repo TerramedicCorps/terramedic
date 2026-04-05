@@ -5,6 +5,7 @@ from django.utils import timezone
 from parler.admin import TranslatableAdmin
 
 from terramedic.organizations.models import (
+    Category,
     Organization,
     OrganizationEvaluation,
     ReviewStatus,
@@ -35,7 +36,9 @@ def _create_org_from_evaluation(
     accessibility = data.get("accessibility", {})
 
     categories = accessibility.get("categories", [])
-    category = categories[0] if categories else "resource"
+    valid_values = set(Category.values)
+    first = categories[0] if categories else None
+    category = first if first in valid_values else Category.RESOURCE
 
     org = Organization(
         name=meta.get("name", ""),
