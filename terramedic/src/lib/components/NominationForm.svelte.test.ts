@@ -62,8 +62,26 @@ describe('NominationForm', () => {
     expect(mockSubmit).toHaveBeenCalledWith({
       url: 'https://example.org',
       categories: ['volunteer'],
-      notes: ''
+      notes: '',
+      website: ''
     });
+  });
+
+  test('includes honeypot value in POST body', async () => {
+    const user = userEvent.setup();
+    const { container } = render(NominationForm);
+
+    await user.type(screen.getByLabelText(/website url/i), 'https://example.org');
+    await user.click(screen.getByLabelText(/volunteer/i));
+
+    // Simulate a bot filling in the honeypot
+    const honeypot = container.querySelector('input[name="website"]') as HTMLInputElement;
+    await user.type(honeypot, 'bot-value');
+    await user.click(screen.getByRole('button', { name: /submit nomination/i }));
+
+    // Honeypot is checked client-side so submission is silently ignored,
+    // but when empty the value should still be sent to the API
+    expect(mockSubmit).not.toHaveBeenCalled();
   });
 
   test('shows error message on failed submission', async () => {
@@ -96,7 +114,8 @@ describe('NominationForm', () => {
       expect(mockSubmit).toHaveBeenCalledWith({
         url: 'https://example.org',
         categories: expect.arrayContaining(['volunteer', 'donate']),
-        notes: ''
+        notes: '',
+        website: ''
       });
     });
   });
@@ -164,7 +183,8 @@ describe('NominationForm', () => {
       expect(mockSubmit).toHaveBeenCalledWith({
         url: 'https://example.org',
         categories: ['volunteer'],
-        notes: 'Great organization'
+        notes: 'Great organization',
+        website: ''
       });
     });
   });

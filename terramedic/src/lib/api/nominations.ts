@@ -11,6 +11,7 @@ export interface NominationPayload {
   url: string;
   categories: string[];
   notes: string;
+  website?: string;
 }
 
 export interface NominationResponse {

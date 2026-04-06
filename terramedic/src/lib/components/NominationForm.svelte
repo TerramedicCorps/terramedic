@@ -60,7 +60,7 @@
     errorMessage = '';
 
     try {
-      const result = await submitNomination({ url, categories, notes });
+      const result = await submitNomination({ url, categories, notes, website: honeypot });
       confirmationId = result.confirmation_id;
       trackEvent('nomination_submit', { categories: categories.join(',') });
     } catch {
