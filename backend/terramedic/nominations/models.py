@@ -6,6 +6,7 @@ from django.db import models
 
 class NominationStatus(models.TextChoices):
     PENDING = "pending"
+    EVALUATING = "evaluating"
     EVALUATED = "evaluated"
     APPROVED = "approved"
     REJECTED = "rejected"

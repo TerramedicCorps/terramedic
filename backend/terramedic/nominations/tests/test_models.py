@@ -11,6 +11,7 @@ from terramedic.nominations.models import Nomination, NominationStatus
 class TestNominationStatus:
     def test_status_choices(self) -> None:
         assert NominationStatus.PENDING == "pending"
+        assert NominationStatus.EVALUATING == "evaluating"
         assert NominationStatus.EVALUATED == "evaluated"
         assert NominationStatus.APPROVED == "approved"
         assert NominationStatus.REJECTED == "rejected"
