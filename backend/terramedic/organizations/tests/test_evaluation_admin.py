@@ -569,14 +569,16 @@ class TestGrowthOverTime:
         OrganizationEvaluation.objects.create(
             evaluation_data=_make_evaluation_data(),
         )
+        OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(),
+        )
         response = admin_client.get(
             "/admin/organizations/organizationevaluation/",
         )
         growth = response.context["growth_data"]
-        assert isinstance(growth, list)
-        assert len(growth) >= 1
-        assert "month" in growth[0]
-        assert "count" in growth[0]
+        assert len(growth) == 1
+        assert growth[0]["month"] == "2026-04"
+        assert growth[0]["count"] == 2
 
     def test_growth_data_empty_when_no_evaluations(
         self,
