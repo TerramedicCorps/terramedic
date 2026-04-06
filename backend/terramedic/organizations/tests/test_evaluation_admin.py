@@ -637,6 +637,40 @@ class TestEvidenceScoreFilter:
         assert "2 / 5" in content
         assert "5 / 5" not in content
 
+    def test_filter_medium_score(
+        self,
+        admin_client: Client,
+    ) -> None:
+        OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                evidence_score={"score": 3, "rationale": "Average"},
+            ),
+        )
+        OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                evidence_score={"score": 5, "rationale": "Excellent"},
+            ),
+        )
+        response = admin_client.get(
+            "/admin/organizations/organizationevaluation/"
+            "?evidence_score=medium",
+        )
+        content = response.content.decode()
+        assert "3 / 5" in content
+        assert "5 / 5" not in content
+
+
+@pytest.mark.django_db
+class TestAnonymousAccess:
+    """Non-staff users should be redirected to login."""
+
+    def test_anonymous_user_redirected(self) -> None:
+        client = Client()
+        response = client.get(
+            "/admin/organizations/organizationevaluation/",
+        )
+        assert response.status_code == 302
+
 
 @pytest.mark.django_db
 class TestCategoryFilter:
