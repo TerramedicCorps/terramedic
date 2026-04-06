@@ -101,6 +101,9 @@ class TestCreateNomination:
             content_type="application/json",
         )
         assert response.status_code == 422
+        data = response.json()
+        assert "detail" in data
+        assert isinstance(data["detail"], list)
 
     def test_empty_url_rejected(self, client: Client) -> None:
         response = client.post(
@@ -123,6 +126,9 @@ class TestCreateNomination:
             content_type="application/json",
         )
         assert response.status_code == 422
+        data = response.json()
+        assert "detail" in data
+        assert isinstance(data["detail"], list)
 
     def test_long_url_rejected(self, client: Client) -> None:
         long_url = "https://example.org/" + "a" * 2040
@@ -257,6 +263,8 @@ class TestCreateNomination:
             content_type="application/json",
         )
         assert response.status_code == 429
+        data = response.json()
+        assert data["detail"] == "Rate limit exceeded. Try again later."
 
     def test_rate_limit_includes_retry_after_header(self, client: Client) -> None:
         for i in range(5):
