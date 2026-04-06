@@ -11,6 +11,9 @@
   let isSubmitting = false;
   let confirmationId = '';
   let errorMessage = '';
+  let urlError = '';
+
+  const URL_MAX_LENGTH = 2048;
 
   const categoryOptions = [
     { value: 'volunteer', label: 'Volunteer' },
@@ -19,6 +22,20 @@
     { value: 'resource', label: 'Resource' },
     { value: 'career', label: 'Career' }
   ];
+
+  function validateUrl() {
+    if (!url) {
+      urlError = '';
+      return;
+    }
+    if (url.length > URL_MAX_LENGTH) {
+      urlError = `URL must be under ${URL_MAX_LENGTH} characters.`;
+    } else if (!/^https?:\/\//i.test(url)) {
+      urlError = 'URL must start with http:// or https://.';
+    } else {
+      urlError = '';
+    }
+  }
 
   function handleCheckbox(value) {
     if (categories.includes(value)) {
@@ -87,10 +104,14 @@
           name="url"
           type="url"
           bind:value={url}
+          onBlur={validateUrl}
           required
           placeholder="https://example.org"
           class="bg-deep-navy w-full text-white"
         />
+        {#if urlError}
+          <p class="mt-1 text-sm text-red-400">{urlError}</p>
+        {/if}
       </div>
 
       <!-- Category checkboxes -->

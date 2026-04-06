@@ -101,6 +101,54 @@ describe('NominationForm', () => {
     });
   });
 
+  test('shows inline error on blur when URL lacks http(s) scheme', async () => {
+    const user = userEvent.setup();
+    render(NominationForm);
+
+    const urlInput = screen.getByLabelText(/website url/i);
+    await user.type(urlInput, 'example.org');
+    await user.tab();
+
+    await waitFor(() => {
+      expect(screen.getByText(/must start with http/i)).toBeInTheDocument();
+    });
+  });
+
+  test('clears blur error when valid URL is entered', async () => {
+    const user = userEvent.setup();
+    render(NominationForm);
+
+    const urlInput = screen.getByLabelText(/website url/i);
+    await user.type(urlInput, 'example.org');
+    await user.tab();
+
+    await waitFor(() => {
+      expect(screen.getByText(/must start with http/i)).toBeInTheDocument();
+    });
+
+    await user.clear(urlInput);
+    await user.type(urlInput, 'https://example.org');
+    await user.tab();
+
+    await waitFor(() => {
+      expect(screen.queryByText(/must start with http/i)).not.toBeInTheDocument();
+    });
+  });
+
+  test('shows error when URL exceeds 2048 characters', async () => {
+    const user = userEvent.setup();
+    render(NominationForm);
+
+    const longUrl = 'https://example.org/' + 'a'.repeat(2030);
+    const urlInput = screen.getByLabelText(/website url/i);
+    await user.type(urlInput, longUrl);
+    await user.tab();
+
+    await waitFor(() => {
+      expect(screen.getByText(/2048 characters/i)).toBeInTheDocument();
+    });
+  });
+
   test('submits notes when provided', async () => {
     mockSubmit.mockResolvedValueOnce({ confirmation_id: 'NOM-NOTES' });
     const user = userEvent.setup();
