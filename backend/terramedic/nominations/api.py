@@ -23,8 +23,10 @@ RATE_LIMIT_WINDOW = timedelta(hours=1)
 
 
 def _hash_ip(ip: str) -> str:
-    """Hash an IP address with SHA-256 for privacy-preserving rate limiting."""
-    return hashlib.sha256(ip.encode()).hexdigest()
+    """Hash an IP address with salted SHA-256 for privacy-preserving rate limiting."""
+    from django.conf import settings
+
+    return hashlib.sha256(f"{settings.SECRET_KEY}{ip}".encode()).hexdigest()
 
 
 def _get_client_ip(request: HttpRequest) -> str:
