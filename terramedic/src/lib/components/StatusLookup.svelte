@@ -25,9 +25,16 @@
 
   async function handleSubmit(event) {
     event.preventDefault();
-    isLoading = true;
     errorMessage = '';
     result = null;
+
+    const trimmed = confirmationId.trim();
+    if (!trimmed.startsWith('NOM-')) {
+      errorMessage = 'Confirmation ID must start with NOM-.';
+      return;
+    }
+
+    isLoading = true;
 
     try {
       result = await lookupNominationStatus(confirmationId);

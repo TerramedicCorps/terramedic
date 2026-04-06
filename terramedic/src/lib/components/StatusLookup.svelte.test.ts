@@ -47,13 +47,27 @@ describe('StatusLookup', () => {
     });
   });
 
-  test('displays error for invalid confirmation ID', async () => {
-    mockLookup.mockRejectedValueOnce(new Error('Nomination not found'));
+  test('shows client-side error for invalid format without calling API', async () => {
     const user = userEvent.setup();
 
     render(StatusLookup);
 
     await user.type(screen.getByLabelText(/confirmation id/i), 'INVALID');
+    await user.click(screen.getByRole('button', { name: /check status/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/must start with NOM-/i)).toBeInTheDocument();
+    });
+    expect(mockLookup).not.toHaveBeenCalled();
+  });
+
+  test('displays error when API returns not found', async () => {
+    mockLookup.mockRejectedValueOnce(new Error('Nomination not found'));
+    const user = userEvent.setup();
+
+    render(StatusLookup);
+
+    await user.type(screen.getByLabelText(/confirmation id/i), 'NOM-UNKNOWN');
     await user.click(screen.getByRole('button', { name: /check status/i }));
 
     await waitFor(() => {
