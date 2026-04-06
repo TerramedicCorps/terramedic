@@ -1,0 +1,123 @@
+import { describe, test, expect, vi, beforeEach } from 'vitest';
+import '@testing-library/jest-dom/vitest';
+import { render, screen, waitFor } from '@testing-library/svelte';
+import { userEvent } from '@testing-library/user-event';
+import NominationForm from './NominationForm.svelte';
+
+// Mock the nominations API
+const mockSubmit = vi.fn();
+vi.mock('$lib/api/nominations', () => ({
+  submitNomination: (...args: unknown[]) => mockSubmit(...args)
+}));
+
+// Mock analytics
+vi.mock('$lib/utils/analytics', () => ({
+  trackEvent: vi.fn()
+}));
+
+describe('NominationForm', () => {
+  beforeEach(() => {
+    mockSubmit.mockClear();
+  });
+
+  test('renders the form with URL input, category checkboxes, and notes', () => {
+    render(NominationForm);
+
+    expect(screen.getByLabelText(/website url/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/volunteer/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/donate/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/everyday/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/resource/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/career/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/notes/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /submit nomination/i })).toBeInTheDocument();
+  });
+
+  test('includes a hidden honeypot field', () => {
+    const { container } = render(NominationForm);
+    const honeypot = container.querySelector('input[name="website"]');
+    expect(honeypot).toBeInTheDocument();
+  });
+
+  test('requires URL before submission', async () => {
+    render(NominationForm);
+    const urlInput = screen.getByLabelText(/website url/i) as HTMLInputElement;
+    expect(urlInput).toBeRequired();
+  });
+
+  test('shows confirmation ID on successful submission', async () => {
+    mockSubmit.mockResolvedValueOnce({ confirmation_id: 'NOM-TEST123' });
+    const user = userEvent.setup();
+
+    render(NominationForm);
+
+    await user.type(screen.getByLabelText(/website url/i), 'https://example.org');
+    await user.click(screen.getByLabelText(/volunteer/i));
+    await user.click(screen.getByRole('button', { name: /submit nomination/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/NOM-TEST123/)).toBeInTheDocument();
+    });
+
+    expect(mockSubmit).toHaveBeenCalledWith({
+      url: 'https://example.org',
+      categories: ['volunteer'],
+      notes: ''
+    });
+  });
+
+  test('shows error message on failed submission', async () => {
+    mockSubmit.mockRejectedValueOnce(new Error('Server error'));
+    const user = userEvent.setup();
+
+    render(NominationForm);
+
+    await user.type(screen.getByLabelText(/website url/i), 'https://example.org');
+    await user.click(screen.getByLabelText(/volunteer/i));
+    await user.click(screen.getByRole('button', { name: /submit nomination/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/something went wrong/i)).toBeInTheDocument();
+    });
+  });
+
+  test('submits multiple categories', async () => {
+    mockSubmit.mockResolvedValueOnce({ confirmation_id: 'NOM-MULTI' });
+    const user = userEvent.setup();
+
+    render(NominationForm);
+
+    await user.type(screen.getByLabelText(/website url/i), 'https://example.org');
+    await user.click(screen.getByLabelText(/volunteer/i));
+    await user.click(screen.getByLabelText(/donate/i));
+    await user.click(screen.getByRole('button', { name: /submit nomination/i }));
+
+    await waitFor(() => {
+      expect(mockSubmit).toHaveBeenCalledWith({
+        url: 'https://example.org',
+        categories: expect.arrayContaining(['volunteer', 'donate']),
+        notes: ''
+      });
+    });
+  });
+
+  test('submits notes when provided', async () => {
+    mockSubmit.mockResolvedValueOnce({ confirmation_id: 'NOM-NOTES' });
+    const user = userEvent.setup();
+
+    render(NominationForm);
+
+    await user.type(screen.getByLabelText(/website url/i), 'https://example.org');
+    await user.click(screen.getByLabelText(/volunteer/i));
+    await user.type(screen.getByLabelText(/notes/i), 'Great organization');
+    await user.click(screen.getByRole('button', { name: /submit nomination/i }));
+
+    await waitFor(() => {
+      expect(mockSubmit).toHaveBeenCalledWith({
+        url: 'https://example.org',
+        categories: ['volunteer'],
+        notes: 'Great organization'
+      });
+    });
+  });
+});
