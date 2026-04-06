@@ -1,11 +1,11 @@
-<script>
+<script lang="ts">
   import { Button, Input, Label } from 'flowbite-svelte';
-  import { lookupNominationStatus } from '$lib/api/nominations';
+  import { lookupNominationStatus, type NominationStatus } from '$lib/api/nominations';
 
-  let confirmationId = '';
-  let isLoading = false;
-  let errorMessage = '';
-  let result = null;
+  let confirmationId: string = '';
+  let isLoading: boolean = false;
+  let errorMessage: string = '';
+  let result: NominationStatus | null = null;
 
   const statusLabels = {
     pending: 'Pending Review',

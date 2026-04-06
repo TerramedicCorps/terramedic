@@ -1,17 +1,17 @@
-<script>
+<script lang="ts">
   import { Button, Input, Label, Textarea } from 'flowbite-svelte';
   import { submitNomination, ValidationError } from '$lib/api/nominations';
   import { trackEvent } from '$lib/utils/analytics';
 
   // Form state
-  let url = '';
-  let categories = [];
-  let notes = '';
-  let honeypot = '';
-  let isSubmitting = false;
-  let confirmationId = '';
-  let errorMessage = '';
-  let urlError = '';
+  let url: string = '';
+  let categories: string[] = [];
+  let notes: string = '';
+  let honeypot: string = '';
+  let isSubmitting: boolean = false;
+  let confirmationId: string = '';
+  let errorMessage: string = '';
+  let urlError: string = '';
 
   const URL_MAX_LENGTH = 2048;
 
