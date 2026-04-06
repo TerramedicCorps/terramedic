@@ -1,6 +1,7 @@
 from typing import Any
 
 from django.contrib import admin, messages
+from django.db import connection
 from django.db.models import Count, QuerySet
 from django.db.models.functions import TruncMonth
 from django.http import HttpRequest, HttpResponse
@@ -215,20 +216,26 @@ class CategoryFilter(admin.SimpleListFilter):
         queryset: QuerySet[OrganizationEvaluation],
     ) -> QuerySet[OrganizationEvaluation]:
         value = self.value()
-        if value:
-            pks = [
-                ev.pk
-                for ev in queryset
-                if value
-                in (
-                    ev.evaluation_data.get("accessibility", {}).get(
-                        "categories",
-                        [],
-                    )
+        if not value:
+            return queryset
+        if connection.vendor == "postgresql":
+            return queryset.filter(
+                evaluation_data__accessibility__categories__contains=[value],
+            )
+        # SpatiaLite does not support __contains on JSONField;
+        # fall back to Python-side filtering.
+        pks = [
+            ev.pk
+            for ev in queryset.iterator()
+            if value
+            in (
+                ev.evaluation_data.get("accessibility", {}).get(
+                    "categories",
+                    [],
                 )
-            ]
-            return queryset.filter(pk__in=pks)
-        return queryset
+            )
+        ]
+        return queryset.filter(pk__in=pks)
 
 
 @admin.register(OrganizationEvaluation)
