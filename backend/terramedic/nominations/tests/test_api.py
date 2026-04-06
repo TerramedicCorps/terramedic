@@ -176,6 +176,28 @@ class TestCreateNomination:
         )
         assert response.status_code == 429
 
+    def test_rate_limit_includes_retry_after_header(self, client: Client) -> None:
+        for i in range(5):
+            client.post(
+                "/api/nominations/",
+                data={
+                    "url": f"https://example{i}.org/",
+                    "categories": ["volunteer"],
+                },
+                content_type="application/json",
+            )
+
+        response = client.post(
+            "/api/nominations/",
+            data={
+                "url": "https://example99.org/",
+                "categories": ["volunteer"],
+            },
+            content_type="application/json",
+        )
+        assert response.status_code == 429
+        assert "Retry-After" in response
+
     def test_valid_categories_accepted(self, client: Client) -> None:
         for cat in ["donate", "volunteer", "resource", "everyday", "career"]:
             response = client.post(

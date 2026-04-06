@@ -4,7 +4,7 @@ import hashlib
 import uuid
 from datetime import timedelta
 
-from django.http import HttpRequest
+from django.http import HttpRequest, JsonResponse
 from django.utils import timezone
 from ninja import Router
 from ninja.errors import HttpError
@@ -72,7 +72,12 @@ def create_nomination(
     ip_hash = _hash_ip(client_ip)
 
     if _is_rate_limited(ip_hash):
-        raise HttpError(429, "Rate limit exceeded. Try again later.")
+        response = JsonResponse(
+            {"detail": "Rate limit exceeded. Try again later."},
+            status=429,
+        )
+        response["Retry-After"] = str(int(RATE_LIMIT_WINDOW.total_seconds()))
+        return response
 
     nomination = Nomination.objects.create(
         url=payload.url,
