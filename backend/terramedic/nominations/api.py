@@ -74,23 +74,8 @@ def create_nomination(
         fake_id = str(uuid.uuid4())
         return 201, NominationOut(confirmation_id=fake_id)
 
-    # Validate URL
-    url_error = payload.validate_url()
-    if url_error:
-        raise HttpError(422, url_error)
-
-    # Validate categories
-    cat_error = payload.validate_categories()
-    if cat_error:
-        raise HttpError(422, cat_error)
-
-    # Validate notes
-    notes_error = payload.validate_notes()
-    if notes_error:
-        raise HttpError(422, notes_error)
-
     nomination = Nomination.objects.create(
-        url=payload.url,
+        url=str(payload.url),
         categories=payload.categories,
         notes=payload.notes,
         ip_hash=ip_hash,
