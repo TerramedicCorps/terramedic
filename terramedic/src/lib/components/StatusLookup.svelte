@@ -10,6 +10,7 @@
   const statusLabels = {
     pending: 'Pending Review',
     evaluating: 'Under Evaluation',
+    evaluated: 'Evaluation Complete',
     approved: 'Approved',
     rejected: 'Not Approved'
   };
@@ -17,6 +18,7 @@
   const statusColors = {
     pending: 'text-sunrise-gold',
     evaluating: 'text-terra-blue',
+    evaluated: 'text-terra-blue',
     approved: 'text-green-400',
     rejected: 'text-red-400'
   };

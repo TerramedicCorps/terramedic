@@ -19,7 +19,7 @@ export interface NominationResponse {
 
 export interface NominationStatus {
   confirmation_id: string;
-  status: 'pending' | 'evaluating' | 'approved' | 'rejected';
+  status: 'pending' | 'evaluating' | 'evaluated' | 'approved' | 'rejected';
   url: string;
   created_at: string;
 }
