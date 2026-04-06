@@ -3,12 +3,17 @@ import '@testing-library/jest-dom/vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { userEvent } from '@testing-library/user-event';
 import NominationForm from './NominationForm.svelte';
+import { ValidationError } from '$lib/api/nominations';
 
 // Mock the nominations API
 const mockSubmit = vi.fn();
-vi.mock('$lib/api/nominations', () => ({
-  submitNomination: (...args: unknown[]) => mockSubmit(...args)
-}));
+vi.mock('$lib/api/nominations', async () => {
+  const actual = await vi.importActual('$lib/api/nominations');
+  return {
+    ...actual,
+    submitNomination: (...args: unknown[]) => mockSubmit(...args)
+  };
+});
 
 // Mock analytics
 vi.mock('$lib/utils/analytics', () => ({
@@ -84,7 +89,7 @@ describe('NominationForm', () => {
     expect(mockSubmit).not.toHaveBeenCalled();
   });
 
-  test('shows error message on failed submission', async () => {
+  test('shows generic error message on server error', async () => {
     mockSubmit.mockRejectedValueOnce(new Error('Server error'));
     const user = userEvent.setup();
 
@@ -97,6 +102,24 @@ describe('NominationForm', () => {
     await waitFor(() => {
       expect(screen.getByText(/something went wrong/i)).toBeInTheDocument();
     });
+  });
+
+  test('shows field-level error on validation error', async () => {
+    mockSubmit.mockRejectedValueOnce(
+      new ValidationError({ url: 'This URL has already been nominated.' })
+    );
+    const user = userEvent.setup();
+
+    render(NominationForm);
+
+    await user.type(screen.getByLabelText(/website url/i), 'https://example.org');
+    await user.click(screen.getByLabelText(/volunteer/i));
+    await user.click(screen.getByRole('button', { name: /submit nomination/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/already been nominated/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument();
   });
 
   test('submits multiple categories', async () => {

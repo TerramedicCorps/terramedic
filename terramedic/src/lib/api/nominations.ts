@@ -7,6 +7,16 @@
  * with real fetch calls once the backend is available.
  */
 
+export class ValidationError extends Error {
+  fields: Record<string, string>;
+  constructor(fields: Record<string, string>) {
+    const firstMessage = Object.values(fields)[0] || 'Validation failed';
+    super(firstMessage);
+    this.name = 'ValidationError';
+    this.fields = fields;
+  }
+}
+
 export interface NominationPayload {
   url: string;
   categories: string[];

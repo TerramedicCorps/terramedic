@@ -1,6 +1,6 @@
 <script>
   import { Button, Input, Label, Textarea } from 'flowbite-svelte';
-  import { submitNomination } from '$lib/api/nominations';
+  import { submitNomination, ValidationError } from '$lib/api/nominations';
   import { trackEvent } from '$lib/utils/analytics';
 
   // Form state
@@ -63,8 +63,12 @@
       const result = await submitNomination({ url, categories, notes, website: honeypot });
       confirmationId = result.confirmation_id;
       trackEvent('nomination_submit', { categories: categories.join(',') });
-    } catch {
-      errorMessage = 'Something went wrong. Please try again.';
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        errorMessage = Object.values(err.fields).join(' ');
+      } else {
+        errorMessage = 'Something went wrong. Please try again.';
+      }
     } finally {
       isSubmitting = false;
     }
