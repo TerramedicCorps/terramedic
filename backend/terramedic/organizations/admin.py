@@ -3,7 +3,7 @@ from typing import Any
 
 from django.contrib import admin, messages
 from django.db import connection
-from django.db.models import Count, QuerySet
+from django.db.models import Count, Q, QuerySet
 from django.db.models.functions import TruncMonth
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
@@ -313,11 +313,11 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
 
         try:
             qs = OrganizationEvaluation.objects.all()
-            extra_context["dashboard_stats"] = {
-                "pending": qs.filter(status=ReviewStatus.PENDING).count(),
-                "approved": qs.filter(status=ReviewStatus.APPROVED).count(),
-                "rejected": qs.filter(status=ReviewStatus.REJECTED).count(),
-            }
+            extra_context["dashboard_stats"] = qs.aggregate(
+                pending=Count("id", filter=Q(status=ReviewStatus.PENDING)),
+                approved=Count("id", filter=Q(status=ReviewStatus.APPROVED)),
+                rejected=Count("id", filter=Q(status=ReviewStatus.REJECTED)),
+            )
 
             growth_qs = (
                 qs.annotate(month=TruncMonth("created_at"))
