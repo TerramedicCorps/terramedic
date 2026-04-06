@@ -23,8 +23,7 @@
     rejected: 'text-red-400'
   };
 
-  async function handleSubmit(event) {
-    event.preventDefault();
+  async function handleSubmit() {
     errorMessage = '';
     result = null;
 
@@ -47,7 +46,7 @@
 </script>
 
 <div class="status-lookup-container mx-auto max-w-2xl">
-  <form on:submit={handleSubmit} class="bg-navy space-y-4 rounded-lg p-6 shadow-sm">
+  <form on:submit|preventDefault={handleSubmit} class="bg-navy space-y-4 rounded-lg p-6 shadow-sm">
     <div>
       <Label for="confirmation-id" class="mb-1 block text-sm text-gray-400">Confirmation ID</Label>
       <Input

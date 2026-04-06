@@ -45,9 +45,7 @@
     }
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
-
+  async function handleSubmit() {
     // Honeypot check — if filled, silently ignore
     if (honeypot) return;
 
@@ -87,8 +85,11 @@
       </p>
     </div>
   {:else}
-    <form on:submit={handleSubmit} class="bg-navy space-y-4 rounded-lg p-6 shadow-sm">
-      <!-- Honeypot field — hidden from real users -->
+    <form
+      on:submit|preventDefault={handleSubmit}
+      class="bg-navy space-y-4 rounded-lg p-6 shadow-sm"
+    >
+      <!-- Honeypot: hidden field for bot detection -->
       <div class="absolute -left-[9999px]" aria-hidden="true">
         <label>
           Do not fill this in: <input
