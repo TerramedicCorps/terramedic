@@ -473,3 +473,209 @@ class TestDetailShowsNewSchemaFields:
         )
         content = response.content.decode()
         assert "Forest certification program." in content
+
+
+@pytest.mark.django_db
+class TestDashboardStats:
+    """The changelist should show counts of pending, approved, rejected."""
+
+    def test_changelist_shows_pending_count(
+        self,
+        admin_client: Client,
+    ) -> None:
+        OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(),
+        )
+        OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(),
+        )
+        response = admin_client.get(
+            "/admin/organizations/organizationevaluation/",
+        )
+        assert response.context["dashboard_stats"]["pending"] == 2
+
+    def test_changelist_shows_approved_count(
+        self,
+        admin_client: Client,
+        admin_user: User,
+    ) -> None:
+        OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(),
+            status=ReviewStatus.APPROVED,
+            reviewer=admin_user,
+        )
+        # Also one pending — should not be counted as approved
+        OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(),
+        )
+        response = admin_client.get(
+            "/admin/organizations/organizationevaluation/",
+        )
+        assert response.context["dashboard_stats"]["approved"] == 1
+
+    def test_changelist_shows_rejected_count(
+        self,
+        admin_client: Client,
+        admin_user: User,
+    ) -> None:
+        OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(),
+            status=ReviewStatus.REJECTED,
+            reviewer=admin_user,
+        )
+        response = admin_client.get(
+            "/admin/organizations/organizationevaluation/",
+        )
+        assert response.context["dashboard_stats"]["rejected"] == 1
+
+    def test_dashboard_stats_all_zero_when_empty(
+        self,
+        admin_client: Client,
+    ) -> None:
+        response = admin_client.get(
+            "/admin/organizations/organizationevaluation/",
+        )
+        stats = response.context["dashboard_stats"]
+        assert stats["pending"] == 0
+        assert stats["approved"] == 0
+        assert stats["rejected"] == 0
+
+
+@pytest.mark.django_db
+class TestGrowthOverTime:
+    """The changelist should include monthly growth data."""
+
+    def test_changelist_includes_growth_data(
+        self,
+        admin_client: Client,
+    ) -> None:
+        OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(),
+        )
+        response = admin_client.get(
+            "/admin/organizations/organizationevaluation/",
+        )
+        growth = response.context["growth_data"]
+        assert isinstance(growth, list)
+        assert len(growth) >= 1
+        assert "month" in growth[0]
+        assert "count" in growth[0]
+
+    def test_growth_data_empty_when_no_evaluations(
+        self,
+        admin_client: Client,
+    ) -> None:
+        response = admin_client.get(
+            "/admin/organizations/organizationevaluation/",
+        )
+        assert response.context["growth_data"] == []
+
+
+@pytest.mark.django_db
+class TestEvidenceScoreFilter:
+    """Filter evaluations by evidence score range."""
+
+    def test_filter_high_score(
+        self,
+        admin_client: Client,
+    ) -> None:
+        OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                evidence_score={"score": 5, "rationale": "Excellent"},
+            ),
+        )
+        OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                evidence_score={"score": 2, "rationale": "Weak"},
+            ),
+        )
+        response = admin_client.get(
+            "/admin/organizations/organizationevaluation/?evidence_score=high",
+        )
+        content = response.content.decode()
+        # Score 5 should be visible, score 2 should not
+        assert "5 / 5" in content
+        assert "2 / 5" not in content
+
+    def test_filter_low_score(
+        self,
+        admin_client: Client,
+    ) -> None:
+        OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                evidence_score={"score": 5, "rationale": "Excellent"},
+            ),
+        )
+        OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                evidence_score={"score": 2, "rationale": "Weak"},
+            ),
+        )
+        response = admin_client.get(
+            "/admin/organizations/organizationevaluation/?evidence_score=low",
+        )
+        content = response.content.decode()
+        assert "2 / 5" in content
+        assert "5 / 5" not in content
+
+
+@pytest.mark.django_db
+class TestCategoryFilter:
+    """Filter evaluations by accessibility category from JSON data."""
+
+    def test_filter_by_donate(
+        self,
+        admin_client: Client,
+    ) -> None:
+        OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                accessibility={"categories": ["donate"]},
+            ),
+        )
+        OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                accessibility={"categories": ["volunteer"]},
+                org_metadata={
+                    "name": "Volunteer Corps",
+                    "website_url": "https://example.com",
+                    "country": "US",
+                    "description": "Volunteering org.",
+                    "image_url": "",
+                },
+            ),
+        )
+        response = admin_client.get(
+            "/admin/organizations/organizationevaluation/?eval_category=donate",
+        )
+        content = response.content.decode()
+        assert "Rainforest Alliance" in content
+        assert "Volunteer Corps" not in content
+
+    def test_filter_by_volunteer(
+        self,
+        admin_client: Client,
+    ) -> None:
+        OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                accessibility={"categories": ["donate"]},
+            ),
+        )
+        OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                accessibility={"categories": ["volunteer"]},
+                org_metadata={
+                    "name": "Volunteer Corps",
+                    "website_url": "https://example.com",
+                    "country": "US",
+                    "description": "Volunteering org.",
+                    "image_url": "",
+                },
+            ),
+        )
+        response = admin_client.get(
+            "/admin/organizations/organizationevaluation/"
+            "?eval_category=volunteer",
+        )
+        content = response.content.decode()
+        assert "Volunteer Corps" in content
+        assert "Rainforest Alliance" not in content
