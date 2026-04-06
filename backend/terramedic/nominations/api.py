@@ -30,7 +30,12 @@ def _hash_ip(ip: str) -> str:
 
 
 def _get_client_ip(request: HttpRequest) -> str:
-    """Extract client IP from request, respecting X-Forwarded-For."""
+    """Extract client IP from request, respecting X-Forwarded-For.
+
+    Assumes the app is behind a trusted reverse proxy (AWS API Gateway)
+    that sets X-Forwarded-For. If accessed directly, this header can be
+    spoofed to bypass rate limiting.
+    """
     xff = request.META.get("HTTP_X_FORWARDED_FOR")
     if xff:
         return xff.split(",")[0].strip()
