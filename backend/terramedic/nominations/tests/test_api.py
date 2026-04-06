@@ -281,7 +281,9 @@ class TestCreateNomination:
         assert "Retry-After" in response
 
     def test_valid_categories_accepted(self, client: Client) -> None:
-        for cat in ["donate", "volunteer", "resource", "everyday", "career"]:
+        for i, cat in enumerate(
+            ["donate", "volunteer", "resource", "everyday", "career"],
+        ):
             response = client.post(
                 "/api/nominations/",
                 data={
@@ -289,6 +291,7 @@ class TestCreateNomination:
                     "categories": [cat],
                 },
                 content_type="application/json",
+                HTTP_X_FORWARDED_FOR=f"203.0.113.{i}",
             )
             assert response.status_code == 201, f"Category '{cat}' should be valid"
 
