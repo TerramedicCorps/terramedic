@@ -102,7 +102,6 @@ The backend runs at `http://localhost:8000`.
 - `yarn test:e2e` — Run e2e tests
 - `yarn lint` — Run ESLint and Prettier checks
 - `yarn format` — Format code with Prettier
-- `yarn storybook` — Launch Storybook
 
 **Backend** (run from `backend/`):
 
