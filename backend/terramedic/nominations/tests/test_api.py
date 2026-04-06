@@ -207,6 +207,34 @@ class TestCreateNomination:
         # But nothing should be saved
         assert Nomination.objects.count() == 0
 
+    def test_honeypot_rate_limited_after_max_real_submissions(
+        self,
+        client: Client,
+    ) -> None:
+        """Honeypot requests should be rate limited like real ones."""
+        # Use up the rate limit with real submissions
+        for i in range(5):
+            client.post(
+                "/api/nominations/",
+                data={
+                    "url": f"https://example{i}.org/",
+                    "categories": ["volunteer"],
+                },
+                content_type="application/json",
+            )
+
+        # Honeypot request from the same IP should be rate limited
+        response = client.post(
+            "/api/nominations/",
+            data={
+                "url": "https://example.org/",
+                "categories": ["volunteer"],
+                "website": "bot",
+            },
+            content_type="application/json",
+        )
+        assert response.status_code == 429
+
     def test_rate_limit_5_per_hour(self, client: Client) -> None:
         for i in range(5):
             response = client.post(

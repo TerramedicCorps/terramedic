@@ -52,6 +52,18 @@ def create_nomination(
     request: HttpRequest,
     payload: NominationIn,
 ) -> tuple[int, NominationOut]:
+    # Rate limiting (before honeypot so bots can't bypass it)
+    client_ip = _get_client_ip(request)
+    ip_hash = _hash_ip(client_ip)
+
+    if _is_rate_limited(ip_hash):
+        response = JsonResponse(
+            {"detail": "Rate limit exceeded. Try again later."},
+            status=429,
+        )
+        response["Retry-After"] = str(int(RATE_LIMIT_WINDOW.total_seconds()))
+        return response
+
     # Honeypot check: if the hidden field is filled, silently discard
     if payload.website:
         fake_id = str(uuid.uuid4())
@@ -71,18 +83,6 @@ def create_nomination(
     notes_error = payload.validate_notes()
     if notes_error:
         raise HttpError(422, notes_error)
-
-    # Rate limiting
-    client_ip = _get_client_ip(request)
-    ip_hash = _hash_ip(client_ip)
-
-    if _is_rate_limited(ip_hash):
-        response = JsonResponse(
-            {"detail": "Rate limit exceeded. Try again later."},
-            status=429,
-        )
-        response["Retry-After"] = str(int(RATE_LIMIT_WINDOW.total_seconds()))
-        return response
 
     nomination = Nomination.objects.create(
         url=payload.url,
