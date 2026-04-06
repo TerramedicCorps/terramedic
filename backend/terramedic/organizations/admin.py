@@ -253,7 +253,7 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         "reviewed_at",
     ]
     list_filter = ["status", EvidenceScoreFilter, CategoryFilter]
-    search_fields: list[str] = []
+    search_fields = []  # type: ignore[var-annotated]
     readonly_fields = [
         "evaluation_data",
         "status",
