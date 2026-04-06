@@ -67,6 +67,11 @@ def create_nomination(
     if cat_error:
         raise HttpError(422, cat_error)
 
+    # Validate notes
+    notes_error = payload.validate_notes()
+    if notes_error:
+        raise HttpError(422, notes_error)
+
     # Rate limiting
     client_ip = _get_client_ip(request)
     ip_hash = _hash_ip(client_ip)

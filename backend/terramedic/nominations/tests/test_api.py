@@ -124,6 +124,60 @@ class TestCreateNomination:
         )
         assert response.status_code == 422
 
+    def test_long_url_rejected(self, client: Client) -> None:
+        long_url = "https://example.org/" + "a" * 2040
+        response = client.post(
+            "/api/nominations/",
+            data={
+                "url": long_url,
+                "categories": ["volunteer"],
+            },
+            content_type="application/json",
+        )
+        assert response.status_code == 422
+
+    def test_private_ip_url_rejected(self, client: Client) -> None:
+        for url in [
+            "http://127.0.0.1/",
+            "http://localhost/",
+            "http://10.0.0.1/",
+            "http://192.168.1.1/",
+            "http://[::1]/",
+        ]:
+            response = client.post(
+                "/api/nominations/",
+                data={
+                    "url": url,
+                    "categories": ["volunteer"],
+                },
+                content_type="application/json",
+            )
+            assert response.status_code == 422, f"{url} should be rejected"
+
+    def test_long_notes_rejected(self, client: Client) -> None:
+        response = client.post(
+            "/api/nominations/",
+            data={
+                "url": "https://example.org/",
+                "categories": ["volunteer"],
+                "notes": "x" * 2001,
+            },
+            content_type="application/json",
+        )
+        assert response.status_code == 422
+
+    def test_notes_at_max_length_accepted(self, client: Client) -> None:
+        response = client.post(
+            "/api/nominations/",
+            data={
+                "url": "https://example.org/",
+                "categories": ["volunteer"],
+                "notes": "x" * 2000,
+            },
+            content_type="application/json",
+        )
+        assert response.status_code == 201
+
     def test_empty_categories_rejected(self, client: Client) -> None:
         response = client.post(
             "/api/nominations/",

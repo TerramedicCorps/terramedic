@@ -13,7 +13,7 @@ class NominationStatus(models.TextChoices):
 
 
 class Nomination(models.Model):
-    url = models.URLField()
+    url = models.URLField(max_length=2048)
     categories: Any = models.JSONField(
         help_text="List of category strings (e.g. volunteer, donate).",
     )
