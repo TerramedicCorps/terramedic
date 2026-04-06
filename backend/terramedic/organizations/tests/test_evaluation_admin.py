@@ -1,4 +1,5 @@
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from django.contrib.admin.sites import AdminSite
@@ -539,6 +540,22 @@ class TestDashboardStats:
         assert stats["pending"] == 0
         assert stats["approved"] == 0
         assert stats["rejected"] == 0
+
+    def test_dashboard_handles_database_error(
+        self,
+        admin_client: Client,
+    ) -> None:
+        with patch(
+            "terramedic.organizations.admin.OrganizationEvaluation.objects",
+        ) as mock_objects:
+            mock_objects.all.side_effect = Exception("DB connection lost")
+            response = admin_client.get(
+                "/admin/organizations/organizationevaluation/",
+            )
+        assert response.status_code == 200
+        assert response.context["dashboard_error"] == (
+            "Unable to load dashboard data"
+        )
 
 
 @pytest.mark.django_db

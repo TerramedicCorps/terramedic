@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from django.contrib import admin, messages
@@ -17,6 +18,8 @@ from terramedic.organizations.models import (
     ReviewStatus,
     Tag,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @admin.register(Tag)
@@ -308,27 +311,35 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     ) -> HttpResponse:
         extra_context = extra_context or {}
 
-        qs = OrganizationEvaluation.objects.all()
-        extra_context["dashboard_stats"] = {
-            "pending": qs.filter(status=ReviewStatus.PENDING).count(),
-            "approved": qs.filter(status=ReviewStatus.APPROVED).count(),
-            "rejected": qs.filter(status=ReviewStatus.REJECTED).count(),
-        }
-
-        growth_qs = (
-            qs.annotate(month=TruncMonth("created_at"))
-            .values("month")
-            .annotate(count=Count("id"))
-            .order_by("month")
-        )
-        extra_context["growth_data"] = [
-            {
-                "month": row["month"].strftime("%Y-%m"),
-                "count": row["count"],
+        try:
+            qs = OrganizationEvaluation.objects.all()
+            extra_context["dashboard_stats"] = {
+                "pending": qs.filter(status=ReviewStatus.PENDING).count(),
+                "approved": qs.filter(status=ReviewStatus.APPROVED).count(),
+                "rejected": qs.filter(status=ReviewStatus.REJECTED).count(),
             }
-            for row in growth_qs
-            if row["month"] is not None
-        ]
+
+            growth_qs = (
+                qs.annotate(month=TruncMonth("created_at"))
+                .values("month")
+                .annotate(count=Count("id"))
+                .order_by("month")
+            )
+            extra_context["growth_data"] = [
+                {
+                    "month": row["month"].strftime("%Y-%m"),
+                    "count": row["count"],
+                }
+                for row in growth_qs
+                if row["month"] is not None
+            ]
+        except Exception:
+            logger.exception("Unable to load dashboard data")
+            extra_context["dashboard_stats"] = None
+            extra_context["growth_data"] = None
+            extra_context["dashboard_error"] = (
+                "Unable to load dashboard data"
+            )
 
         return super().changelist_view(request, extra_context)
 
