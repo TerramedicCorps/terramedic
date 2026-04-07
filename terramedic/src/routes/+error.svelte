@@ -30,7 +30,7 @@
     Take me Home!
   </a>
   <img
-    src="/images/art002e000192.jpg"
+    src="/images/art002e000192.webp"
     alt="Earth photographed from NASA's Artemis II Orion spacecraft after the translunar injection burn, with auroras, zodiacal light, and Venus visible"
     class="w-full max-w-2xl md:max-w-3xl lg:max-w-4xl"
   />
