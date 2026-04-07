@@ -62,5 +62,4 @@ updates:
       prefix: "chore(ci)"
     cooldown:
       default-days: 7
-      semver-major-days: 14
       include: ["*"]
