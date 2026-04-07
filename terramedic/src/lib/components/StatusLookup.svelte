@@ -23,6 +23,15 @@
     rejected: 'text-red-400'
   };
 
+  function safeUrl(url: string): string | null {
+    try {
+      const parsed = new URL(url);
+      return /^https?:$/.test(parsed.protocol) ? parsed.href : null;
+    } catch {
+      return null;
+    }
+  }
+
   async function handleSubmit() {
     errorMessage = '';
     result = null;
@@ -95,12 +104,16 @@
         <div>
           <dt class="text-sm text-gray-400">Nominated URL</dt>
           <dd>
-            <a
-              href={result.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-terra-blue hover:underline">{result.url}</a
-            >
+            {#if safeUrl(result.url)}
+              <a
+                href={safeUrl(result.url)}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-terra-blue hover:underline">{result.url}</a
+              >
+            {:else}
+              <span class="text-gray-400">{result.url}</span>
+            {/if}
           </dd>
         </div>
         <div>
