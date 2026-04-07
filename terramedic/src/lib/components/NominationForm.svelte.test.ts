@@ -206,6 +206,22 @@ describe('NominationForm', () => {
     });
   });
 
+  test('validates URL on submit even without blur', async () => {
+    const user = userEvent.setup();
+    render(NominationForm);
+
+    // Type invalid URL directly and submit without blurring
+    const urlInput = screen.getByLabelText(/website url/i);
+    await user.type(urlInput, 'not-a-url');
+    await user.click(screen.getByLabelText(/volunteer/i));
+    await user.click(screen.getByRole('button', { name: /submit nomination/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/must start with http/i)).toBeInTheDocument();
+    });
+    expect(mockSubmit).not.toHaveBeenCalled();
+  });
+
   test('submits notes when provided', async () => {
     mockSubmit.mockResolvedValueOnce({ confirmation_id: 'NOM-NOTES' });
     const user = userEvent.setup();

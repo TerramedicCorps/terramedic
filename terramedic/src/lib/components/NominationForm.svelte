@@ -37,7 +37,7 @@
     }
   }
 
-  function handleCheckbox(value) {
+  function handleCheckbox(value: string) {
     if (categories.includes(value)) {
       categories = categories.filter((c) => c !== value);
     } else {
@@ -46,8 +46,10 @@
   }
 
   async function handleSubmit() {
-    // Honeypot check — if filled, silently ignore
     if (honeypot) return;
+
+    validateUrl();
+    if (urlError) return;
 
     if (categories.length === 0) {
       errorMessage = 'Please select at least one category.';
@@ -89,7 +91,6 @@
       on:submit|preventDefault={handleSubmit}
       class="bg-navy space-y-4 rounded-lg p-6 shadow-sm"
     >
-      <!-- Honeypot: hidden field for bot detection -->
       <div class="absolute -left-[9999px]" aria-hidden="true">
         <label>
           Do not fill this in: <input
