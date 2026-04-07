@@ -336,8 +336,12 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
             ]
         except Exception:
             logger.exception("Unable to load dashboard data")
-            extra_context["dashboard_stats"] = None
-            extra_context["growth_data"] = None
+            extra_context["dashboard_stats"] = {
+                "pending": 0,
+                "approved": 0,
+                "rejected": 0,
+            }
+            extra_context["growth_data"] = []
             extra_context["dashboard_error"] = (
                 "Unable to load dashboard data"
             )
