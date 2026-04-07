@@ -43,8 +43,13 @@ class Nomination(models.Model):
 
     def clean(self) -> None:
         super().clean()
+        cats = self.categories
+        if not isinstance(cats, list) or not all(isinstance(c, str) for c in cats):
+            raise ValidationError(
+                {"categories": "Must be a list of strings."},
+            )
         valid = set(Category.values)
-        invalid = [c for c in self.categories if c not in valid]
+        invalid = [c for c in cats if c not in valid]
         if invalid:
             raise ValidationError(
                 {"categories": f"Invalid categories: {', '.join(invalid)}"},
