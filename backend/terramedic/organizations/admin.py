@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, ClassVar
 
 from django.contrib import admin, messages
 from django.db.models import QuerySet
@@ -173,7 +173,7 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         "reviewed_at",
     ]
     list_filter = ["status"]
-    search_fields: list[str] = []
+    search_fields: ClassVar[list[str]] = []
     readonly_fields = [
         "evaluation_data",
         "status",
