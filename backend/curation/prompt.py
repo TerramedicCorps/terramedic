@@ -253,7 +253,7 @@ of objects, each with `source_url` (URI), `date_accessed` (YYYY-MM-DD), and \
 `excerpt` (verbatim quote from the page)).
 - `accessibility`: object with optional fields `volunteer_url` (URI), `donate_url` \
 (URI), `toolkit_url` (URI), `categories` (array — ONLY these values are valid: \
-donate, volunteer, resource, everyday, career. Do not use any other values).
+donate, volunteer, resource, everyday, career, other. Do not use any other values).
 - `evidence_score`: object with `score` (integer 0-5) and `rationale` (string).
 - `curator_notes`: object with `recommendation` (one of: include, exclude, \
 needs_review), optional `flags` (array of strings for issues to check), and \
