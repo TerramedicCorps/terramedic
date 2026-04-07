@@ -41,9 +41,9 @@ describe('/methodology', () => {
     expect(matches.length).toBeGreaterThan(0);
   });
 
-  test('should include a way to suggest an organization', () => {
+  test('should include a way to nominate an organization', () => {
     render(Page);
-    const link = screen.getByRole('link', { name: /suggest/i });
+    const link = screen.getByRole('link', { name: /nominate/i });
     expect(link).toBeInTheDocument();
   });
 

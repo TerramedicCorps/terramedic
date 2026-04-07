@@ -290,8 +290,8 @@
           from anyone. Every suggestion goes through the same evaluation process described above.
         </p>
         <p>
-          <a href="/contact-us" class="text-terra-green hover:underline">
-            Suggest an organization through our contact form
+          <a href="/nominate" class="text-terra-green hover:underline">
+            Nominate an organization
           </a>
         </p>
       </section>
