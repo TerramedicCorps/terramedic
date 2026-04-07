@@ -15,8 +15,8 @@ def _make_evaluation_data(**overrides: Any) -> dict[str, Any]:
     """Build a valid evaluation payload matching curation/schema.json."""
     data: dict[str, Any] = {
         "org_metadata": {
-            "name": "Rainforest Alliance",
-            "website_url": "https://www.rainforest-alliance.org/",
+            "name": "Test Organization",
+            "website_url": "https://example.com",
             "description": "Working to conserve biodiversity.",
         },
         "sdg_alignment": [
@@ -52,7 +52,7 @@ class TestImportEvaluationsCommand:
         assert OrganizationEvaluation.objects.count() == 1
         ev = OrganizationEvaluation.objects.first()
         assert ev is not None
-        assert ev.org_name == "Rainforest Alliance"
+        assert ev.org_name == "Test Organization"
         assert ev.status == ReviewStatus.PENDING
 
     def test_imports_directory(self, tmp_path: Path) -> None:

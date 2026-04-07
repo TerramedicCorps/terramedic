@@ -19,8 +19,8 @@ def _make_evaluation_data(**overrides: Any) -> dict[str, Any]:
     """Build a valid evaluation payload matching curation/schema.json."""
     data: dict[str, Any] = {
         "org_metadata": {
-            "name": "Rainforest Alliance",
-            "website_url": "https://www.rainforest-alliance.org/",
+            "name": "Test Organization",
+            "website_url": "https://example.com",
             "country": "US",
             "description": "Working to conserve biodiversity.",
             "image_url": "https://example.com/logo.png",
@@ -48,7 +48,7 @@ def _make_evaluation_data(**overrides: Any) -> dict[str, Any]:
             },
         ],
         "accessibility": {
-            "donate_url": "https://www.rainforest-alliance.org/donate/",
+            "donate_url": "https://example.com/donate/",
             "categories": ["donate", "volunteer"],
         },
         "evidence_score": {
@@ -81,13 +81,13 @@ class TestOrganizationEvaluationModel:
         ev = OrganizationEvaluation.objects.create(
             evaluation_data=_make_evaluation_data(),
         )
-        assert str(ev) == "Rainforest Alliance (pending)"
+        assert str(ev) == "Test Organization (pending)"
 
     def test_org_name_property(self) -> None:
         ev = OrganizationEvaluation.objects.create(
             evaluation_data=_make_evaluation_data(),
         )
-        assert ev.org_name == "Rainforest Alliance"
+        assert ev.org_name == "Test Organization"
 
     def test_evidence_score_value_property(self) -> None:
         ev = OrganizationEvaluation.objects.create(
@@ -165,7 +165,7 @@ class TestOrganizationEvaluationAdminList:
         response = admin_client.get(
             "/admin/organizations/organizationevaluation/",
         )
-        assert b"Rainforest Alliance" in response.content
+        assert b"Test Organization" in response.content
 
     def test_changelist_shows_evidence_score(
         self,
@@ -246,7 +246,7 @@ class TestApproveAction:
         pending_evaluation.refresh_from_db()
         assert pending_evaluation.status == ReviewStatus.APPROVED
         assert pending_evaluation.organization is not None
-        assert pending_evaluation.organization.name == "Rainforest Alliance"
+        assert pending_evaluation.organization.name == "Test Organization"
         assert pending_evaluation.organization.is_active is True
         assert pending_evaluation.reviewed_at is not None
 
@@ -712,7 +712,7 @@ class TestCategoryFilter:
             "/admin/organizations/organizationevaluation/?eval_category=donate",
         )
         content = response.content.decode()
-        assert "Rainforest Alliance" in content
+        assert "Test Organization" in content
         assert "Volunteer Corps" not in content
 
     def test_filter_by_volunteer(
@@ -725,4 +725,4 @@ class TestCategoryFilter:
         )
         content = response.content.decode()
         assert "Volunteer Corps" in content
-        assert "Rainforest Alliance" not in content
+        assert "Test Organization" not in content
