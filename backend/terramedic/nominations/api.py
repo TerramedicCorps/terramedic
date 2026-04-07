@@ -36,10 +36,11 @@ def _get_client_ip(request: HttpRequest) -> str:
     that sets X-Forwarded-For. If accessed directly, this header can be
     spoofed to bypass rate limiting.
     """
-    xff = request.META.get("HTTP_X_FORWARDED_FOR")
+    xff: str | None = request.META.get("HTTP_X_FORWARDED_FOR")
     if xff:
         return xff.split(",")[0].strip()
-    return request.META.get("REMOTE_ADDR", "")
+    addr: str = request.META.get("REMOTE_ADDR", "")
+    return addr
 
 
 def _is_rate_limited(ip_hash: str) -> bool:
@@ -56,7 +57,7 @@ def _is_rate_limited(ip_hash: str) -> bool:
 def create_nomination(
     request: HttpRequest,
     payload: NominationIn,
-) -> tuple[int, NominationOut]:
+) -> tuple[int, NominationOut] | JsonResponse:
     # Rate limiting (before honeypot so bots can't bypass it)
     client_ip = _get_client_ip(request)
     ip_hash = _hash_ip(client_ip)
