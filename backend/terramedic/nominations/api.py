@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import hashlib
+import hmac
 import uuid
 from datetime import timedelta
 
@@ -30,7 +30,7 @@ def _hash_ip(ip: str) -> str:
     """
     from django.conf import settings
 
-    return hashlib.sha256(f"{settings.SECRET_KEY}{ip}".encode()).hexdigest()
+    return hmac.new(settings.SECRET_KEY.encode(), ip.encode(), "sha256").hexdigest()
 
 
 def _get_client_ip(request: HttpRequest) -> str:

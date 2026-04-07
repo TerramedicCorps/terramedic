@@ -61,9 +61,11 @@ class TestCreateNomination:
         assert "." not in nom.ip_hash
         assert ":" not in nom.ip_hash
 
-    def test_ip_hash_is_salted(self, client: Client) -> None:
-        """IP hash must use a salt so raw IPs can't be reversed via rainbow table."""
-        import hashlib
+    def test_ip_hash_uses_hmac(self, client: Client) -> None:
+        """IP hash must use HMAC-SHA256 keyed with SECRET_KEY."""
+        import hmac
+
+        from django.conf import settings
 
         response = client.post(
             "/api/nominations/",
@@ -76,9 +78,12 @@ class TestCreateNomination:
         assert response.status_code == 201
         data = response.json()
         nom = Nomination.objects.get(confirmation_id=data["confirmation_id"])
-        # An unsalted hash of 127.0.0.1 (Django test client default)
-        unsalted = hashlib.sha256(b"127.0.0.1").hexdigest()
-        assert nom.ip_hash != unsalted, "IP hash must be salted, not a bare SHA-256"
+        expected = hmac.new(
+            settings.SECRET_KEY.encode(),
+            b"127.0.0.1",
+            "sha256",
+        ).hexdigest()
+        assert nom.ip_hash == expected
 
     def test_notes_optional(self, client: Client) -> None:
         response = client.post(
