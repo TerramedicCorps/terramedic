@@ -28,7 +28,7 @@ def _serialize_org(
         "action_text": org.action_text,
         "website_url": org.website_url,
         "image_url": org.image_url,
-        "category": org.category,
+        "categories": list(org.categories.values_list("slug", flat=True)),
         "tags": list(org.tags.values_list("name", flat=True)),
         "sort_order": org.sort_order,
     }
@@ -41,10 +41,13 @@ def list_organizations(
 ) -> list[dict[str, Any]]:
     qs = Organization.objects.filter(
         is_active=True,
-    ).prefetch_related("tags")
+    ).prefetch_related("tags", "categories")
 
     if category:
-        qs = qs.filter(category=category)
+        # Filter across the M2M and deduplicate. An org that belongs to the
+        # requested category only appears once in the result, even though
+        # the join on the M2M table could otherwise produce duplicates.
+        qs = qs.filter(categories__slug=category).distinct()
 
     return [_serialize_org(org) for org in qs]
 
@@ -65,7 +68,7 @@ def nearby_organizations(
             location__distance_lte=(point, D(km=radius)),
         )
         .annotate(distance=Distance("location", point))
-        .prefetch_related("tags")
+        .prefetch_related("tags", "categories")
         .order_by("distance")
     )
 
@@ -80,7 +83,7 @@ def get_organization(
     try:
         org = (
             Organization.objects.filter(is_active=True)
-            .prefetch_related("tags")
+            .prefetch_related("tags", "categories")
             .get(pk=org_id)
         )
     except Organization.DoesNotExist as exc:

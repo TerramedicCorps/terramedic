@@ -30,33 +30,50 @@ class TagAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
 
 @admin.register(Organization)
 class OrganizationAdmin(TranslatableAdmin):
-    list_display = ["name", "category", "sort_order", "is_active"]
-    list_filter = ["category", "is_active"]
+    list_display = ["name", "categories_display", "sort_order", "is_active"]
+    list_filter = ["categories", "is_active"]
     search_fields = ["name"]
     list_editable = ["sort_order", "is_active"]
+
+    def get_queryset(
+        self, request: HttpRequest,
+    ) -> QuerySet[Organization]:
+        return (
+            super()
+            .get_queryset(request)
+            .prefetch_related("categories")
+        )
+
+    @admin.display(description="Categories")
+    def categories_display(self, obj: Organization) -> str:
+        slugs = list(obj.categories.values_list("slug", flat=True))
+        return ", ".join(slugs) if slugs else "—"
 
 
 def _create_org_from_evaluation(
     evaluation: OrganizationEvaluation,
 ) -> Organization:
-    """Create an Organization from evaluation data."""
+    """Create an Organization from evaluation data.
+
+    Assigns every valid category from the evaluation's
+    ``accessibility.categories`` array. If none are valid
+    (for example, all entries are ``"other"``), the
+    organization is filed under ``resource`` as a fallback
+    so it still shows up somewhere.
+    """
     data = evaluation.evaluation_data
     meta = data.get("org_metadata", {})
     accessibility = data.get("accessibility", {})
 
-    categories = accessibility.get("categories", [])
-    valid_values = set(Category.values)
-    category = Category.RESOURCE
-    for cat in categories:
-        if cat in valid_values:
-            category = cat
-            break
+    requested = accessibility.get("categories", [])
+    valid_categories = list(Category.objects.filter(slug__in=requested))
+    if not valid_categories:
+        valid_categories = list(Category.objects.filter(slug="resource"))
 
     org = Organization(
         name=meta.get("name", ""),
         website_url=meta.get("website_url", ""),
         image_url=meta.get("image_url", ""),
-        category=category,
         is_active=True,
     )
     org.set_current_language("en")
@@ -64,6 +81,7 @@ def _create_org_from_evaluation(
     action_text = f"Support {meta.get('name', 'this organization')}"
     org.action_text = action_text[:100]
     org.save()
+    org.categories.set(valid_categories)
     return org
 
 
@@ -215,7 +233,7 @@ class CategoryFilter(admin.SimpleListFilter):
         _request: HttpRequest,
         _model_admin: Any,
     ) -> list[tuple[str, str]]:
-        return [(c.value, c.label) for c in Category]
+        return list(Category.objects.values_list("slug", "label"))
 
     def queryset(
         self,
