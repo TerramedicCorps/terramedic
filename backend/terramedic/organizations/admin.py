@@ -38,11 +38,10 @@ class OrganizationAdmin(TranslatableAdmin):
     def get_queryset(
         self, request: HttpRequest,
     ) -> QuerySet[Organization]:
-        return (
-            super()
-            .get_queryset(request)
-            .prefetch_related("categories")
-        )
+        # TranslatableAdmin.get_queryset is untyped, so give mypy the
+        # concrete type before chaining prefetch_related.
+        qs: QuerySet[Organization] = super().get_queryset(request)
+        return qs.prefetch_related("categories")
 
     @admin.display(description="Categories")
     def categories_display(self, obj: Organization) -> str:

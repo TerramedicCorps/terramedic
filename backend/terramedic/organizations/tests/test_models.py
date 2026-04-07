@@ -214,4 +214,7 @@ class TestOrganizationCategoriesM2M:
         donate = Category.objects.get(slug="donate")
         org.categories.add(donate)
 
-        assert org in donate.organizations.all()
+        # django-stubs does not auto-generate reverse M2M accessors,
+        # so it cannot see the `organizations` relation set up by
+        # `related_name="organizations"` on Organization.categories.
+        assert org in donate.organizations.all()  # type: ignore[attr-defined]
