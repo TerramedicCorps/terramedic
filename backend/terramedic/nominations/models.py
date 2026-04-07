@@ -1,7 +1,10 @@
 import uuid
 from typing import Any
 
+from django.core.exceptions import ValidationError
 from django.db import models
+
+from terramedic.organizations.models import Category
 
 
 class NominationStatus(models.TextChoices):
@@ -37,6 +40,15 @@ class Nomination(models.Model):
 
     class Meta:
         ordering = ["-submitted_at"]
+
+    def clean(self) -> None:
+        super().clean()
+        valid = set(Category.values)
+        invalid = [c for c in self.categories if c not in valid]
+        if invalid:
+            raise ValidationError(
+                {"categories": f"Invalid categories: {', '.join(invalid)}"},
+            )
 
     def __str__(self) -> str:
         return f"{self.url} ({self.status})"

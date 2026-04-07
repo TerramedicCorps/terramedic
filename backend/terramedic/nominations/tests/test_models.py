@@ -10,11 +10,8 @@ from terramedic.nominations.models import Nomination, NominationStatus
 @pytest.mark.django_db
 class TestNominationStatus:
     def test_status_choices(self) -> None:
-        assert NominationStatus.PENDING == "pending"
-        assert NominationStatus.EVALUATING == "evaluating"
-        assert NominationStatus.EVALUATED == "evaluated"
-        assert NominationStatus.APPROVED == "approved"
-        assert NominationStatus.REJECTED == "rejected"
+        expected = {"pending", "evaluating", "evaluated", "approved", "rejected"}
+        assert set(NominationStatus.values) == expected
 
 
 @pytest.mark.django_db
@@ -91,6 +88,23 @@ class TestNomination:
         noms = list(Nomination.objects.all())
         assert noms[0] == n2
         assert noms[1] == n1
+
+    def test_invalid_categories_fails_full_clean(self) -> None:
+        nom = Nomination.objects.create(
+            url="https://example.org/",
+            categories=["invalid_category"],
+            ip_hash="hash1",
+        )
+        with pytest.raises(ValidationError):
+            nom.full_clean()
+
+    def test_valid_categories_passes_full_clean(self) -> None:
+        nom = Nomination.objects.create(
+            url="https://example.org/",
+            categories=["volunteer", "donate"],
+            ip_hash="hash1",
+        )
+        nom.full_clean()  # Should not raise
 
     def test_categories_is_json_list(self) -> None:
         nom = Nomination.objects.create(
