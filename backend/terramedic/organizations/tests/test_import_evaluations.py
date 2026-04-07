@@ -35,6 +35,7 @@ def _make_evaluation_data(**overrides: Any) -> dict[str, Any]:
         },
         "evaluated_at": "2026-03-15T10:30:00Z",
         "evaluated_by": "claude-opus-4-6",
+        "prompt_version": "2026.04.1",
     }
     data.update(overrides)
     return data
