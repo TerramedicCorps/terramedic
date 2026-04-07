@@ -5,12 +5,24 @@ from django.contrib.gis.db import models
 from parler.models import TranslatableModel, TranslatedFields
 
 
-class Category(models.TextChoices):
-    DONATE = "donate"
-    VOLUNTEER = "volunteer"
-    RESOURCE = "resource"
-    EVERYDAY = "everyday"
-    CAREER = "career"
+class Category(models.Model):
+    """A Terramedic engagement pathway an organization can fit into.
+
+    The five canonical slugs (donate, volunteer, resource, everyday, career)
+    are seeded by migration 0006; new categories should be added via
+    migrations rather than at runtime so the curation schema and frontend
+    routes stay in sync.
+    """
+
+    slug = models.CharField(max_length=20, primary_key=True)
+    label = models.CharField(max_length=100)
+
+    class Meta:
+        ordering = ["slug"]
+        verbose_name_plural = "categories"
+
+    def __str__(self) -> str:
+        return self.label
 
 
 class ReviewStatus(models.TextChoices):
@@ -33,7 +45,11 @@ class Organization(TranslatableModel):
     name = models.CharField(max_length=200)
     website_url = models.URLField()
     image_url = models.URLField(blank=True, default="")
-    category = models.CharField(max_length=20, choices=Category.choices)
+    categories = models.ManyToManyField(
+        Category,
+        related_name="organizations",
+        blank=True,
+    )
     tags = models.ManyToManyField(Tag, blank=True, related_name="organizations")
     sort_order = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
