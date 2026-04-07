@@ -546,9 +546,14 @@ class TestDashboardStats:
         self,
         admin_client: Client,
     ) -> None:
-        with patch(
-            "terramedic.organizations.admin.OrganizationEvaluation.objects",
-        ) as mock_objects:
+        with (
+            patch(
+                "terramedic.organizations.admin.OrganizationEvaluation.objects",
+            ) as mock_objects,
+            patch(
+                "terramedic.organizations.admin.logger",
+            ) as mock_logger,
+        ):
             mock_objects.all.side_effect = Exception("DB connection lost")
             response = admin_client.get(
                 "/admin/organizations/organizationevaluation/",
@@ -557,6 +562,7 @@ class TestDashboardStats:
         assert response.context["dashboard_error"] == (
             "Unable to load dashboard data"
         )
+        mock_logger.exception.assert_called_once()
 
 
 @pytest.mark.django_db
@@ -678,10 +684,8 @@ class TestAnonymousAccess:
 class TestCategoryFilter:
     """Filter evaluations by accessibility category from JSON data."""
 
-    def test_filter_by_donate(
-        self,
-        admin_client: Client,
-    ) -> None:
+    @pytest.fixture(autouse=True)
+    def _create_category_evaluations(self) -> None:
         OrganizationEvaluation.objects.create(
             evaluation_data=_make_evaluation_data(
                 accessibility={"categories": ["donate"]},
@@ -699,6 +703,11 @@ class TestCategoryFilter:
                 },
             ),
         )
+
+    def test_filter_by_donate(
+        self,
+        admin_client: Client,
+    ) -> None:
         response = admin_client.get(
             "/admin/organizations/organizationevaluation/?eval_category=donate",
         )
@@ -710,23 +719,6 @@ class TestCategoryFilter:
         self,
         admin_client: Client,
     ) -> None:
-        OrganizationEvaluation.objects.create(
-            evaluation_data=_make_evaluation_data(
-                accessibility={"categories": ["donate"]},
-            ),
-        )
-        OrganizationEvaluation.objects.create(
-            evaluation_data=_make_evaluation_data(
-                accessibility={"categories": ["volunteer"]},
-                org_metadata={
-                    "name": "Volunteer Corps",
-                    "website_url": "https://example.com",
-                    "country": "US",
-                    "description": "Volunteering org.",
-                    "image_url": "",
-                },
-            ),
-        )
         response = admin_client.get(
             "/admin/organizations/organizationevaluation/"
             "?eval_category=volunteer",

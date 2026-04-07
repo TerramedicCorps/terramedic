@@ -254,7 +254,9 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         "reviewed_at",
     ]
     list_filter = ["status", EvidenceScoreFilter, CategoryFilter]
-    # Enables the search box; actual logic is in get_search_results.
+    # search_fields must be non-empty for Django to render the search
+    # box.  The default icontains query on "status" is harmless but
+    # unused — actual search logic lives in get_search_results below.
     search_fields = ["status"]
     readonly_fields = [
         "evaluation_data",
@@ -314,6 +316,8 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         extra_context = extra_context or {}
 
         try:
+            # Intentionally unfiltered: dashboard shows global stats
+            # regardless of any active list filters.
             qs = OrganizationEvaluation.objects.all()
             extra_context["dashboard_stats"] = qs.aggregate(
                 pending=Count("id", filter=Q(status=ReviewStatus.PENDING)),
@@ -335,7 +339,7 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
                 for row in growth_qs
                 if row["month"] is not None
             ]
-        except Exception:
+        except Exception:  # noqa: BLE001
             logger.exception("Unable to load dashboard data")
             extra_context["dashboard_stats"] = {
                 "pending": 0,
