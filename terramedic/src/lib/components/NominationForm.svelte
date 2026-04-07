@@ -169,7 +169,7 @@
       </div>
 
       {#if errorMessage}
-        <div class="error-message text-sm text-red-400">
+        <div class="error-message text-sm text-red-400" role="alert">
           {errorMessage}
         </div>
       {/if}

@@ -104,6 +104,21 @@ describe('NominationForm', () => {
     });
   });
 
+  test('error message has role="alert" for screen readers', async () => {
+    mockSubmit.mockRejectedValueOnce(new Error('Server error'));
+    const user = userEvent.setup();
+
+    render(NominationForm);
+
+    await user.type(screen.getByLabelText(/website url/i), 'https://example.org');
+    await user.click(screen.getByLabelText(/volunteer/i));
+    await user.click(screen.getByRole('button', { name: /submit nomination/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+  });
+
   test('shows field-level error on validation error', async () => {
     mockSubmit.mockRejectedValueOnce(
       new ValidationError({ url: 'This URL has already been nominated.' })

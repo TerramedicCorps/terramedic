@@ -75,6 +75,19 @@ describe('StatusLookup', () => {
     });
   });
 
+  test('error message has role="alert" for screen readers', async () => {
+    const user = userEvent.setup();
+
+    render(StatusLookup);
+
+    await user.type(screen.getByLabelText(/confirmation id/i), 'INVALID');
+    await user.click(screen.getByRole('button', { name: /check status/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+  });
+
   test('requires confirmation ID input', () => {
     render(StatusLookup);
     const input = screen.getByLabelText(/confirmation id/i) as HTMLInputElement;
