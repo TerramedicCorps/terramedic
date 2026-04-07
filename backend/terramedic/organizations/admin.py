@@ -226,7 +226,8 @@ class CategoryFilter(admin.SimpleListFilter):
                 evaluation_data__accessibility__categories__contains=[value],
             )
         # SpatiaLite does not support __contains on JSONField;
-        # fall back to Python-side filtering.
+        # fall back to Python-side filtering.  This O(N) scan only
+        # runs in local dev (SQLite); production uses PostgreSQL above.
         pks = [
             ev.pk
             for ev in queryset.iterator()
