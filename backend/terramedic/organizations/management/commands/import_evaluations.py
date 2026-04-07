@@ -1,9 +1,8 @@
 import json
-import sys
 from pathlib import Path
 from typing import Any
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from terramedic.organizations.models import OrganizationEvaluation
 
@@ -25,10 +24,7 @@ class Command(BaseCommand):
         elif path.is_file() and path.suffix == ".json":
             files = [path]
         else:
-            self.stderr.write(
-                self.style.ERROR(f"Error: {path} is not a JSON file or directory."),
-            )
-            sys.exit(1)
+            raise CommandError(f"{path} is not a JSON file or directory.")
 
         imported = 0
         skipped = 0
