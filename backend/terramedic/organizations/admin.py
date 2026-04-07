@@ -173,7 +173,7 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         "reviewed_at",
     ]
     list_filter = ["status"]
-    search_fields: ClassVar[list[str]] = []
+    search_fields: ClassVar[list[str]] = ["id"]
     readonly_fields = [
         "evaluation_data",
         "status",
