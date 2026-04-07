@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, ClassVar
 
 from django.contrib import admin, messages
 from django.db.models import QuerySet
@@ -68,9 +68,13 @@ def _render_sources(sources: list[dict[str, str]]) -> str:
         return ""
     items: list[str] = []
     for src in sources:
-        url = escape(str(src.get("source_url", "")))
+        raw_url = str(src.get("source_url", ""))
+        url = escape(raw_url)
         excerpt = escape(str(src.get("excerpt", "")))
-        line = f'<a href="{url}">{url}</a>'
+        if raw_url.startswith(("http://", "https://")):
+            line = f'<a href="{url}">{url}</a>'
+        else:
+            line = url
         if excerpt:
             line += f" — <em>{excerpt}</em>"
         items.append(f"<li>{line}</li>")
@@ -173,7 +177,7 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         "reviewed_at",
     ]
     list_filter = ["status"]
-    search_fields: list[str] = []
+    search_fields: ClassVar[list[str]] = ["id"]
     readonly_fields = [
         "evaluation_data",
         "status",

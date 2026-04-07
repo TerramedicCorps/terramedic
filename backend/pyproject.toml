@@ -98,6 +98,10 @@ ignore_errors = true
 module = "terramedic.organizations.models"
 disable_error_code = ["var-annotated", "no-any-return"]
 
+[[tool.mypy.overrides]]
+module = "terramedic.nominations.models"
+disable_error_code = ["var-annotated", "no-any-return"]
+
 [tool.django-stubs]
 django_settings_module = "terramedic.core.settings"
 

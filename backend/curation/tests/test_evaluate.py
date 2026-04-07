@@ -543,7 +543,10 @@ class TestBuildUserMessage:
 
         monkeypatch.setattr(_httpx, "get", fake_get)
         message = _build_user_message("https://example.org")
-        assert "Today's date is 2026-04-05" in message
+        from datetime import UTC, datetime
+
+        today = datetime.now(tz=UTC).date().isoformat()
+        assert f"Today's date is {today}" in message
 
     def test_includes_categories_hint(
         self, monkeypatch: pytest.MonkeyPatch,
