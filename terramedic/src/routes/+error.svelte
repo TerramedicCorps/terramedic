@@ -37,14 +37,14 @@
   <p class="mt-6 max-w-2xl text-center text-xs leading-relaxed text-gray-400">
     &ldquo;<a
       href="https://www.flickr.com/photos/nasa2explore/55185633398/"
-      class="hover:underline"
+      class="text-terra-green underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terra-green"
       rel="noopener noreferrer"
       target="_blank">Hello, World</a
     >&rdquo; — Earth photographed by Artemis II Commander Reid Wiseman from an Orion spacecraft
     window after translunar injection. Credit: NASA, licensed under
     <a
       href="https://creativecommons.org/licenses/by-nc-nd/4.0/"
-      class="whitespace-nowrap hover:underline"
+      class="whitespace-nowrap text-terra-green underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terra-green"
       rel="noopener noreferrer"
       target="_blank">CC BY-NC-ND 4.0</a
     >.
