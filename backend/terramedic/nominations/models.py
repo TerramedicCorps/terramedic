@@ -41,8 +41,14 @@ class Nomination(models.Model):
     class Meta:
         ordering = ["-submitted_at"]
 
+    MAX_NOTES_LENGTH = 2000
+
     def clean(self) -> None:
         super().clean()
+        if self.notes and len(self.notes) > self.MAX_NOTES_LENGTH:
+            raise ValidationError(
+                {"notes": f"Notes must not exceed {self.MAX_NOTES_LENGTH} characters."},
+            )
         cats = self.categories
         if not isinstance(cats, list) or not all(isinstance(c, str) for c in cats):
             raise ValidationError(

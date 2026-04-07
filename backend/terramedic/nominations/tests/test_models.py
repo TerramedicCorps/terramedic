@@ -106,6 +106,16 @@ class TestNomination:
         )
         nom.full_clean()  # Should not raise
 
+    def test_long_notes_fails_full_clean(self) -> None:
+        nom = Nomination.objects.create(
+            url="https://example.org/",
+            categories=["volunteer"],
+            notes="x" * 2001,
+            ip_hash="hash1",
+        )
+        with pytest.raises(ValidationError):
+            nom.full_clean()
+
     def test_non_list_categories_fails_full_clean(self) -> None:
         """JSONField can hold any JSON; clean() must reject non-list values."""
         for bad in [{"key": "value"}, "string", 42]:
