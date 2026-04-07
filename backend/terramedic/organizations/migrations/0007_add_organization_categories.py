@@ -5,18 +5,37 @@ def copy_category_to_categories(apps, schema_editor):
     """Copy each org's existing scalar category value into the new M2M."""
     Organization = apps.get_model("organizations", "Organization")
     Category = apps.get_model("organizations", "Category")
-    for org in Organization.objects.all():
+    OrganizationCategory = Organization.categories.through  # noqa: N806
+
+    category_ids_by_slug = dict(Category.objects.values_list("slug", "id"))
+    through_rows = []
+
+    for org in Organization.objects.iterator():
         if not org.category:
             continue
-        try:
-            cat = Category.objects.get(slug=org.category)
-        except Category.DoesNotExist:
+        category_id = category_ids_by_slug.get(org.category)
+        if not category_id:
             continue
-        org.categories.add(cat)
+        through_rows.append(
+            OrganizationCategory(
+                organization_id=org.id,
+                category_id=category_id,
+            )
+        )
+
+    if through_rows:
+        OrganizationCategory.objects.bulk_create(through_rows)
 
 
-def noop_reverse(apps, schema_editor):
-    """Nothing to do on reverse — the scalar field still holds the data."""
+def restore_scalar_category(apps, schema_editor):
+    """Restore the scalar category from the M2M using a deterministic choice."""
+    Organization = apps.get_model("organizations", "Organization")
+    for org in Organization.objects.iterator():
+        category = org.categories.order_by("slug", "pk").first()
+        if not category:
+            continue
+        org.category = category.slug
+        org.save(update_fields=["category"])
 
 
 class Migration(migrations.Migration):
@@ -34,5 +53,5 @@ class Migration(migrations.Migration):
                 to="organizations.category",
             ),
         ),
-        migrations.RunPython(copy_category_to_categories, noop_reverse),
+        migrations.RunPython(copy_category_to_categories, restore_scalar_category),
     ]
