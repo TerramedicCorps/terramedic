@@ -317,12 +317,16 @@ class TestCreateNomination:
         assert response.status_code == 400
 
     def test_method_not_allowed(self, client: Client) -> None:
-        for method in [client.get, client.put, client.patch, client.delete]:
-            response = method("/api/nominations/")
+        for method_name, response in (
+            ("GET", client.get("/api/nominations/")),
+            ("PUT", client.put("/api/nominations/")),
+            ("PATCH", client.patch("/api/nominations/")),
+            ("DELETE", client.delete("/api/nominations/")),
+        ):
             assert response.status_code in (
                 405,
                 404,
-            ), f"{method.__name__.upper()} should not be allowed"
+            ), f"{method_name} should not be allowed"
 
     def test_validation_error_detail_structure(self, client: Client) -> None:
         """REQ-018: 422 errors should return detail as a list of field-level objects."""
