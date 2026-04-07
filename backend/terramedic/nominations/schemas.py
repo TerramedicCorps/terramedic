@@ -19,6 +19,9 @@ class NominationIn(Schema):
     @field_validator("url")
     @classmethod
     def check_url_not_private(cls, v: HttpUrl) -> HttpUrl:
+        # Blocks literal private IPs and "localhost". DNS rebinding variants
+        # (e.g. 127.0.0.1.nip.io) are not caught — acceptable for a nomination
+        # form since the URL is not fetched server-side at submission time.
         hostname = v.host or ""
         # Strip brackets from IPv6 addresses (e.g. "[::1]" -> "::1")
         if hostname.startswith("[") and hostname.endswith("]"):

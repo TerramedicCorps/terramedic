@@ -23,7 +23,11 @@ RATE_LIMIT_WINDOW = timedelta(hours=1)
 
 
 def _hash_ip(ip: str) -> str:
-    """Hash an IP address with salted SHA-256 for privacy-preserving rate limiting."""
+    """Hash an IP address with salted SHA-256 for privacy-preserving rate limiting.
+
+    Uses SECRET_KEY as salt. If the key is rotated, existing hashes become
+    orphaned — acceptable since the rate limit window is only 1 hour.
+    """
     from django.conf import settings
 
     return hashlib.sha256(f"{settings.SECRET_KEY}{ip}".encode()).hexdigest()
@@ -63,6 +67,7 @@ def create_nomination(
     ip_hash = _hash_ip(client_ip)
 
     if _is_rate_limited(ip_hash):
+        # Raw JsonResponse to set Retry-After header (Ninja passes through HttpResponse)
         response = JsonResponse(
             {"detail": "Rate limit exceeded. Try again later."},
             status=429,
