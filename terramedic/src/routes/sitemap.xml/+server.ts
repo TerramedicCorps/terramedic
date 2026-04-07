@@ -14,7 +14,9 @@ export const GET: RequestHandler = async () => {
     '/careers',
     '/contact-us',
     '/privacy',
-    '/methodology'
+    '/methodology',
+    '/nominate',
+    '/nominate/status'
   ];
 
   const sitemap: string = `<?xml version="1.0" encoding="UTF-8"?>
