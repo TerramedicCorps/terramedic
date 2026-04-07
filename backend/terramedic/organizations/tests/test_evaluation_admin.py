@@ -5,6 +5,7 @@ import pytest
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth.models import User
 from django.test import Client
+from django.utils import timezone
 
 from terramedic.organizations.admin import OrganizationEvaluationAdmin
 from terramedic.organizations.models import (
@@ -577,7 +578,8 @@ class TestGrowthOverTime:
         )
         growth = response.context["growth_data"]
         assert len(growth) == 1
-        assert growth[0]["month"] == "2026-04"
+        expected_month = timezone.now().strftime("%Y-%m")
+        assert growth[0]["month"] == expected_month
         assert growth[0]["count"] == 2
 
     def test_growth_data_empty_when_no_evaluations(
