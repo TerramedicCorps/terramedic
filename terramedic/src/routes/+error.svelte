@@ -6,7 +6,9 @@
   <title>{$page.status === 404 ? 'Page Not Found' : 'Something Went Wrong'} | Terramedic</title>
 </svelte:head>
 
-<div class="flex min-h-screen flex-col items-center justify-center bg-black px-4 py-12 text-center">
+<div
+  class="flex min-h-screen flex-col items-center justify-center bg-[#060806] px-4 py-12 text-center"
+>
   {#if $page.status === 404}
     <h1 class="mb-8 max-w-3xl text-3xl leading-tight font-bold text-balance text-white md:text-5xl">
       Like Planet B, the page you're looking for doesn't exist.
