@@ -45,7 +45,7 @@
     isLoading = true;
 
     try {
-      result = await lookupNominationStatus(confirmationId);
+      result = await lookupNominationStatus(trimmed);
     } catch {
       errorMessage = 'Nomination not found. Please check your confirmation ID and try again.';
     } finally {
