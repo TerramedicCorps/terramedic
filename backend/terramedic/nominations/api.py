@@ -80,12 +80,14 @@ def create_nomination(
         fake_id = str(uuid.uuid4())
         return 201, NominationOut(confirmation_id=fake_id)
 
-    nomination = Nomination.objects.create(
+    nomination = Nomination(
         url=str(payload.url),
         categories=payload.categories,
         notes=payload.notes,
         ip_hash=ip_hash,
     )
+    nomination.full_clean()
+    nomination.save()
 
     return 201, NominationOut(
         confirmation_id=str(nomination.confirmation_id),
