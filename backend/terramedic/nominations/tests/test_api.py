@@ -303,6 +303,41 @@ class TestCreateNomination:
             )
             assert response.status_code == 201, f"Category '{cat}' should be valid"
 
+    def test_invalid_json_returns_400(self, client: Client) -> None:
+        response = client.post(
+            "/api/nominations/",
+            data="not valid json{{{",
+            content_type="application/json",
+        )
+        assert response.status_code == 400
+
+    def test_method_not_allowed(self, client: Client) -> None:
+        for method in [client.get, client.put, client.patch, client.delete]:
+            response = method("/api/nominations/")
+            assert response.status_code in (
+                405,
+                404,
+            ), f"{method.__name__.upper()} should not be allowed"
+
+    def test_validation_error_detail_structure(self, client: Client) -> None:
+        """REQ-018: 422 errors should return detail as a list of field-level objects."""
+        response = client.post(
+            "/api/nominations/",
+            data={
+                "url": "not-a-url",
+                "categories": [],
+            },
+            content_type="application/json",
+        )
+        assert response.status_code == 422
+        data = response.json()
+        assert "detail" in data
+        assert isinstance(data["detail"], list)
+        assert len(data["detail"]) > 0
+        # Each item should identify the problematic field
+        for item in data["detail"]:
+            assert "loc" in item or "msg" in item
+
 
 @pytest.mark.django_db
 class TestNominationStatus:
