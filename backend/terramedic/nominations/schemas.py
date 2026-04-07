@@ -11,7 +11,7 @@ MAX_NOTES_LENGTH = 2000
 
 
 class NominationIn(Schema):
-    url: Annotated[HttpUrl, StringConstraints(max_length=MAX_URL_LENGTH)]
+    url: HttpUrl
     categories: list[str]
     notes: Annotated[str, StringConstraints(max_length=MAX_NOTES_LENGTH)] = ""
     website: str = ""  # honeypot field — should always be empty
@@ -19,6 +19,10 @@ class NominationIn(Schema):
     @field_validator("url")
     @classmethod
     def check_url_not_private(cls, v: HttpUrl) -> HttpUrl:
+        # Explicit length check — StringConstraints may not apply to HttpUrl
+        if len(str(v)) > MAX_URL_LENGTH:
+            msg = f"URL must not exceed {MAX_URL_LENGTH} characters."
+            raise ValueError(msg)
         # Blocks literal private IPs and "localhost". DNS rebinding variants
         # (e.g. 127.0.0.1.nip.io) are not caught — acceptable for a nomination
         # form since the URL is not fetched server-side at submission time.
