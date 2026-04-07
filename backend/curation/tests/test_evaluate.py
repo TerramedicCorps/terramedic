@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import json
 from pathlib import Path
 from typing import Any
@@ -543,9 +544,7 @@ class TestBuildUserMessage:
 
         monkeypatch.setattr(_httpx, "get", fake_get)
         message = _build_user_message("https://example.org")
-        from datetime import UTC, datetime
-
-        today = datetime.now(tz=UTC).date().isoformat()
+        today = datetime.datetime.now(tz=datetime.UTC).date().isoformat()  # type: ignore[attr-defined]
         assert f"Today's date is {today}" in message
 
     def test_includes_categories_hint(

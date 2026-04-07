@@ -1,8 +1,11 @@
-from typing import Any, ClassVar
+import logging
+from typing import Any
 
 from django.contrib import admin, messages
-from django.db.models import QuerySet
-from django.http import HttpRequest
+from django.db import connection
+from django.db.models import Count, Q, QuerySet
+from django.db.models.functions import TruncMonth
+from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
@@ -15,6 +18,8 @@ from terramedic.organizations.models import (
     ReviewStatus,
     Tag,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @admin.register(Tag)
@@ -165,6 +170,82 @@ def _render_eval_history(data: dict[str, Any]) -> str:
     return "\n".join(parts)
 
 
+class EvidenceScoreFilter(admin.SimpleListFilter):
+    title = "evidence score"
+    parameter_name = "evidence_score"
+
+    def lookups(
+        self,
+        _request: HttpRequest,
+        _model_admin: Any,
+    ) -> list[tuple[str, str]]:
+        return [
+            ("high", "High (4-5)"),
+            ("medium", "Medium (3)"),
+            ("low", "Low (1-2)"),
+        ]
+
+    def queryset(
+        self,
+        _request: HttpRequest,
+        queryset: QuerySet[OrganizationEvaluation],
+    ) -> QuerySet[OrganizationEvaluation]:
+        value = self.value()
+        if value == "high":
+            return queryset.filter(
+                evaluation_data__evidence_score__score__gte=4,
+            )
+        if value == "medium":
+            return queryset.filter(
+                evaluation_data__evidence_score__score=3,
+            )
+        if value == "low":
+            return queryset.filter(
+                evaluation_data__evidence_score__score__lte=2,
+            )
+        return queryset
+
+
+class CategoryFilter(admin.SimpleListFilter):
+    title = "category"
+    parameter_name = "eval_category"
+
+    def lookups(
+        self,
+        _request: HttpRequest,
+        _model_admin: Any,
+    ) -> list[tuple[str, str]]:
+        return [(c.value, c.label) for c in Category]
+
+    def queryset(
+        self,
+        _request: HttpRequest,
+        queryset: QuerySet[OrganizationEvaluation],
+    ) -> QuerySet[OrganizationEvaluation]:
+        value = self.value()
+        if not value:
+            return queryset
+        if connection.vendor == "postgresql":
+            return queryset.filter(
+                evaluation_data__accessibility__categories__contains=[value],
+            )
+        # SpatiaLite does not support __contains on JSONField;
+        # fall back to Python-side filtering.  This O(N) scan only
+        # runs in local dev (SQLite); production uses PostgreSQL above.
+        pks = [
+            ev.pk
+            for ev in queryset.iterator()
+            if value
+            in (
+                ev.evaluation_data.get("accessibility", {}).get(
+                    "categories",
+                    [],
+                )
+            )
+        ]
+        return queryset.filter(pk__in=pks)
+
+
 @admin.register(OrganizationEvaluation)
 class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     list_display = [
@@ -176,8 +257,11 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         "reviewer",
         "reviewed_at",
     ]
-    list_filter = ["status"]
-    search_fields: ClassVar[list[str]] = ["id"]
+    list_filter = ["status", EvidenceScoreFilter, CategoryFilter]
+    # search_fields must be non-empty for Django to render the search
+    # box.  The default icontains query on "status" is harmless but
+    # unused — actual search logic lives in get_search_results below.
+    search_fields = ["status"]
     readonly_fields = [
         "evaluation_data",
         "status",
@@ -227,6 +311,51 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         ),
     )
     actions = ["approve_evaluations", "reject_evaluations"]
+
+    def changelist_view(
+        self,
+        request: HttpRequest,
+        extra_context: dict[str, Any] | None = None,
+    ) -> HttpResponse:
+        extra_context = extra_context or {}
+
+        try:
+            # Intentionally unfiltered: dashboard shows global stats
+            # regardless of any active list filters.
+            qs = OrganizationEvaluation.objects.all()
+            extra_context["dashboard_stats"] = qs.aggregate(
+                pending=Count("id", filter=Q(status=ReviewStatus.PENDING)),
+                approved=Count("id", filter=Q(status=ReviewStatus.APPROVED)),
+                rejected=Count("id", filter=Q(status=ReviewStatus.REJECTED)),
+            )
+
+            growth_qs = (
+                qs.annotate(month=TruncMonth("created_at"))
+                .values("month")
+                .annotate(count=Count("id"))
+                .order_by("month")
+            )
+            extra_context["growth_data"] = [
+                {
+                    "month": row["month"].strftime("%Y-%m"),
+                    "count": row["count"],
+                }
+                for row in growth_qs
+                if row["month"] is not None
+            ]
+        except Exception:  # noqa: BLE001
+            logger.exception("Unable to load dashboard data")
+            extra_context["dashboard_stats"] = {
+                "pending": 0,
+                "approved": 0,
+                "rejected": 0,
+            }
+            extra_context["growth_data"] = []
+            extra_context["dashboard_error"] = (
+                "Unable to load dashboard data"
+            )
+
+        return super().changelist_view(request, extra_context)
 
     def get_search_results(
         self,
