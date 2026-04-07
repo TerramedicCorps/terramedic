@@ -253,7 +253,8 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         "reviewed_at",
     ]
     list_filter = ["status", EvidenceScoreFilter, CategoryFilter]
-    search_fields = []  # type: ignore[var-annotated]
+    # Enables the search box; actual logic is in get_search_results.
+    search_fields = ["status"]
     readonly_fields = [
         "evaluation_data",
         "status",
