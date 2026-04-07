@@ -24,7 +24,9 @@ class Command(BaseCommand):
         elif path.is_file() and path.suffix == ".json":
             files = [path]
         else:
-            raise CommandError(f"{path} is not a JSON file or directory.")
+            raise CommandError(
+                f"{path} is not a JSON file or directory.",
+            )
 
         imported = 0
         skipped = 0

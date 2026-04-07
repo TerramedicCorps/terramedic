@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "parler",
     "terramedic.organizations",
+    "terramedic.nominations",
 ]
 
 MIDDLEWARE = [
