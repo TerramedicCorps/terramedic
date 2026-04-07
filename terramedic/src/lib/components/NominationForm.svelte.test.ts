@@ -72,7 +72,7 @@ describe('NominationForm', () => {
     });
   });
 
-  test('includes honeypot value in POST body', async () => {
+  test('skips submission when the honeypot field is filled', async () => {
     const user = userEvent.setup();
     const { container } = render(NominationForm);
 
