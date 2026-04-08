@@ -26,7 +26,7 @@ class CsvParseResult:
     errors: list[str] = field(default_factory=list)
 
 
-REQUIRED_COLUMNS = {"url", "category"}
+REQUIRED_COLUMNS = ("url", "category")
 MAX_ROWS = 500
 
 
