@@ -1,6 +1,5 @@
 import pytest
 from django.contrib.gis.geos import Point
-from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
 from terramedic.organizations.models import Category, Organization, Tag
@@ -32,62 +31,40 @@ class TestOrganization:
         o = Organization(
             name="Citizens' Climate Lobby",
             website_url="https://citizensclimatelobby.org/",
-            category=Category.DONATE,
             sort_order=1,
         )
         o.set_current_language("en")
         o.description = "A grassroots advocacy organization."
         o.action_text = "Support Climate Advocacy"
         o.save()
+        o.categories.add(Category.objects.get(slug="donate"))
         return o
 
     def test_create_organization(self) -> None:
         org = Organization(
             name="Citizens' Climate Lobby",
             website_url="https://citizensclimatelobby.org/",
-            category=Category.DONATE,
             sort_order=1,
         )
         org.set_current_language("en")
         org.description = "A grassroots advocacy organization."
         org.action_text = "Support Climate Advocacy"
         org.save()
+        org.categories.add(Category.objects.get(slug="donate"))
 
         assert org.pk is not None
         assert org.name == "Citizens' Climate Lobby"
         assert org.description == "A grassroots advocacy organization."
         assert org.action_text == "Support Climate Advocacy"
-        assert org.category == Category.DONATE
+        assert list(org.categories.values_list("slug", flat=True)) == ["donate"]
 
     def test_str_returns_name(self, org: Organization) -> None:
         assert str(org) == "Citizens' Climate Lobby"
-
-    def test_category_choices(self) -> None:
-        assert Category.DONATE == "donate"
-        assert Category.VOLUNTEER == "volunteer"
-        assert Category.RESOURCE == "resource"
-        assert Category.EVERYDAY == "everyday"
-        assert Category.CAREER == "career"
-
-    def test_invalid_category(self) -> None:
-        org = Organization(
-            name="Bad Org",
-            website_url="https://example.com/",
-            category="invalid",
-        )
-        org.set_current_language("en")
-        org.description = "Test"
-        org.action_text = "Test"
-        org.save()
-
-        with pytest.raises(ValidationError):
-            org.full_clean()
 
     def test_translations(self) -> None:
         org = Organization(
             name="Give Green",
             website_url="https://givegreen.com/",
-            category=Category.DONATE,
         )
         org.set_current_language("en")
         org.description = "Help donors direct political giving."
@@ -113,7 +90,6 @@ class TestOrganization:
         org = Organization(
             name="Local Org",
             website_url="https://example.com/",
-            category=Category.VOLUNTEER,
             location=Point(-77.0369, 38.9072),
         )
         org.set_current_language("en")
@@ -135,7 +111,6 @@ class TestOrganization:
         org = Organization(
             name="Org",
             website_url="https://example.com/",
-            category=Category.RESOURCE,
         )
         org.set_current_language("en")
         org.description = "Test"
@@ -149,3 +124,97 @@ class TestOrganization:
 
     def test_created_at_auto_set(self, org: Organization) -> None:
         assert org.created_at is not None
+
+
+@pytest.mark.django_db
+class TestCategoryModel:
+    """Category is now a model with slug as primary key, not a TextChoices enum.
+
+    Migration 0006 seeds the five canonical categories, so every test
+    database starts with them already present.
+    """
+
+    def test_five_seeded_categories_exist(self) -> None:
+        slugs = set(Category.objects.values_list("slug", flat=True))
+        assert slugs == {"donate", "volunteer", "resource", "everyday", "career"}
+
+    def test_category_str_returns_label(self) -> None:
+        donate = Category.objects.get(slug="donate")
+        assert str(donate) == donate.label
+
+    def test_slug_is_unique(self) -> None:
+        with pytest.raises(IntegrityError):
+            Category.objects.create(slug="donate", label="Duplicate")
+
+
+@pytest.mark.django_db
+class TestOrganizationCategoriesM2M:
+    """An Organization can belong to multiple categories at once."""
+
+    @pytest.fixture
+    def org(self) -> Organization:
+        o = Organization(
+            name="Environmental Voter Project",
+            website_url="https://environmentalvoter.org/",
+        )
+        o.set_current_language("en")
+        o.description = "Gets environmentalists to vote."
+        o.action_text = "Get Out the Vote"
+        o.save()
+        return o
+
+    def test_organization_starts_with_no_categories(
+        self, org: Organization,
+    ) -> None:
+        assert org.categories.count() == 0
+
+    def test_assign_single_category(self, org: Organization) -> None:
+        donate = Category.objects.get(slug="donate")
+        org.categories.add(donate)
+
+        assert list(org.categories.values_list("slug", flat=True)) == ["donate"]
+
+    def test_assign_multiple_categories(self, org: Organization) -> None:
+        donate = Category.objects.get(slug="donate")
+        volunteer = Category.objects.get(slug="volunteer")
+        org.categories.add(donate, volunteer)
+
+        assert set(org.categories.values_list("slug", flat=True)) == {
+            "donate",
+            "volunteer",
+        }
+
+    def test_filter_organizations_by_category_slug(
+        self, org: Organization,
+    ) -> None:
+        org.categories.add(Category.objects.get(slug="donate"))
+
+        results = Organization.objects.filter(categories__slug="donate")
+        assert org in results
+
+    def test_filter_matches_org_with_any_assigned_category(
+        self, org: Organization,
+    ) -> None:
+        """An org in both 'donate' and 'volunteer' should appear in both filters."""
+        org.categories.add(
+            Category.objects.get(slug="donate"),
+            Category.objects.get(slug="volunteer"),
+        )
+
+        donate_results = Organization.objects.filter(categories__slug="donate")
+        volunteer_results = Organization.objects.filter(
+            categories__slug="volunteer",
+        )
+        assert org in donate_results
+        assert org in volunteer_results
+
+    def test_reverse_relation_from_category_to_organizations(
+        self, org: Organization,
+    ) -> None:
+        donate = Category.objects.get(slug="donate")
+        org.categories.add(donate)
+
+        # django-stubs does not auto-generate reverse M2M accessors,
+        # so it cannot see the `organizations` relation set up by
+        # `related_name="organizations"` on Organization.categories.
+        assert org in donate.organizations.all()  # type: ignore[attr-defined]

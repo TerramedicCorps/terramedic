@@ -54,7 +54,7 @@ class Nomination(models.Model):
             raise ValidationError(
                 {"categories": "Must be a list of strings."},
             )
-        valid = set(Category.values)
+        valid = set(Category.objects.values_list("slug", flat=True))
         invalid = [c for c in cats if c not in valid]
         if invalid:
             raise ValidationError(

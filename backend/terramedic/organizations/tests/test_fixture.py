@@ -1,7 +1,7 @@
 import pytest
 from django.core.management import call_command
 
-from terramedic.organizations.models import Category, Organization, Tag
+from terramedic.organizations.models import Organization, Tag
 
 
 @pytest.fixture
@@ -22,10 +22,21 @@ class TestSeedDataFixture:
         assert Tag.objects.count() > 0
 
     def test_category_counts(self) -> None:
-        assert Organization.objects.filter(category=Category.DONATE).count() == 3
-        assert Organization.objects.filter(category=Category.VOLUNTEER).count() == 3
-        assert Organization.objects.filter(category=Category.RESOURCE).count() == 6
-        assert Organization.objects.filter(category=Category.EVERYDAY).count() == 2
+        assert (
+            Organization.objects.filter(categories__slug="donate").count() == 3
+        )
+        assert (
+            Organization.objects.filter(categories__slug="volunteer").count()
+            == 3
+        )
+        assert (
+            Organization.objects.filter(categories__slug="resource").count()
+            == 6
+        )
+        assert (
+            Organization.objects.filter(categories__slug="everyday").count()
+            == 2
+        )
 
     def test_all_orgs_have_translations(self) -> None:
         for org in Organization.objects.all():
@@ -44,7 +55,7 @@ class TestSeedDataFixture:
 
     def test_sort_order_preserved(self) -> None:
         donate_orgs = list(
-            Organization.objects.filter(category=Category.DONATE)
+            Organization.objects.filter(categories__slug="donate")
             .order_by("sort_order")
             .values_list("name", flat=True),
         )

@@ -281,8 +281,12 @@ class TestApproveAction:
         pending_evaluation.refresh_from_db()
         org = pending_evaluation.organization
         assert org is not None
-        # First category from the accessibility.categories list
-        assert org.category == "donate"
+        # Both categories from accessibility.categories should be assigned
+        # (the default fixture uses ["donate", "volunteer"]).
+        assert set(org.categories.values_list("slug", flat=True)) == {
+            "donate",
+            "volunteer",
+        }
 
     def test_approve_sets_org_description(
         self,
@@ -405,9 +409,10 @@ class TestEvaluationAdminReadonlyPresentation:
 
 @pytest.mark.django_db
 class TestApproveWithOtherCategory:
-    """Evaluations with 'other' categories should fall back to a valid one."""
+    """Evaluations with 'other' entries skip them and keep the valid ones;
+    if none remain, the org falls back to 'resource'."""
 
-    def test_skips_other_uses_first_valid(
+    def test_skips_other_assigns_remaining_valid(
         self,
         admin_client: Client,
     ) -> None:
@@ -427,7 +432,9 @@ class TestApproveWithOtherCategory:
         )
         ev.refresh_from_db()
         assert ev.organization is not None
-        assert ev.organization.category == "volunteer"
+        assert list(
+            ev.organization.categories.values_list("slug", flat=True),
+        ) == ["volunteer"]
 
     def test_all_other_defaults_to_resource(
         self,
@@ -447,7 +454,9 @@ class TestApproveWithOtherCategory:
         )
         ev.refresh_from_db()
         assert ev.organization is not None
-        assert ev.organization.category == "resource"
+        assert list(
+            ev.organization.categories.values_list("slug", flat=True),
+        ) == ["resource"]
 
 
 @pytest.mark.django_db

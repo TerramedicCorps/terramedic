@@ -23,7 +23,6 @@ def org_ccl(tags: list[Tag]) -> Organization:
     org = Organization(
         name="Citizens' Climate Lobby",
         website_url="https://citizensclimatelobby.org/",
-        category=Category.DONATE,
         sort_order=1,
         location=Point(-77.0369, 38.9072),
     )
@@ -35,6 +34,7 @@ def org_ccl(tags: list[Tag]) -> Organization:
     org.action_text = "Soutenir le plaidoyer"
     org.save()
     org.tags.add(*tags)
+    org.categories.add(Category.objects.get(slug="donate"))
     return org
 
 
@@ -43,13 +43,13 @@ def org_evp() -> Organization:
     org = Organization(
         name="Environmental Voter Project",
         website_url="https://www.environmentalvoter.org/",
-        category=Category.VOLUNTEER,
         sort_order=0,
     )
     org.set_current_language("en")
     org.description = "Turning environmentalists into voters."
     org.action_text = "Become a Volunteer"
     org.save()
+    org.categories.add(Category.objects.get(slug="volunteer"))
     return org
 
 
@@ -58,13 +58,13 @@ def inactive_org() -> Organization:
     org = Organization(
         name="Inactive Org",
         website_url="https://example.com/",
-        category=Category.DONATE,
         is_active=False,
     )
     org.set_current_language("en")
     org.description = "This org is inactive."
     org.action_text = "N/A"
     org.save()
+    org.categories.add(Category.objects.get(slug="donate"))
     return org
 
 
@@ -123,7 +123,7 @@ class TestListOrganizations:
         org = data[0]
         assert set(org["tags"]) == {"Advocacy", "Bipartisan"}
 
-    def test_includes_category(
+    def test_includes_categories(
         self,
         client: Client,
         org_ccl: Organization,
@@ -131,7 +131,37 @@ class TestListOrganizations:
         response = client.get("/api/organizations/")
         data = response.json()
         org = data[0]
-        assert org["category"] == "donate"
+        assert org["categories"] == ["donate"]
+
+    def test_org_with_multiple_categories_returns_all_slugs(
+        self,
+        client: Client,
+        org_ccl: Organization,
+    ) -> None:
+        org_ccl.categories.add(Category.objects.get(slug="volunteer"))
+
+        response = client.get("/api/organizations/")
+        data = response.json()
+        org = data[0]
+        assert set(org["categories"]) == {"donate", "volunteer"}
+
+    def test_filter_by_category_matches_org_with_multiple(
+        self,
+        client: Client,
+        org_ccl: Organization,
+        org_evp: Organization,
+    ) -> None:
+        """An org with ['donate', 'volunteer'] should appear in both filters."""
+        org_ccl.categories.add(Category.objects.get(slug="volunteer"))
+
+        donate_response = client.get("/api/organizations/?category=donate")
+        volunteer_response = client.get("/api/organizations/?category=volunteer")
+
+        donate_names = {o["name"] for o in donate_response.json()}
+        volunteer_names = {o["name"] for o in volunteer_response.json()}
+        assert "Citizens' Climate Lobby" in donate_names
+        assert "Citizens' Climate Lobby" in volunteer_names
+        assert "Environmental Voter Project" in volunteer_names
 
     def test_response_fields(
         self,

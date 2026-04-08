@@ -24,7 +24,6 @@ IS_LAMBDA = bool(os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
 
 # SECURITY WARNING: keep the secret key used in production secret!
-_is_testing = "pytest" in sys.modules or os.getenv("PYTEST_CURRENT_TEST")
 _raw_secret_key = os.getenv("SECRET_KEY", "")
 if IS_LAMBDA and _raw_secret_key:
     from terramedic.core.secrets import resolve_secret
@@ -32,10 +31,16 @@ if IS_LAMBDA and _raw_secret_key:
     SECRET_KEY = resolve_secret(_raw_secret_key, "key")
 elif _raw_secret_key:
     SECRET_KEY = _raw_secret_key
-elif DEBUG or _is_testing:
-    SECRET_KEY = "django-insecure-terramedic-dev-key-change-in-production"
+elif IS_LAMBDA:
+    # Only Lambda (the real deployed runtime) is treated as production.
+    # Local dev, tests, mypy / django-stubs model introspection, and
+    # ad-hoc manage commands fall through to the insecure dev key below
+    # because they cannot accidentally serve production traffic.
+    raise ValueError(
+        "SECRET_KEY environment variable is required when running on Lambda",
+    )
 else:
-    raise ValueError("SECRET_KEY environment variable is required in production")
+    SECRET_KEY = "django-insecure-terramedic-dev-key-change-in-production"
 
 # Parse ALLOWED_HOSTS from environment variable (comma-separated)
 allowed_hosts_env = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1")

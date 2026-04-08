@@ -49,7 +49,7 @@ class NominationIn(Schema):
         if not v:
             msg = "At least one category is required."
             raise ValueError(msg)
-        valid = set(Category.values)
+        valid = set(Category.objects.values_list("slug", flat=True))
         for cat in v:
             if cat not in valid:
                 msg = f"Invalid category: {cat}"

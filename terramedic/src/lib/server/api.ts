@@ -9,7 +9,7 @@ export interface Organization {
   action_text: string;
   website_url: string;
   image_url: string;
-  category: string;
+  categories: string[];
   tags: string[];
   sort_order: number;
 }
