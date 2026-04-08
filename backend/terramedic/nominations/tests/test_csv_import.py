@@ -154,6 +154,17 @@ class TestParseNominationsCsvErrors:
         assert len(result.errors) == 1
         assert "duplicate" in result.errors[0].lower()
 
+    def test_url_exceeding_max_length(self) -> None:
+        long_url = "https://example.org/" + "a" * 2040
+        f = _make_csv([
+            "url,category",
+            f"{long_url},volunteer",
+        ])
+        result = parse_nominations_csv(f)
+        assert len(result.rows) == 0
+        assert len(result.errors) == 1
+        assert "2048" in result.errors[0]
+
     def test_missing_cell_value_does_not_crash(self) -> None:
         """A row missing the trailing column should report an error, not 500."""
         f = _make_csv([

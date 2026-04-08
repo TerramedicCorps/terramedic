@@ -37,6 +37,8 @@ def _validate_row(
         return f"Row {row_num}: URL is empty."
     if not _is_valid_url(url):
         return f"Row {row_num}: Invalid URL '{url}'."
+    if len(url) > 2048:
+        return f"Row {row_num}: URL exceeds 2048 characters."
     if url in seen_urls:
         return f"Row {row_num}: Duplicate URL '{url}'."
     if url in existing_urls:
