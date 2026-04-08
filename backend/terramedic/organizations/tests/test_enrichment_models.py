@@ -1,4 +1,5 @@
 import pytest
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
 from terramedic.organizations.models import (
@@ -105,6 +106,13 @@ class TestOperatingRegion:
             name="New York",
         )
         assert r2.pk is not None
+
+    def test_invalid_country_code_rejected(self) -> None:
+        r = OperatingRegion(
+            country_code="zz", name="Invalid",
+        )
+        with pytest.raises(ValidationError):
+            r.full_clean()
 
     def test_ordering_by_country_then_name(self) -> None:
         OperatingRegion.objects.create(
