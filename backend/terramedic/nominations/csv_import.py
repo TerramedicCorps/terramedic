@@ -90,13 +90,7 @@ def parse_nominations_csv(
     url_col = normalized["url"]
     category_col = normalized["category"]
 
-    valid_categories: set[str] = {
-        Category.DONATE.value,
-        Category.VOLUNTEER.value,
-        Category.RESOURCE.value,
-        Category.EVERYDAY.value,
-        Category.CAREER.value,
-    }
+    valid_categories = set(Category.values)  # type: ignore[attr-defined]
     seen_urls: set[str] = set()
 
     for row_num, row in enumerate(reader, start=2):
