@@ -40,7 +40,7 @@ can be matched by location
 - Issue advocacy, civic engagement, public consultations, testimony at \
 hearings, parliamentary outreach, community campaigning
 
-Examples: Citizens' Climate Lobby (local chapters + lobby days in 60+ countries), \
+Examples: Citizens' Climate Lobby (global — local chapters + lobby days), \
 Climate Changemakers (hour-of-action events + local action teams), \
 state-level Sierra Club chapters (lobby nights + conservation outings), \
 regional Audubon Society chapters (bird counts + habitat restoration days), \
