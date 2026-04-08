@@ -91,7 +91,7 @@ def parse_nominations_csv(
     # autodiscovery, before the app registry is fully populated.
     from terramedic.organizations.models import Category
 
-    valid_categories: set[str] = set(Category.values)  # type: ignore[attr-defined]
+    valid_categories: set[str] = {value for value, _ in Category.choices}
     seen_urls: set[str] = set()
 
     for row_num, row in enumerate(reader, start=2):
