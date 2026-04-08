@@ -123,7 +123,7 @@ def parse_nominations_csv(
         if existing_urls:
             result.errors.extend(
                 f"URL '{url}' already exists as a nomination."
-                for url in existing_urls
+                for url in sorted(existing_urls)
             )
             result.rows = [
                 row for row in result.rows if row["url"] not in existing_urls
