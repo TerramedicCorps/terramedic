@@ -132,6 +132,18 @@ class TestUploadCsvViewPost:
         content = response.content.decode()
         assert "error" in content.lower()
 
+    def test_non_utf8_file_shows_error(self, admin_client: Client) -> None:
+        latin1_bytes = "url,category\nhttps://example.org/,volunt\xe9er\n".encode(
+            "latin-1",
+        )
+        uploaded = SimpleUploadedFile(
+            "test.csv", latin1_bytes, content_type="text/csv",
+        )
+        response = admin_client.post(UPLOAD_URL, {"csv_file": uploaded})
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "utf-8" in content.lower()
+
     def test_non_csv_extension_shows_error(self, admin_client: Client) -> None:
         response = admin_client.post(
             UPLOAD_URL,

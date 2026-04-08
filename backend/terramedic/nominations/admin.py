@@ -62,7 +62,16 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
                 ["Please upload a CSV file."],
             )
 
-        text = csv_file.read().decode("utf-8")
+        try:
+            text = csv_file.read().decode("utf-8-sig")
+        except UnicodeDecodeError:
+            return self._render_with_errors(
+                request,
+                [
+                    "Could not read the file. "
+                    "Please save it as UTF-8 encoded CSV.",
+                ],
+            )
         result = parse_nominations_csv(
             io.StringIO(text),
             check_existing=True,
