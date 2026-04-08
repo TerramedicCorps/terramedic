@@ -195,6 +195,27 @@ class TestParseNominationsCsvErrors:
         assert result.errors == []
 
 
+class TestParseNominationsCsvRowLimit:
+    def test_exceeding_max_rows_returns_error(self) -> None:
+        lines = ["url,category"] + [
+            f"https://example{i}.org/,volunteer" for i in range(501)
+        ]
+        f = _make_csv(lines)
+        result = parse_nominations_csv(f)
+        assert len(result.rows) == 0
+        assert len(result.errors) >= 1
+        assert "500" in result.errors[0]
+
+    def test_exactly_max_rows_succeeds(self) -> None:
+        lines = ["url,category"] + [
+            f"https://example{i}.org/,volunteer" for i in range(500)
+        ]
+        f = _make_csv(lines)
+        result = parse_nominations_csv(f)
+        assert len(result.rows) == 500
+        assert result.errors == []
+
+
 @pytest.mark.django_db
 class TestParseNominationsCsvDbDuplicates:
     def test_duplicate_of_existing_nomination_reported(self) -> None:

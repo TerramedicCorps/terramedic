@@ -28,6 +28,7 @@ class CsvParseResult:
 
 
 REQUIRED_COLUMNS = {"url", "category"}
+MAX_ROWS = 500
 
 
 def _is_valid_url(url: str) -> bool:
@@ -94,6 +95,13 @@ def parse_nominations_csv(
     seen_urls: set[str] = set()
 
     for row_num, row in enumerate(reader, start=2):
+        if row_num - 1 > MAX_ROWS:
+            result.errors.append(
+                f"CSV exceeds the maximum of {MAX_ROWS} rows.",
+            )
+            result.rows.clear()
+            return result
+
         url = (row.get(url_col) or "").strip()
         raw_category = (row.get(category_col) or "").strip()
 

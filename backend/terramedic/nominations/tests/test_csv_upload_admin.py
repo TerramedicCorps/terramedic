@@ -165,14 +165,29 @@ class TestUploadCsvViewPost:
         assert "csv" in content.lower()
 
     def test_oversized_file_shows_error(self, admin_client: Client) -> None:
-        big_content = "url,category\n" + "https://example.org/,volunteer\n" * 200_000
+        header = "url,category\n"
+        padding = "a" * (1024 * 1024 + 1 - len(header))  # just over 1 MB
         response = admin_client.post(
             UPLOAD_URL,
-            {"csv_file": _csv_file(big_content)},
+            {"csv_file": _csv_file(header + padding)},
         )
         assert response.status_code == 200
         content = response.content.decode()
         assert "size" in content.lower()
+        assert Nomination.objects.count() == 0
+
+    def test_too_many_rows_shows_error(self, admin_client: Client) -> None:
+        rows = "\n".join(
+            f"https://example{i}.org/,volunteer" for i in range(501)
+        )
+        csv_content = f"url,category\n{rows}\n"
+        response = admin_client.post(
+            UPLOAD_URL,
+            {"csv_file": _csv_file(csv_content)},
+        )
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "500" in content
         assert Nomination.objects.count() == 0
 
     def test_duplicate_url_in_db_shows_error(self, admin_client: Client) -> None:
