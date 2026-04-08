@@ -39,6 +39,8 @@ class EngagementOpportunity(models.Model):
         ordering = ["engagement_type"]
 
     def save(self, *args: Any, **kwargs: Any) -> None:
+        # bulk_create / QuerySet.update bypass save(); callers
+        # must set location_bound explicitly in those cases.
         if self.location_bound is None:
             self.location_bound = (
                 self.engagement_type in LOCATION_BOUND_TYPES
