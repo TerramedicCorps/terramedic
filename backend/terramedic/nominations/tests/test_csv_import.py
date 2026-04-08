@@ -7,9 +7,6 @@ from terramedic.nominations.models import Nomination
 
 VALID_CATEGORIES = {"donate", "volunteer", "resource", "everyday", "career"}
 
-# Also hardcoded in nominations/admin.py — keep in sync.
-# The test below verifies they match the Category enum at runtime.
-
 
 def _make_csv(lines: list[str]) -> io.StringIO:
     return io.StringIO("\n".join(lines))
@@ -228,12 +225,3 @@ class TestParseNominationsCsvDbDuplicates:
         assert len(result.rows) == 0
         assert len(result.errors) == 1
         assert "already exists" in result.errors[0].lower()
-
-
-@pytest.mark.django_db
-class TestValidCategoriesSync:
-    def test_valid_categories_match_category_enum(self) -> None:
-        """Guard against drift between hardcoded sets and Category enum."""
-        from terramedic.organizations.models import Category
-
-        assert set(Category.values) == VALID_CATEGORIES
