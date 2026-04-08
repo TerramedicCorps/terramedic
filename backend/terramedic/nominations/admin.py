@@ -59,7 +59,7 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         if not csv_file:
             return self._render_with_errors(request, ["No file was uploaded."])
 
-        if not (csv_file.name or "").endswith(".csv"):
+        if not (csv_file.name or "").lower().endswith(".csv"):
             return self._render_with_errors(
                 request,
                 ["Please upload a CSV file."],
