@@ -65,6 +65,13 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
                 ["Please upload a CSV file."],
             )
 
+        max_size = 5 * 1024 * 1024  # 5 MB
+        if csv_file.size and csv_file.size > max_size:
+            return self._render_with_errors(
+                request,
+                ["CSV file exceeds the 5 MB size limit."],
+            )
+
         try:
             text = csv_file.read().decode("utf-8-sig")
         except UnicodeDecodeError:

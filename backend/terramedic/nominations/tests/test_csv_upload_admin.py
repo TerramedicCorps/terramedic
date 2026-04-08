@@ -164,6 +164,17 @@ class TestUploadCsvViewPost:
         content = response.content.decode()
         assert "csv" in content.lower()
 
+    def test_oversized_file_shows_error(self, admin_client: Client) -> None:
+        big_content = "url,category\n" + "https://example.org/,volunteer\n" * 200_000
+        response = admin_client.post(
+            UPLOAD_URL,
+            {"csv_file": _csv_file(big_content)},
+        )
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "size" in content.lower()
+        assert Nomination.objects.count() == 0
+
     def test_duplicate_url_in_db_shows_error(self, admin_client: Client) -> None:
         Nomination.objects.create(
             url="https://existing.org/",
