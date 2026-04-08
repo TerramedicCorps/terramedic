@@ -86,7 +86,7 @@ def parse_nominations_csv(
 
     from terramedic.organizations.models import Category
 
-    valid_categories = set(Category.values)
+    valid_categories: set[str] = {c.value for c in Category}
     seen_urls: set[str] = set()
 
     for row_num, row in enumerate(reader, start=2):

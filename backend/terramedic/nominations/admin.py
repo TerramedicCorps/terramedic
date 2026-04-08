@@ -56,7 +56,7 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         if not csv_file:
             return self._render_with_errors(request, ["No file was uploaded."])
 
-        if not csv_file.name.endswith(".csv"):
+        if not (csv_file.name or "").endswith(".csv"):
             return self._render_with_errors(
                 request,
                 ["Please upload a CSV file."],
@@ -76,7 +76,10 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
                 url=row["url"],
                 categories=row["categories"],
                 ip_hash=None,
-                notes=f"Imported via CSV upload by {request.user.username}.",
+                notes=(
+                    "Imported via CSV upload by "
+                    f"{getattr(request.user, 'username', 'unknown')}."
+                ),
             )
             for row in result.rows
         ]

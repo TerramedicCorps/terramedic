@@ -56,6 +56,7 @@ class TestCreateNomination:
         assert response.status_code == 201
         data = response.json()
         nom = Nomination.objects.get(confirmation_id=data["confirmation_id"])
+        assert nom.ip_hash is not None
         assert nom.ip_hash != ""
         # Should be a hash, not a raw IP
         assert "." not in nom.ip_hash
