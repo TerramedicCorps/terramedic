@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.contrib.gis.db import models
 
 from terramedic.organizations.models.enums import EngagementType, TimeCommitment
@@ -33,7 +35,7 @@ class EngagementOpportunity(models.Model):
     class Meta:
         ordering = ["engagement_type"]
 
-    def save(self, *args: object, **kwargs: object) -> None:
+    def save(self, *args: Any, **kwargs: Any) -> None:
         if self.location_bound is None:
             self.location_bound = (
                 self.engagement_type in LOCATION_BOUND_TYPES

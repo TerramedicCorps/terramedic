@@ -256,7 +256,7 @@ class TestOrganizationFocusAreas:
         org2.save()
         org2.focus_areas.add(fa)
 
-        assert fa.organizations.count() == 2
+        assert fa.organizations.count() == 2  # type: ignore[attr-defined]
 
 
 @pytest.mark.django_db
