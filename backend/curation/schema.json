@@ -56,7 +56,7 @@
       "properties": {
         "scope": {
           "type": "string",
-          "enum": ["local", "state", "national", "multinational", "global"],
+          "enum": ["local", "state", "regional", "national", "multinational", "global"],
           "description": "How broad the organization's geographic reach is."
         },
         "operating_countries": {

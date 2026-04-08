@@ -12,6 +12,7 @@ class Category(models.TextChoices):
 class GeographicScope(models.TextChoices):
     LOCAL = "local"
     STATE = "state"
+    REGIONAL = "regional"
     NATIONAL = "national"
     MULTINATIONAL = "multinational"
     GLOBAL = "global"

@@ -118,6 +118,7 @@ class TestGeographicScope:
     def test_choices_exist(self) -> None:
         assert GeographicScope.LOCAL == "local"
         assert GeographicScope.STATE == "state"
+        assert GeographicScope.REGIONAL == "regional"
         assert GeographicScope.NATIONAL == "national"
         assert GeographicScope.MULTINATIONAL == "multinational"
         assert GeographicScope.GLOBAL == "global"
