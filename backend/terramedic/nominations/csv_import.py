@@ -92,7 +92,11 @@ def parse_nominations_csv(
     from terramedic.organizations.models import Category
 
     valid_categories: set[str] = {
-        c.value for c in Category  # type: ignore[attr-defined]
+        Category.DONATE.value,
+        Category.VOLUNTEER.value,
+        Category.RESOURCE.value,
+        Category.EVERYDAY.value,
+        Category.CAREER.value,
     }
     seen_urls: set[str] = set()
 
