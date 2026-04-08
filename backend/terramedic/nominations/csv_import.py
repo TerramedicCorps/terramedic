@@ -80,11 +80,24 @@ def parse_nominations_csv(
     url_col = normalized["url"]
     category_col = normalized["category"]
 
+    # Collect CSV URLs upfront for a targeted DB query
+    csv_urls = {
+        (row.get(url_col) or "").strip()
+        for row in reader
+        if (row.get(url_col) or "").strip()
+    }
+    file.seek(0)
+    reader = csv.DictReader(file)
+
     existing_urls: set[str] = set()
-    if check_existing:
+    if check_existing and csv_urls:
         from terramedic.nominations.models import Nomination
 
-        existing_urls = set(Nomination.objects.values_list("url", flat=True))
+        existing_urls = set(
+            Nomination.objects.filter(url__in=csv_urls).values_list(
+                "url", flat=True,
+            ),
+        )
 
     from terramedic.organizations.models import Category
 
