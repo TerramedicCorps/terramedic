@@ -50,6 +50,73 @@
         }
       }
     },
+    "geographic_coverage": {
+      "type": "object",
+      "description": "Where the organization operates, beyond just its headquarters.",
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": ["local", "state", "national", "multinational", "global"],
+          "description": "How broad the organization's geographic reach is."
+        },
+        "operating_countries": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z]{2}$"
+          },
+          "description": "ISO 3166-1 alpha-2 country codes where the organization operates (e.g., ['US', 'KE', 'GB'])."
+        },
+        "operating_regions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["country_code", "name"],
+            "properties": {
+              "country_code": {
+                "type": "string",
+                "pattern": "^[A-Z]{2}$",
+                "description": "ISO 3166-1 alpha-2 country code."
+              },
+              "region_code": {
+                "type": "string",
+                "description": "ISO 3166-2 subdivision code (e.g., US-CA, GB-SCT) if applicable."
+              },
+              "name": {
+                "type": "string",
+                "description": "Human-readable region name (e.g., California, Scotland)."
+              }
+            }
+          },
+          "description": "Specific sub-national regions where the organization operates. Use when the org does not cover an entire country."
+        },
+        "headquarters_coordinates": {
+          "type": "object",
+          "properties": {
+            "lat": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "lng": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            }
+          },
+          "required": ["lat", "lng"],
+          "description": "Latitude and longitude of the organization's headquarters."
+        }
+      }
+    },
+    "focus_areas": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["biodiversity_monitoring", "climate_policy", "environmental_education", "environmental_justice", "habitat_restoration", "land_conservation", "ocean_conservation", "pollution_reduction", "reforestation", "renewable_energy", "sustainable_agriculture", "water_conservation", "wildlife_protection"]
+      },
+      "description": "Specific environmental cause areas the organization focuses on. More granular than SDG alignment."
+    },
     "sdg_alignment": {
       "type": "array",
       "description": "Which SDGs (13, 14, 15) the organization's work aligns with, and the evidence for each.",
@@ -131,6 +198,46 @@
             "enum": ["donate", "volunteer", "resource", "action", "career"]
           },
           "description": "Which Terramedic pathways this org fits into."
+        }
+      }
+    },
+    "engagement_opportunities": {
+      "type": "array",
+      "description": "Specific ways people can contribute to this organization. More detailed than accessibility categories.",
+      "items": {
+        "type": "object",
+        "required": ["engagement_type", "description"],
+        "properties": {
+          "engagement_type": {
+            "type": "string",
+            "enum": ["volunteer_in_person", "volunteer_remote", "donate_one_time", "donate_recurring", "advocacy", "education", "career", "citizen_science"],
+            "description": "The kind of engagement opportunity."
+          },
+          "description": {
+            "type": "string",
+            "description": "What the opportunity involves."
+          },
+          "time_commitment": {
+            "type": "string",
+            "enum": ["minutes", "hours_per_week", "days_per_month", "flexible", "event_based"],
+            "description": "Approximate time investment required."
+          },
+          "skills_helpful": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Skills that would be useful (e.g., GIS, legal, communications, data_analysis, manual_labor, translation). Free-form — no fixed vocabulary yet."
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to the specific opportunity or signup page."
+          },
+          "location_bound": {
+            "type": "boolean",
+            "description": "Whether this opportunity requires the participant to be in the org's operating region. Defaults to true for volunteer_in_person and career, false for all others. Override when the default doesn't fit (e.g., a remote role requiring a specific timezone)."
+          }
         }
       }
     },

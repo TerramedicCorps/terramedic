@@ -1,0 +1,11 @@
+from django.contrib.gis.db import models
+
+
+class Tag(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self) -> str:
+        return self.name
