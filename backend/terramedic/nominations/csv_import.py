@@ -7,7 +7,6 @@ from typing import TypedDict
 from urllib.parse import urlparse
 
 from terramedic.nominations.models import Nomination
-from terramedic.organizations.models import Category
 
 
 class ParsedRow(TypedDict):
@@ -70,6 +69,7 @@ def _validate_row(
 def parse_nominations_csv(
     file: io.StringIO,
     *,
+    valid_categories: set[str],
     check_existing: bool = False,
 ) -> CsvParseResult:
     result = CsvParseResult()
@@ -91,7 +91,6 @@ def parse_nominations_csv(
     url_col = normalized["url"]
     category_col = normalized["category"]
 
-    valid_categories = set(Category.values)  # type: ignore[attr-defined]
     seen_urls: set[str] = set()
 
     for row_num, row in enumerate(reader, start=2):

@@ -8,6 +8,7 @@ from django.urls import URLPattern, path, reverse
 
 from terramedic.nominations.csv_import import parse_nominations_csv
 from terramedic.nominations.models import Nomination
+from terramedic.organizations.models import Category
 
 
 @admin.register(Nomination)
@@ -84,6 +85,7 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
             )
         result = parse_nominations_csv(
             io.StringIO(text),
+            valid_categories=set(Category.values),  # type: ignore[attr-defined]
             check_existing=True,
         )
 
