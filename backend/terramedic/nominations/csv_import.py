@@ -6,8 +6,6 @@ from dataclasses import dataclass, field
 from typing import Any
 from urllib.parse import urlparse
 
-from terramedic.organizations.models import Category
-
 
 @dataclass
 class CsvParseResult:
@@ -16,7 +14,6 @@ class CsvParseResult:
 
 
 REQUIRED_COLUMNS = {"url", "category"}
-VALID_CATEGORIES = set(Category.values)
 
 
 def _is_valid_url(url: str) -> bool:
@@ -33,6 +30,7 @@ def _validate_row(
     raw_category: str,
     seen_urls: set[str],
     existing_urls: set[str],
+    valid_categories: set[str],
 ) -> str | dict[str, Any]:
     """Return a parsed row dict on success, or an error string on failure."""
     if not url:
@@ -48,7 +46,7 @@ def _validate_row(
     if not categories:
         return f"Row {row_num}: Category is empty."
 
-    invalid = [c for c in categories if c not in VALID_CATEGORIES]
+    invalid = [c for c in categories if c not in valid_categories]
     if invalid:
         return f"Row {row_num}: Invalid category: {', '.join(invalid)}."
 
@@ -86,13 +84,18 @@ def parse_nominations_csv(
 
         existing_urls = set(Nomination.objects.values_list("url", flat=True))
 
+    from terramedic.organizations.models import Category
+
+    valid_categories = set(Category.values)
     seen_urls: set[str] = set()
 
     for row_num, row in enumerate(reader, start=2):
         url = row[url_col].strip()
         raw_category = row[category_col].strip()
 
-        validated = _validate_row(row_num, url, raw_category, seen_urls, existing_urls)
+        validated = _validate_row(
+            row_num, url, raw_category, seen_urls, existing_urls, valid_categories,
+        )
         if isinstance(validated, str):
             result.errors.append(validated)
         else:
