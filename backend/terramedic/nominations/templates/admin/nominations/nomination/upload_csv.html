@@ -1,0 +1,37 @@
+{% extends "admin/base_site.html" %} {% load i18n %} {% block title %}Upload CSV | {{ site_title }}{% endblock %} {% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+  &rsaquo; <a href="{% url 'admin:nominations_nomination_changelist' %}">Nominations</a>
+  &rsaquo; Upload CSV
+</div>
+{% endblock %} {% block content %}
+<div id="content-main">
+  <h2>Upload CSV</h2>
+  <p>Upload a CSV file with columns: <code>url</code>, <code>category</code></p>
+  <p>Categories can be comma-separated for multiple values (e.g. <code>"volunteer,donate"</code>).</p>
+
+  {% if errors %}
+  <div class="errornote" style="margin-bottom: 1em">
+    <p>Errors found in CSV. No nominations were imported.</p>
+    <ul class="errorlist">
+      {% for error in errors %}
+      <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <fieldset class="module aligned">
+      <div class="form-row">
+        <label for="csv_file">CSV file:</label>
+        <input type="file" name="csv_file" id="csv_file" accept=".csv" />
+      </div>
+    </fieldset>
+    <div class="submit-row">
+      <input type="submit" value="Upload and Import" class="default" />
+    </div>
+  </form>
+</div>
+{% endblock %}

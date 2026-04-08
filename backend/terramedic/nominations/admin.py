@@ -1,5 +1,11 @@
-from django.contrib import admin
+import io
 
+from django.contrib import admin, messages
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.template.response import TemplateResponse
+from django.urls import URLPattern, path, reverse
+
+from terramedic.nominations.csv_import import parse_nominations_csv
 from terramedic.nominations.models import Nomination
 
 
@@ -18,3 +24,85 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         "ip_hash",
         "submitted_at",
     ]
+    change_list_template = "admin/nominations/nomination/change_list.html"
+
+    def get_urls(self) -> list[URLPattern]:
+        custom_urls = [
+            path(
+                "upload-csv/",
+                self.admin_site.admin_view(self.upload_csv_view),
+                name="nominations_nomination_upload_csv",
+            ),
+        ]
+        return custom_urls + super().get_urls()
+
+    def upload_csv_view(self, request: HttpRequest) -> HttpResponse:
+        if request.method == "POST":
+            return self._handle_csv_upload(request)
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Upload CSV",
+            "opts": self.model._meta,
+        }
+        return TemplateResponse(
+            request,
+            "admin/nominations/nomination/upload_csv.html",
+            context,
+        )
+
+    def _handle_csv_upload(self, request: HttpRequest) -> HttpResponse:
+        csv_file = request.FILES.get("csv_file")
+        if not csv_file:
+            return self._render_with_errors(request, ["No file was uploaded."])
+
+        if not csv_file.name.endswith(".csv"):
+            return self._render_with_errors(
+                request,
+                ["Please upload a CSV file."],
+            )
+
+        text = csv_file.read().decode("utf-8")
+        result = parse_nominations_csv(
+            io.StringIO(text),
+            check_existing=True,
+        )
+
+        if result.errors:
+            return self._render_with_errors(request, result.errors)
+
+        nominations = [
+            Nomination(
+                url=row["url"],
+                categories=row["categories"],
+                ip_hash=None,
+                notes=f"Imported via CSV upload by {request.user.username}.",
+            )
+            for row in result.rows
+        ]
+        Nomination.objects.bulk_create(nominations)
+
+        messages.success(
+            request,
+            f"Successfully imported {len(nominations)} nomination(s).",
+        )
+        return HttpResponseRedirect(
+            reverse("admin:nominations_nomination_changelist"),
+        )
+
+    def _render_with_errors(
+        self,
+        request: HttpRequest,
+        errors: list[str],
+    ) -> TemplateResponse:
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Upload CSV",
+            "opts": self.model._meta,
+            "errors": errors,
+        }
+        return TemplateResponse(
+            request,
+            "admin/nominations/nomination/upload_csv.html",
+            context,
+        )

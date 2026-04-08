@@ -24,6 +24,8 @@ class Nomination(models.Model):
     submitted_at = models.DateTimeField(auto_now_add=True)
     ip_hash = models.CharField(
         max_length=64,
+        null=True,
+        blank=True,
         db_index=True,
         help_text="SHA-256 hash of submitter IP for rate limiting.",
     )
