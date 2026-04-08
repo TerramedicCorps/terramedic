@@ -91,8 +91,9 @@ def parse_nominations_csv(
     # autodiscovery, before the app registry is fully populated.
     from terramedic.organizations.models import Category
 
-    # django-stubs doesn't fully type TextChoices; __members__ is from stdlib enum
-    valid_categories: set[str] = {m.value for m in Category.__members__.values()}
+    valid_categories: set[str] = {
+        c.value for c in Category  # type: ignore[attr-defined]
+    }
     seen_urls: set[str] = set()
 
     for row_num, row in enumerate(reader, start=2):
