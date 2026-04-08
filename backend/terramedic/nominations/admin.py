@@ -1,6 +1,7 @@
 import io
 
 from django.contrib import admin, messages
+from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.urls import URLPattern, path, reverse
@@ -37,6 +38,8 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         return custom_urls + super().get_urls()
 
     def upload_csv_view(self, request: HttpRequest) -> HttpResponse:
+        if not self.has_add_permission(request):
+            raise PermissionDenied
         if request.method == "POST":
             return self._handle_csv_upload(request)
 

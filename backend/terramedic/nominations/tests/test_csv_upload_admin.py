@@ -50,6 +50,17 @@ class TestUploadCsvViewAccess:
         response = client.get(UPLOAD_URL)
         assert response.status_code == 302
 
+    def test_staff_without_add_permission_denied(self) -> None:
+        user = User.objects.create_user(
+            username="staff_no_add",
+            password="testpass123",
+            is_staff=True,
+        )
+        client = Client()
+        client.force_login(user)
+        response = client.get(UPLOAD_URL)
+        assert response.status_code == 403
+
 
 @pytest.mark.django_db
 class TestUploadCsvViewGet:
