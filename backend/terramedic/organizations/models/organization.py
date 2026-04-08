@@ -1,4 +1,5 @@
 from django.contrib.gis.db import models
+from django.core.validators import MaxValueValidator, MinValueValidator
 from parler.models import TranslatableModel, TranslatedFields
 
 from terramedic.organizations.models.category import Category
@@ -32,11 +33,25 @@ class Organization(TranslatableModel):
         blank=True,
         default="",
     )
-    year_founded = models.IntegerField(null=True, blank=True)
+    year_founded = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[
+            MinValueValidator(1800),
+            MaxValueValidator(2100),
+        ],
+    )
     legal_status = models.CharField(
         max_length=100, blank=True, default="",
     )
-    evidence_score = models.IntegerField(null=True, blank=True)
+    evidence_score = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[
+            MinValueValidator(0),
+            MaxValueValidator(5),
+        ],
+    )
     donate_url = models.URLField(blank=True, default="")
     volunteer_url = models.URLField(blank=True, default="")
     toolkit_url = models.URLField(blank=True, default="")

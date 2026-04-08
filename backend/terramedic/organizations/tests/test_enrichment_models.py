@@ -203,6 +203,20 @@ class TestOrganizationEnrichmentFields:
     ) -> None:
         assert org.year_founded is None
 
+    def test_year_founded_rejects_negative(
+        self, org: Organization,
+    ) -> None:
+        org.year_founded = -500
+        with pytest.raises(ValidationError):
+            org.full_clean()
+
+    def test_year_founded_rejects_far_future(
+        self, org: Organization,
+    ) -> None:
+        org.year_founded = 99999
+        with pytest.raises(ValidationError):
+            org.full_clean()
+
     def test_legal_status(self, org: Organization) -> None:
         org.legal_status = "501(c)(3)"
         org.save()
@@ -214,6 +228,13 @@ class TestOrganizationEnrichmentFields:
         org.save()
         org.refresh_from_db()
         assert org.evidence_score == 4
+
+    def test_evidence_score_rejects_out_of_range(
+        self, org: Organization,
+    ) -> None:
+        org.evidence_score = 6
+        with pytest.raises(ValidationError):
+            org.full_clean()
 
     def test_donate_url(self, org: Organization) -> None:
         org.donate_url = "https://example.com/donate"
