@@ -41,9 +41,9 @@ can be matched by location
 hearings, parliamentary outreach, community campaigning
 
 Examples: Citizens' Climate Lobby (global — local chapters + lobby days), \
-Climate Changemakers (hour-of-action events + local action teams), \
-state-level Sierra Club chapters (lobby nights + conservation outings), \
-regional Audubon Society chapters (bird counts + habitat restoration days), \
+Climate Changemakers (US — hour-of-action events + local action teams), \
+state-level Sierra Club chapters (US — lobby nights + conservation outings), \
+regional Audubon Society chapters (US — bird counts + habitat restoration days), \
 Trees for Cities (UK — community tree planting + urban greening volunteers), \
 Clean Up Australia (national cleanup events + local group coordination).
 
