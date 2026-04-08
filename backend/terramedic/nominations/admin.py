@@ -65,11 +65,11 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
                 ["Please upload a CSV file."],
             )
 
-        max_size = 1024 * 1024  # 1 MB
+        max_size = 256 * 1024  # 256 KB
         if csv_file.size and csv_file.size > max_size:
             return self._render_with_errors(
                 request,
-                ["CSV file exceeds the 1 MB size limit."],
+                ["CSV file exceeds the 256 KB size limit."],
             )
 
         try:

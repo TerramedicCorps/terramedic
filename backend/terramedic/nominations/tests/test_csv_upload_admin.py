@@ -166,7 +166,7 @@ class TestUploadCsvViewPost:
 
     def test_oversized_file_shows_error(self, admin_client: Client) -> None:
         header = "url,category\n"
-        padding = "a" * (1024 * 1024 + 1 - len(header))  # just over 1 MB
+        padding = "a" * (256 * 1024 + 1 - len(header))  # just over 256 KB
         response = admin_client.post(
             UPLOAD_URL,
             {"csv_file": _csv_file(header + padding)},
