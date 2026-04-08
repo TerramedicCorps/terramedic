@@ -28,13 +28,13 @@ class EngagementOpportunity(models.Model):
     )
     url = models.URLField(blank=True, default="")
     skills_helpful = models.JSONField(default=list, blank=True)
-    location_bound = models.BooleanField(default=False)
+    location_bound = models.BooleanField(null=True, blank=True)
 
     class Meta:
         ordering = ["engagement_type"]
 
     def save(self, *args: object, **kwargs: object) -> None:
-        if not self.pk and not self.location_bound:
+        if self.location_bound is None:
             self.location_bound = (
                 self.engagement_type in LOCATION_BOUND_TYPES
             )

@@ -455,7 +455,7 @@ class TestEngagementOpportunity:
         )
         assert eo.location_bound is False
 
-    def test_location_bound_override(self, org: Organization) -> None:
+    def test_location_bound_override_to_true(self, org: Organization) -> None:
         eo = EngagementOpportunity.objects.create(
             organization=org,
             engagement_type=EngagementType.VOLUNTEER_REMOTE,
@@ -464,3 +464,13 @@ class TestEngagementOpportunity:
         )
         eo.refresh_from_db()
         assert eo.location_bound is True
+
+    def test_location_bound_override_to_false(self, org: Organization) -> None:
+        eo = EngagementOpportunity.objects.create(
+            organization=org,
+            engagement_type=EngagementType.VOLUNTEER_IN_PERSON,
+            description="In-person role with no location requirement.",
+            location_bound=False,
+        )
+        eo.refresh_from_db()
+        assert eo.location_bound is False
