@@ -6,6 +6,9 @@ from dataclasses import dataclass, field
 from typing import TypedDict
 from urllib.parse import urlparse
 
+from terramedic.nominations.models import Nomination
+from terramedic.organizations.models import Category
+
 
 class ParsedRow(TypedDict):
     url: str
@@ -87,10 +90,6 @@ def parse_nominations_csv(
     url_col = normalized["url"]
     category_col = normalized["category"]
 
-    # Deferred import: this module is loaded during Django admin
-    # autodiscovery, before the app registry is fully populated.
-    from terramedic.organizations.models import Category
-
     valid_categories: set[str] = {
         Category.DONATE.value,
         Category.VOLUNTEER.value,
@@ -114,8 +113,6 @@ def parse_nominations_csv(
             result.rows.append(validated)
 
     if check_existing and result.rows:
-        from terramedic.nominations.models import Nomination  # deferred (see above)
-
         parsed_urls = {row["url"] for row in result.rows}
         existing_urls = set(
             Nomination.objects.filter(url__in=parsed_urls).values_list(
