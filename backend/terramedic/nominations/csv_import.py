@@ -90,8 +90,8 @@ def parse_nominations_csv(
     seen_urls: set[str] = set()
 
     for row_num, row in enumerate(reader, start=2):
-        url = row[url_col].strip()
-        raw_category = row[category_col].strip()
+        url = (row.get(url_col) or "").strip()
+        raw_category = (row.get(category_col) or "").strip()
 
         validated = _validate_row(
             row_num, url, raw_category, seen_urls, existing_urls, valid_categories,

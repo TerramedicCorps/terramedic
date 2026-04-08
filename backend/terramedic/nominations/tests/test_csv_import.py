@@ -154,6 +154,16 @@ class TestParseNominationsCsvErrors:
         assert len(result.errors) == 1
         assert "duplicate" in result.errors[0].lower()
 
+    def test_missing_cell_value_does_not_crash(self) -> None:
+        """A row missing the trailing column should report an error, not 500."""
+        f = _make_csv([
+            "url,category",
+            "https://example.org/",
+        ])
+        result = parse_nominations_csv(f)
+        assert len(result.rows) == 0
+        assert len(result.errors) == 1
+
     def test_one_valid_one_invalid_category_in_multi(self) -> None:
         """If a row has 'volunteer,bogus', it should error."""
         f = _make_csv([
