@@ -113,7 +113,7 @@
       "type": "array",
       "items": {
         "type": "string",
-        "enum": ["biodiversity_monitoring", "climate_policy", "environmental_education", "environmental_justice", "habitat_restoration", "land_conservation", "ocean_conservation", "pollution_reduction", "reforestation", "renewable_energy", "sustainable_agriculture", "water_conservation", "wildlife_protection"]
+        "anyOf": [{ "enum": ["biodiversity_monitoring", "civic_engagement", "climate_adaptation", "climate_communication", "climate_policy", "climate_science", "environmental_education", "environmental_justice", "green_careers", "habitat_restoration", "indigenous_stewardship", "land_conservation", "nature_access", "ocean_conservation", "pollution_reduction", "reforestation", "renewable_energy", "sustainable_agriculture", "sustainable_living", "urban_ecology", "waste_reduction", "water_conservation", "wildlife_protection"] }, { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" }]
       },
       "description": "Specific environmental cause areas the organization focuses on. More granular than SDG alignment."
     },

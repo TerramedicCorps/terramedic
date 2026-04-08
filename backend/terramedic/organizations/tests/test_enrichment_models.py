@@ -32,6 +32,15 @@ class TestFocusArea:
         with pytest.raises(IntegrityError):
             FocusArea.objects.create(name="climate_policy")
 
+    def test_reviewed_defaults_to_false(self) -> None:
+        fa = FocusArea.objects.create(name="urban_ecology")
+        assert fa.reviewed is False
+
+    def test_reviewed_can_be_set_true(self) -> None:
+        fa = FocusArea.objects.create(name="climate_policy", reviewed=True)
+        fa.refresh_from_db()
+        assert fa.reviewed is True
+
     def test_ordering_by_name(self) -> None:
         FocusArea.objects.create(name="wildlife_protection")
         FocusArea.objects.create(name="biodiversity_monitoring")
