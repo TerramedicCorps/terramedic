@@ -70,7 +70,6 @@ def parse_nominations_csv(
         result.errors.append("Empty file or missing header row.")
         return result
 
-    # Normalize headers to lowercase
     normalized = {name.strip().lower(): name for name in reader.fieldnames}
     for required in REQUIRED_COLUMNS:
         if required not in normalized:
