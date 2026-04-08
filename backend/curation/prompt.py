@@ -174,16 +174,16 @@ matches users to orgs by location.
 leadership, and provide financial disclosures (annual reports, audited statements, \
 tax filings)? Are its goals and methods understandable? \
 Search for the organization on the charity watchdog or registry appropriate to \
-its country. Common examples: \
+its country. Common examples:
 - **US**: Charity Navigator (charitynavigator.org), GuideStar/Candid — search \
-for ratings, financial health, 990 filings \
+for ratings, financial health, 990 filings
 - **UK**: Charity Commission (gov.uk/find-charity-information) — search for \
-registration, accounts, annual returns \
+registration, accounts, annual returns
 - **Canada**: CRA Charities Listings (apps.cra-arc.gc.ca) — search for \
-registration status, T3010 filings \
+registration status, T3010 filings
 - **Australia**: ACNC Charity Register (acnc.gov.au) — search for registration, \
-annual information statements \
-- **Other countries**: Look for the national charity regulator or NGO registry \
+annual information statements
+- **Other countries**: Look for the national charity regulator or NGO registry
 Include any watchdog URL and rating/status in your sources if available. \
 Red flags: no information about leadership, vague descriptions of activities, \
 no financial transparency.
