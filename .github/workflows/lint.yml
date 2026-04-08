@@ -88,13 +88,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
+      - name: Install Poetry
+        run: pip install poetry
+
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.14"
-
-      - name: Install Poetry
-        run: pip install poetry
+          cache: "poetry"
 
       - name: Install dependencies
         working-directory: backend
@@ -112,18 +113,30 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
+      - name: Cache GDAL/SpatiaLite apt packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/apt-cache
+          key: apt-geodeps-${{ runner.os }}
+
       - name: Install GDAL/SpatiaLite
         run: |
+          if [ -d ~/apt-cache ]; then
+            sudo cp ~/apt-cache/*.deb /var/cache/apt/archives/ 2>/dev/null || true
+          fi
           sudo apt-get update
           sudo apt-get install -y gdal-bin libgdal-dev libsqlite3-mod-spatialite
+          mkdir -p ~/apt-cache
+          cp /var/cache/apt/archives/*.deb ~/apt-cache/ 2>/dev/null || true
+
+      - name: Install Poetry
+        run: pip install poetry
 
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.14"
-
-      - name: Install Poetry
-        run: pip install poetry
+          cache: "poetry"
 
       - name: Install dependencies
         working-directory: backend
