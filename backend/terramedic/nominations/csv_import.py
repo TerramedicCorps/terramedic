@@ -35,7 +35,6 @@ def _validate_row(
     url: str,
     raw_category: str,
     seen_urls: set[str],
-    existing_urls: set[str],
     valid_categories: set[str],
 ) -> str | dict[str, Any]:
     """Return a parsed row dict on success, or an error string on failure."""
@@ -47,8 +46,6 @@ def _validate_row(
         return f"Row {row_num}: URL exceeds 2048 characters."
     if url in seen_urls:
         return f"Row {row_num}: Duplicate URL '{url}'."
-    if url in existing_urls:
-        return f"Row {row_num}: URL '{url}' already exists as a nomination."
 
     categories = [c.strip() for c in raw_category.split(",") if c.strip()]
     if not categories:
@@ -86,25 +83,6 @@ def parse_nominations_csv(
     url_col = normalized["url"]
     category_col = normalized["category"]
 
-    # Collect CSV URLs upfront for a targeted DB query
-    csv_urls = {
-        (row.get(url_col) or "").strip()
-        for row in reader
-        if (row.get(url_col) or "").strip()
-    }
-    file.seek(0)
-    reader = csv.DictReader(file)
-
-    existing_urls: set[str] = set()
-    if check_existing and csv_urls:
-        from terramedic.nominations.models import Nomination
-
-        existing_urls = set(
-            Nomination.objects.filter(url__in=csv_urls).values_list(
-                "url", flat=True,
-            ),
-        )
-
     from terramedic.organizations.models import Category
 
     valid_categories: set[str] = {c.value for c in Category}
@@ -115,12 +93,30 @@ def parse_nominations_csv(
         raw_category = (row.get(category_col) or "").strip()
 
         validated = _validate_row(
-            row_num, url, raw_category, seen_urls, existing_urls, valid_categories,
+            row_num, url, raw_category, seen_urls, valid_categories,
         )
         if isinstance(validated, str):
             result.errors.append(validated)
         else:
             seen_urls.add(url)
             result.rows.append(validated)
+
+    if check_existing and result.rows:
+        from terramedic.nominations.models import Nomination
+
+        parsed_urls = {row["url"] for row in result.rows}
+        existing_urls = set(
+            Nomination.objects.filter(url__in=parsed_urls).values_list(
+                "url", flat=True,
+            ),
+        )
+        if existing_urls:
+            result.errors.extend(
+                f"URL '{url}' already exists as a nomination."
+                for url in existing_urls
+            )
+            result.rows = [
+                row for row in result.rows if row["url"] not in existing_urls
+            ]
 
     return result
