@@ -3,8 +3,13 @@ from __future__ import annotations
 import csv
 import io
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TypedDict
 from urllib.parse import urlparse
+
+
+class ParsedRow(TypedDict):
+    url: str
+    categories: list[str]
 
 
 @dataclass
@@ -15,7 +20,7 @@ class CsvParseResult:
     that should NOT be persisted.
     """
 
-    rows: list[dict[str, Any]] = field(default_factory=list)
+    rows: list[ParsedRow] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
 
@@ -36,7 +41,7 @@ def _validate_row(
     raw_category: str,
     seen_urls: set[str],
     valid_categories: set[str],
-) -> str | dict[str, Any]:
+) -> str | ParsedRow:
     """Return a parsed row dict on success, or an error string on failure."""
     if not url:
         return f"Row {row_num}: URL is empty."
