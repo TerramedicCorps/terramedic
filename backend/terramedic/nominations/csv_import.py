@@ -9,6 +9,12 @@ from urllib.parse import urlparse
 
 @dataclass
 class CsvParseResult:
+    """Callers must check ``errors`` before consuming ``rows``.
+
+    When errors is non-empty, rows may contain partial results
+    that should NOT be persisted.
+    """
+
     rows: list[dict[str, Any]] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
