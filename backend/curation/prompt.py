@@ -52,7 +52,7 @@ Organizations where **donations create outsized impact** through a specific, \
 accountable model — not just a generic "donate to help the planet" button.
 - A clear theory of change with measurable outcomes: "$50 funds a ranger \
 patrol," "donations directly support rainforest communities," "funds \
-targeted non-partisan GOTV campaigns in key districts"
+targeted civic engagement campaigns in key regions"
 - Focused organizations where the donation pathway is the primary way \
 everyday people can contribute
 - Bundlers and fundraising platforms that direct donations to vetted \
