@@ -2,6 +2,7 @@ from typing import Any
 
 from django.conf import settings
 from django.contrib.gis.db import models
+from django.core.exceptions import ValidationError
 
 from terramedic.organizations.models.enums import ReviewStatus
 from terramedic.organizations.models.organization import Organization
@@ -12,6 +13,19 @@ class OrganizationEvaluation(models.Model):
         help_text=(
             "Full evaluation payload matching curation/schema.json."
         ),
+    )
+    ai_model = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        help_text="Model ID that produced this evaluation.",
+    )
+    ai_recommendation = models.CharField(
+        max_length=20,
+        choices=ReviewStatus.choices,
+        blank=True,
+        default="",
+        help_text="The AI's inclusion recommendation.",
     )
     status = models.CharField(
         max_length=20,
@@ -45,6 +59,23 @@ class OrganizationEvaluation(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+    def clean(self) -> None:
+        super().clean()
+        is_override = (
+            self.ai_recommendation
+            and self.status != ReviewStatus.PENDING
+            and self.status != self.ai_recommendation
+        )
+        if is_override and not self.reviewer_reasoning.strip():
+            raise ValidationError(
+                {
+                    "reviewer_reasoning": (
+                        "Reasoning is required when overriding"
+                        " the AI recommendation."
+                    ),
+                },
+            )
 
     def __str__(self) -> str:
         return f"{self.org_name} ({self.status})"

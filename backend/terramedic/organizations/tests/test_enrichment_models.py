@@ -9,6 +9,8 @@ from terramedic.organizations.models import (
     GeographicScope,
     OperatingRegion,
     Organization,
+    OrganizationEvaluation,
+    ReviewStatus,
     Skill,
     TimeCommitment,
 )
@@ -511,3 +513,82 @@ class TestLocationBound:
             location_bound=False,
         )
         assert eo.location_bound is False
+
+
+# -- OrganizationEvaluation (enrichment fields) -------------------------
+
+
+SAMPLE_EVAL_DATA = {
+    "org_metadata": {"name": "Test Org"},
+    "evidence_score": {"score": 3},
+}
+
+
+@pytest.mark.django_db
+class TestEvaluationEnrichmentFields:
+    def test_ai_model_stored(self) -> None:
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=SAMPLE_EVAL_DATA,
+            ai_model="claude-sonnet-4-5-20250514",
+        )
+        ev.refresh_from_db()
+        assert ev.ai_model == "claude-sonnet-4-5-20250514"
+
+    def test_ai_model_defaults_blank(self) -> None:
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=SAMPLE_EVAL_DATA,
+        )
+        assert ev.ai_model == ""
+
+    def test_ai_recommendation_stored(self) -> None:
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=SAMPLE_EVAL_DATA,
+            ai_recommendation=ReviewStatus.APPROVED,
+        )
+        ev.refresh_from_db()
+        assert ev.ai_recommendation == ReviewStatus.APPROVED
+
+    def test_ai_recommendation_defaults_blank(self) -> None:
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=SAMPLE_EVAL_DATA,
+        )
+        assert ev.ai_recommendation == ""
+
+    def test_override_without_reasoning_rejected(self) -> None:
+        """Status differs from AI recommendation but no reasoning given."""
+        ev = OrganizationEvaluation(
+            evaluation_data=SAMPLE_EVAL_DATA,
+            ai_recommendation=ReviewStatus.APPROVED,
+            status=ReviewStatus.REJECTED,
+            reviewer_reasoning="",
+        )
+        with pytest.raises(ValidationError):
+            ev.full_clean()
+
+    def test_override_with_reasoning_accepted(self) -> None:
+        """Status differs from AI recommendation with reasoning provided."""
+        ev = OrganizationEvaluation(
+            evaluation_data=SAMPLE_EVAL_DATA,
+            ai_recommendation=ReviewStatus.APPROVED,
+            status=ReviewStatus.REJECTED,
+            reviewer_reasoning="Org has deceptive financial practices.",
+        )
+        ev.full_clean()  # should not raise
+
+    def test_agreement_needs_no_reasoning(self) -> None:
+        """Status matches AI recommendation — reasoning is optional."""
+        ev = OrganizationEvaluation(
+            evaluation_data=SAMPLE_EVAL_DATA,
+            ai_recommendation=ReviewStatus.APPROVED,
+            status=ReviewStatus.APPROVED,
+        )
+        ev.full_clean()  # should not raise
+
+    def test_pending_status_needs_no_reasoning(self) -> None:
+        """Pending evaluations haven't been reviewed yet."""
+        ev = OrganizationEvaluation(
+            evaluation_data=SAMPLE_EVAL_DATA,
+            ai_recommendation=ReviewStatus.APPROVED,
+            status=ReviewStatus.PENDING,
+        )
+        ev.full_clean()  # should not raise
