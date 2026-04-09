@@ -40,7 +40,7 @@ def _make_valid_evaluation() -> dict[str, Any]:
         ],
         "accessibility": {},
         "evidence_score": {"score": 3, "rationale": "Moderate evidence"},
-        "curator_notes": {"recommendation": "include"},
+        "curator_notes": {"recommendation": "include", "confidence": 85},
         "evaluated_at": "2026-04-04T12:00:00+00:00",
         "evaluated_by": "claude-sonnet-4-20250514",
         "prompt_version": "1.0",

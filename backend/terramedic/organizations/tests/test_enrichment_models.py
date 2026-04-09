@@ -104,7 +104,7 @@ class TestSDG:
         )
         org1.sdgs.add(sdg)
         org2.sdgs.add(sdg)
-        assert sdg.organizations.count() == 2
+        assert Organization.objects.filter(sdgs=sdg).count() == 2
 
     def test_number_rejects_below_1(self) -> None:
         sdg = SDG(number=0, name="Invalid")
@@ -473,7 +473,7 @@ class TestEngagementOpportunity:
         )
         eo1.skills.add(s)
         eo2.skills.add(s)
-        assert s.engagement_opportunities.count() == 2
+        assert EngagementOpportunity.objects.filter(skills=s).count() == 2
 
     def test_cascade_delete_with_org(
         self, org: Organization,
