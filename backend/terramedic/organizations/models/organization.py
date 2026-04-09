@@ -6,6 +6,7 @@ from terramedic.organizations.models.category import Category
 from terramedic.organizations.models.enums import GeographicScope
 from terramedic.organizations.models.focus_area import FocusArea
 from terramedic.organizations.models.operating_region import OperatingRegion
+from terramedic.organizations.models.sdg import SDG
 from terramedic.organizations.models.tag import Tag
 
 
@@ -62,6 +63,11 @@ class Organization(TranslatableModel):
     )
     operating_regions = models.ManyToManyField(
         OperatingRegion,
+        blank=True,
+        related_name="organizations",
+    )
+    sdgs = models.ManyToManyField(
+        SDG,
         blank=True,
         related_name="organizations",
     )
