@@ -358,6 +358,30 @@ class TestEngagementOpportunity:
         eo.refresh_from_db()
         assert eo.skills_helpful == ["data_entry", "GIS"]
 
+    def test_skills_helpful_rejects_non_string_list(
+        self, org: Organization,
+    ) -> None:
+        eo = EngagementOpportunity(
+            organization=org,
+            engagement_type=EngagementType.VOLUNTEER_REMOTE,
+            description="Data entry",
+            skills_helpful=[1, 2, 3],
+        )
+        with pytest.raises(ValidationError):
+            eo.full_clean()
+
+    def test_skills_helpful_rejects_non_list(
+        self, org: Organization,
+    ) -> None:
+        eo = EngagementOpportunity(
+            organization=org,
+            engagement_type=EngagementType.VOLUNTEER_REMOTE,
+            description="Data entry",
+            skills_helpful="not a list",
+        )
+        with pytest.raises(ValidationError):
+            eo.full_clean()
+
     def test_cascade_delete_with_org(
         self, org: Organization,
     ) -> None:

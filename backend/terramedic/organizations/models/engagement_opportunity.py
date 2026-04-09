@@ -1,6 +1,7 @@
 from typing import Any
 
 from django.contrib.gis.db import models
+from django.core.exceptions import ValidationError
 
 from terramedic.organizations.models.enums import (
     EngagementType,
@@ -37,6 +38,15 @@ class EngagementOpportunity(models.Model):
 
     class Meta:
         ordering = ["engagement_type"]
+
+    def clean(self) -> None:
+        super().clean()
+        if not isinstance(self.skills_helpful, list) or not all(
+            isinstance(s, str) for s in self.skills_helpful
+        ):
+            raise ValidationError(
+                {"skills_helpful": "Must be a list of strings."},
+            )
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         # bulk_create / QuerySet.update bypass save(); callers
