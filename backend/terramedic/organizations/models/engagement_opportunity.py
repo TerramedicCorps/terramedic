@@ -1,6 +1,6 @@
 from typing import Any
 
-from django.contrib.gis.db import models
+from django.db import models
 
 from terramedic.organizations.models.enums import (
     EngagementType,

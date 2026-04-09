@@ -1,9 +1,9 @@
 from typing import Any
 
 from django.conf import settings
-from django.contrib.gis.db import models
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import models
 
 from terramedic.organizations.models.enums import AIRecommendation, ReviewStatus
 from terramedic.organizations.models.organization import Organization

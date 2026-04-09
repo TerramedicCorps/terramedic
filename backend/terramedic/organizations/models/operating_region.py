@@ -1,5 +1,5 @@
-from django.contrib.gis.db import models
 from django.core.validators import RegexValidator
+from django.db import models
 
 
 class OperatingRegion(models.Model):
@@ -18,6 +18,9 @@ class OperatingRegion(models.Model):
     class Meta:
         ordering = ["country_code", "name"]
         constraints = [
+            # region_code defaults to "" for country-level entries, so this
+            # allows at most one country-level row per country code while
+            # still permitting multiple sub-national regions.
             models.UniqueConstraint(
                 fields=["country_code", "region_code"],
                 name="unique_country_region",
