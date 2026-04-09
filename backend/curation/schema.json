@@ -317,7 +317,7 @@
     "curator_notes": {
       "type": "object",
       "description": "Additional context for the human reviewer.",
-      "required": ["recommendation"],
+      "required": ["recommendation", "confidence"],
       "properties": {
         "flags": {
           "type": "array",
@@ -328,8 +328,14 @@
         },
         "recommendation": {
           "type": "string",
-          "enum": ["include", "exclude", "needs_review"],
-          "description": "Curator's recommendation. Use needs_review when uncertain."
+          "enum": ["include", "exclude"],
+          "description": "Curator's inclusion recommendation. Always make a call — use confidence to express uncertainty."
+        },
+        "confidence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "How confident the curator is in its recommendation (0–100). Low values flag the evaluation for closer human review."
         },
         "notes": {
           "type": "string",
