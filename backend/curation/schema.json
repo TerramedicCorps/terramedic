@@ -384,7 +384,7 @@
           },
           "recommendation": {
             "type": "string",
-            "enum": ["include", "exclude", "needs_review"],
+            "enum": ["include", "exclude"],
             "description": "Recommendation from this prior evaluation."
           }
         }
