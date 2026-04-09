@@ -269,7 +269,7 @@
           "engagement_type": {
             "type": "string",
             "enum": ["volunteer_in_person", "volunteer_remote", "donate_one_time", "donate_recurring", "advocacy", "education", "career", "citizen_science"],
-            "description": "The kind of engagement opportunity."
+            "description": "The kind of engagement opportunity. volunteer_in_person/volunteer_remote = donating time and labor to org operations; advocacy = political or social action the org directs (petitions, contacting legislators); education = learning or awareness activities; citizen_science = data collection or monitoring; career = paid employment; donate_one_time/donate_recurring = financial contributions."
           },
           "description": {
             "type": "string",
