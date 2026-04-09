@@ -3,6 +3,7 @@ from terramedic.organizations.models.engagement_opportunity import (
     EngagementOpportunity,
 )
 from terramedic.organizations.models.enums import (
+    AIRecommendation,
     EngagementType,
     GeographicScope,
     ReviewStatus,
@@ -21,6 +22,7 @@ from terramedic.organizations.models.skill import Skill
 from terramedic.organizations.models.tag import Tag
 
 __all__ = [
+    "AIRecommendation",
     "Category",
     "EngagementOpportunity",
     "EngagementType",

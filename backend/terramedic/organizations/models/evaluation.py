@@ -5,7 +5,7 @@ from django.contrib.gis.db import models
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 
-from terramedic.organizations.models.enums import ReviewStatus
+from terramedic.organizations.models.enums import AIRecommendation, ReviewStatus
 from terramedic.organizations.models.organization import Organization
 
 
@@ -23,7 +23,7 @@ class OrganizationEvaluation(models.Model):
     )
     ai_recommendation = models.CharField(
         max_length=20,
-        choices=ReviewStatus.choices,
+        choices=AIRecommendation.choices,
         blank=True,
         default="",
         help_text="The AI's inclusion recommendation.",
@@ -67,12 +67,19 @@ class OrganizationEvaluation(models.Model):
     class Meta:
         ordering = ["-created_at"]
 
+    # Map AI recommendations to the review status that agrees.
+    _AGREEMENT: dict[str, str] = {
+        AIRecommendation.INCLUDE: ReviewStatus.APPROVED,
+        AIRecommendation.EXCLUDE: ReviewStatus.REJECTED,
+    }
+
     def clean(self) -> None:
         super().clean()
+        agreed_status = self._AGREEMENT.get(self.ai_recommendation)
         is_override = (
             self.ai_recommendation
             and self.status != ReviewStatus.PENDING
-            and self.status != self.ai_recommendation
+            and self.status != agreed_status
         )
         if is_override and not self.reviewer_reasoning.strip():
             raise ValidationError(

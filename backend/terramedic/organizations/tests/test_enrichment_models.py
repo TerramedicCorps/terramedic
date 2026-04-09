@@ -4,6 +4,7 @@ from django.db import IntegrityError
 
 from terramedic.organizations.models import (
     SDG,
+    AIRecommendation,
     EngagementOpportunity,
     EngagementType,
     FocusArea,
@@ -603,10 +604,10 @@ class TestEvaluationEnrichmentFields:
     def test_ai_recommendation_stored(self) -> None:
         ev = OrganizationEvaluation.objects.create(
             evaluation_data=SAMPLE_EVAL_DATA,
-            ai_recommendation=ReviewStatus.APPROVED,
+            ai_recommendation=AIRecommendation.INCLUDE,
         )
         ev.refresh_from_db()
-        assert ev.ai_recommendation == ReviewStatus.APPROVED
+        assert ev.ai_recommendation == AIRecommendation.INCLUDE
 
     def test_ai_recommendation_defaults_blank(self) -> None:
         ev = OrganizationEvaluation.objects.create(
@@ -618,7 +619,7 @@ class TestEvaluationEnrichmentFields:
         """Status differs from AI recommendation but no reasoning given."""
         ev = OrganizationEvaluation(
             evaluation_data=SAMPLE_EVAL_DATA,
-            ai_recommendation=ReviewStatus.APPROVED,
+            ai_recommendation=AIRecommendation.INCLUDE,
             status=ReviewStatus.REJECTED,
             reviewer_reasoning="",
         )
@@ -629,7 +630,7 @@ class TestEvaluationEnrichmentFields:
         """Status differs from AI recommendation with reasoning provided."""
         ev = OrganizationEvaluation(
             evaluation_data=SAMPLE_EVAL_DATA,
-            ai_recommendation=ReviewStatus.APPROVED,
+            ai_recommendation=AIRecommendation.INCLUDE,
             status=ReviewStatus.REJECTED,
             reviewer_reasoning="Org has deceptive financial practices.",
         )
@@ -639,7 +640,7 @@ class TestEvaluationEnrichmentFields:
         """Status matches AI recommendation — reasoning is optional."""
         ev = OrganizationEvaluation(
             evaluation_data=SAMPLE_EVAL_DATA,
-            ai_recommendation=ReviewStatus.APPROVED,
+            ai_recommendation=AIRecommendation.INCLUDE,
             status=ReviewStatus.APPROVED,
         )
         ev.full_clean()  # should not raise
@@ -648,7 +649,7 @@ class TestEvaluationEnrichmentFields:
         """Pending evaluations haven't been reviewed yet."""
         ev = OrganizationEvaluation(
             evaluation_data=SAMPLE_EVAL_DATA,
-            ai_recommendation=ReviewStatus.APPROVED,
+            ai_recommendation=AIRecommendation.INCLUDE,
             status=ReviewStatus.PENDING,
         )
         ev.full_clean()  # should not raise

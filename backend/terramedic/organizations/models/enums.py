@@ -29,6 +29,11 @@ class TimeCommitment(models.TextChoices):
     EVENT_BASED = "event_based"
 
 
+class AIRecommendation(models.TextChoices):
+    INCLUDE = "include"
+    EXCLUDE = "exclude"
+
+
 class ReviewStatus(models.TextChoices):
     PENDING = "pending"
     APPROVED = "approved"
