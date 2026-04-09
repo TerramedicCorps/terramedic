@@ -9,6 +9,7 @@ from terramedic.organizations.models import (
     GeographicScope,
     OperatingRegion,
     Organization,
+    Skill,
     TimeCommitment,
 )
 
@@ -52,6 +53,41 @@ class TestFocusArea:
             "biodiversity_monitoring",
             "wildlife_protection",
         ]
+
+
+# -- Skill -------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestSkill:
+    def test_create_skill(self) -> None:
+        s = Skill.objects.create(name="GIS")
+        assert s.pk is not None
+        assert s.name == "GIS"
+
+    def test_str_returns_name(self) -> None:
+        s = Skill.objects.create(name="data_analysis")
+        assert str(s) == "data_analysis"
+
+    def test_name_is_unique(self) -> None:
+        Skill.objects.create(name="communications")
+        with pytest.raises(IntegrityError):
+            Skill.objects.create(name="communications")
+
+    def test_reviewed_defaults_to_false(self) -> None:
+        s = Skill.objects.create(name="legal")
+        assert s.reviewed is False
+
+    def test_reviewed_can_be_set_true(self) -> None:
+        s = Skill.objects.create(name="fundraising", reviewed=True)
+        s.refresh_from_db()
+        assert s.reviewed is True
+
+    def test_ordering_by_name(self) -> None:
+        Skill.objects.create(name="writing")
+        Skill.objects.create(name="data_entry")
+        names = list(Skill.objects.values_list("name", flat=True))
+        assert names == ["data_entry", "writing"]
 
 
 # -- OperatingRegion ---------------------------------------------------
@@ -336,7 +372,7 @@ class TestEngagementOpportunity:
         )
         assert eo.time_commitment == ""
 
-    def test_skills_helpful_default_empty(
+    def test_skills_empty_by_default(
         self, org: Organization,
     ) -> None:
         eo = EngagementOpportunity.objects.create(
@@ -344,43 +380,38 @@ class TestEngagementOpportunity:
             engagement_type=EngagementType.CITIZEN_SCIENCE,
             description="Bird count",
         )
-        assert eo.skills_helpful == []
+        assert eo.skills.count() == 0
 
-    def test_skills_helpful_stores_list(
+    def test_add_skills(
         self, org: Organization,
     ) -> None:
         eo = EngagementOpportunity.objects.create(
             organization=org,
             engagement_type=EngagementType.VOLUNTEER_REMOTE,
             description="Data entry",
-            skills_helpful=["data_entry", "GIS"],
         )
-        eo.refresh_from_db()
-        assert eo.skills_helpful == ["data_entry", "GIS"]
+        s1 = Skill.objects.create(name="data_entry")
+        s2 = Skill.objects.create(name="GIS")
+        eo.skills.add(s1, s2)
+        assert set(eo.skills.all()) == {s1, s2}
 
-    def test_skills_helpful_rejects_non_string_list(
+    def test_skill_shared_across_opportunities(
         self, org: Organization,
     ) -> None:
-        eo = EngagementOpportunity(
+        s = Skill.objects.create(name="communications")
+        eo1 = EngagementOpportunity.objects.create(
             organization=org,
-            engagement_type=EngagementType.VOLUNTEER_REMOTE,
-            description="Data entry",
-            skills_helpful=[1, 2, 3],
+            engagement_type=EngagementType.ADVOCACY,
+            description="Outreach",
         )
-        with pytest.raises(ValidationError):
-            eo.full_clean()
-
-    def test_skills_helpful_rejects_non_list(
-        self, org: Organization,
-    ) -> None:
-        eo = EngagementOpportunity(
+        eo2 = EngagementOpportunity.objects.create(
             organization=org,
-            engagement_type=EngagementType.VOLUNTEER_REMOTE,
-            description="Data entry",
-            skills_helpful="not a list",
+            engagement_type=EngagementType.EDUCATION,
+            description="Workshops",
         )
-        with pytest.raises(ValidationError):
-            eo.full_clean()
+        eo1.skills.add(s)
+        eo2.skills.add(s)
+        assert s.engagement_opportunities.count() == 2
 
     def test_cascade_delete_with_org(
         self, org: Organization,

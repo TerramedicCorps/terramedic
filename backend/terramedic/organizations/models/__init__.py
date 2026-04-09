@@ -16,6 +16,7 @@ from terramedic.organizations.models.operating_region import (
     OperatingRegion,
 )
 from terramedic.organizations.models.organization import Organization
+from terramedic.organizations.models.skill import Skill
 from terramedic.organizations.models.tag import Tag
 
 __all__ = [
@@ -28,6 +29,7 @@ __all__ = [
     "Organization",
     "OrganizationEvaluation",
     "ReviewStatus",
+    "Skill",
     "Tag",
     "TimeCommitment",
 ]

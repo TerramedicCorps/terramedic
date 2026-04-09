@@ -1,13 +1,13 @@
 from typing import Any
 
 from django.contrib.gis.db import models
-from django.core.exceptions import ValidationError
 
 from terramedic.organizations.models.enums import (
     EngagementType,
     TimeCommitment,
 )
 from terramedic.organizations.models.organization import Organization
+from terramedic.organizations.models.skill import Skill
 
 LOCATION_BOUND_TYPES = frozenset({
     EngagementType.VOLUNTEER_IN_PERSON,
@@ -33,20 +33,15 @@ class EngagementOpportunity(models.Model):
         default="",
     )
     url = models.URLField(blank=True, default="")
-    skills_helpful = models.JSONField(default=list, blank=True)
+    skills = models.ManyToManyField(
+        Skill,
+        blank=True,
+        related_name="engagement_opportunities",
+    )
     location_bound = models.BooleanField(null=True, blank=True)
 
     class Meta:
         ordering = ["engagement_type"]
-
-    def clean(self) -> None:
-        super().clean()
-        if not isinstance(self.skills_helpful, list) or not all(
-            isinstance(s, str) for s in self.skills_helpful
-        ):
-            raise ValidationError(
-                {"skills_helpful": "Must be a list of strings."},
-            )
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         # bulk_create / QuerySet.update bypass save(); callers

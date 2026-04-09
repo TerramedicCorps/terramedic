@@ -280,10 +280,10 @@
             "enum": ["minutes", "hours_per_week", "days_per_month", "flexible", "event_based"],
             "description": "Approximate time investment required."
           },
-          "skills_helpful": {
+          "skills": {
             "type": "array",
-            "items": { "type": "string" },
-            "description": "Skills that would be useful (e.g., GIS, legal, communications, data_analysis). Free-form."
+            "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+            "description": "Skills that would be useful, as snake_case identifiers (e.g., gis, legal, communications, data_analysis). New values may be proposed by the curator."
           },
           "url": {
             "type": "string",
