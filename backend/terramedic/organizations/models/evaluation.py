@@ -3,6 +3,7 @@ from typing import Any
 from django.conf import settings
 from django.contrib.gis.db import models
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 
 from terramedic.organizations.models.enums import ReviewStatus
 from terramedic.organizations.models.organization import Organization
@@ -26,6 +27,12 @@ class OrganizationEvaluation(models.Model):
         blank=True,
         default="",
         help_text="The AI's inclusion recommendation.",
+    )
+    ai_confidence = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="AI confidence in its recommendation (0–100).",
     )
     status = models.CharField(
         max_length=20,

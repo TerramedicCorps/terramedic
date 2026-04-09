@@ -592,3 +592,33 @@ class TestEvaluationEnrichmentFields:
             status=ReviewStatus.PENDING,
         )
         ev.full_clean()  # should not raise
+
+    def test_ai_confidence_stored(self) -> None:
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=SAMPLE_EVAL_DATA,
+            ai_confidence=85,
+        )
+        ev.refresh_from_db()
+        assert ev.ai_confidence == 85
+
+    def test_ai_confidence_defaults_null(self) -> None:
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=SAMPLE_EVAL_DATA,
+        )
+        assert ev.ai_confidence is None
+
+    def test_ai_confidence_rejects_over_100(self) -> None:
+        ev = OrganizationEvaluation(
+            evaluation_data=SAMPLE_EVAL_DATA,
+            ai_confidence=101,
+        )
+        with pytest.raises(ValidationError):
+            ev.full_clean()
+
+    def test_ai_confidence_rejects_negative(self) -> None:
+        ev = OrganizationEvaluation(
+            evaluation_data=SAMPLE_EVAL_DATA,
+            ai_confidence=-1,
+        )
+        with pytest.raises(ValidationError):
+            ev.full_clean()
