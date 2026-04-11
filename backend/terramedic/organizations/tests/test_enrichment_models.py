@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import pytest
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
@@ -275,38 +278,37 @@ class TestOperatingRegion:
         assert codes == ["GB", "US"]
 
 
-# -- Enums -------------------------------------------------------------
+# -- Enum ↔ schema sync ------------------------------------------------
+
+_SCHEMA = json.loads(
+    (Path(__file__).resolve().parents[3] / "curation" / "schema.json")
+    .read_text(),
+)
 
 
-class TestGeographicScope:
-    def test_choices_exist(self) -> None:
-        assert GeographicScope.LOCAL == "local"
-        assert GeographicScope.STATE == "state"
-        assert GeographicScope.REGIONAL == "regional"
-        assert GeographicScope.NATIONAL == "national"
-        assert GeographicScope.MULTINATIONAL == "multinational"
-        assert GeographicScope.GLOBAL == "global"
+class TestEnumSchemaSync:
+    """Enum values stay in sync with curation/schema.json."""
 
+    def test_geographic_scope_matches_schema(self) -> None:
+        schema_values = _SCHEMA["properties"]["geographic_coverage"][
+            "properties"
+        ]["scope"]["enum"]
+        model_values = [c.value for c in GeographicScope]
+        assert set(model_values) == set(schema_values)
 
-class TestTimeCommitment:
-    def test_choices_exist(self) -> None:
-        assert TimeCommitment.MINUTES == "minutes"
-        assert TimeCommitment.HOURS_PER_WEEK == "hours_per_week"
-        assert TimeCommitment.DAYS_PER_MONTH == "days_per_month"
-        assert TimeCommitment.FLEXIBLE == "flexible"
-        assert TimeCommitment.EVENT_BASED == "event_based"
+    def test_engagement_type_matches_schema(self) -> None:
+        schema_values = _SCHEMA["properties"][
+            "engagement_opportunities"
+        ]["items"]["properties"]["engagement_type"]["enum"]
+        model_values = [c.value for c in EngagementType]
+        assert set(model_values) == set(schema_values)
 
-
-class TestEngagementType:
-    def test_choices_exist(self) -> None:
-        assert EngagementType.VOLUNTEER_IN_PERSON == "volunteer_in_person"
-        assert EngagementType.VOLUNTEER_REMOTE == "volunteer_remote"
-        assert EngagementType.DONATE_ONE_TIME == "donate_one_time"
-        assert EngagementType.DONATE_RECURRING == "donate_recurring"
-        assert EngagementType.ADVOCACY == "advocacy"
-        assert EngagementType.EDUCATION == "education"
-        assert EngagementType.CAREER == "career"
-        assert EngagementType.CITIZEN_SCIENCE == "citizen_science"
+    def test_time_commitment_matches_schema(self) -> None:
+        schema_values = _SCHEMA["properties"][
+            "engagement_opportunities"
+        ]["items"]["properties"]["time_commitment"]["enum"]
+        model_values = [c.value for c in TimeCommitment]
+        assert set(model_values) == set(schema_values)
 
 
 # -- Organization enrichment fields ------------------------------------
