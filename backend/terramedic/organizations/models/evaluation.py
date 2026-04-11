@@ -111,6 +111,11 @@ class OrganizationEvaluation(models.Model):
 
     @property
     def recommendation(self) -> str:
+        """Recommendation from the raw evaluation JSON payload.
+
+        Prefer ``ai_recommendation`` for the canonical value; this
+        property exists for reading directly from the evaluation data.
+        """
         data = self.evaluation_data or {}
         return str(
             data.get("curator_notes", {}).get(
