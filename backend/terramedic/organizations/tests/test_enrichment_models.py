@@ -213,6 +213,53 @@ class TestOperatingRegion:
         with pytest.raises(ValidationError):
             r.full_clean()
 
+    def test_continent_auto_set_on_save(self) -> None:
+        r = OperatingRegion.objects.create(
+            country_code="KE", name="Kenya",
+        )
+        assert r.continent == "Africa"
+
+    def test_continent_set_for_each_continent(self) -> None:
+        cases = [
+            ("US", "North America"),
+            ("BR", "South America"),
+            ("DE", "Europe"),
+            ("JP", "Asia"),
+            ("AU", "Oceania"),
+            ("KE", "Africa"),
+        ]
+        for code, expected in cases:
+            r = OperatingRegion.objects.create(
+                country_code=code, name=code,
+            )
+            assert r.continent == expected, (
+                f"{code} should be {expected}, got {r.continent}"
+            )
+
+    def test_continent_updates_on_country_change(self) -> None:
+        r = OperatingRegion.objects.create(
+            country_code="US", name="United States",
+        )
+        assert r.continent == "North America"
+        r.country_code = "JP"
+        r.save()
+        r.refresh_from_db()
+        assert r.continent == "Asia"
+
+    def test_continent_blank_for_unknown_code(self) -> None:
+        r = OperatingRegion(
+            country_code="XX", name="Unknown",
+        )
+        r.save()
+        assert r.continent == ""
+
+    def test_continent_persisted_to_db(self) -> None:
+        r = OperatingRegion.objects.create(
+            country_code="GB", name="United Kingdom",
+        )
+        r.refresh_from_db()
+        assert r.continent == "Europe"
+
     def test_ordering_by_country_then_name(self) -> None:
         OperatingRegion.objects.create(
             country_code="US", name="United States",
