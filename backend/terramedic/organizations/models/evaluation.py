@@ -8,6 +8,12 @@ from django.db import models
 from terramedic.organizations.models.enums import AIRecommendation, ReviewStatus
 from terramedic.organizations.models.organization import Organization
 
+# Map AI recommendations to the review status that agrees.
+_AI_RECOMMENDATION_TO_STATUS: dict[str, str] = {
+    AIRecommendation.INCLUDE: ReviewStatus.APPROVED,
+    AIRecommendation.EXCLUDE: ReviewStatus.REJECTED,
+}
+
 
 class OrganizationEvaluation(models.Model):
     evaluation_data: Any = models.JSONField(
@@ -67,15 +73,11 @@ class OrganizationEvaluation(models.Model):
     class Meta:
         ordering = ["-created_at"]
 
-    # Map AI recommendations to the review status that agrees.
-    _AGREEMENT: dict[str, str] = {
-        AIRecommendation.INCLUDE: ReviewStatus.APPROVED,
-        AIRecommendation.EXCLUDE: ReviewStatus.REJECTED,
-    }
-
     def clean(self) -> None:
         super().clean()
-        agreed_status = self._AGREEMENT.get(self.ai_recommendation)
+        agreed_status = _AI_RECOMMENDATION_TO_STATUS.get(
+            self.ai_recommendation,
+        )
         is_override = (
             self.ai_recommendation
             and self.status != ReviewStatus.PENDING
