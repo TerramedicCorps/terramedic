@@ -26,9 +26,8 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 choices=[
-                    ("pending", "Pending"),
-                    ("approved", "Approved"),
-                    ("rejected", "Rejected"),
+                    ("include", "Include"),
+                    ("exclude", "Exclude"),
                 ],
                 default="",
                 help_text="The AI's inclusion recommendation.",
