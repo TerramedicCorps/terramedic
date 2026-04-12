@@ -1,5 +1,8 @@
 import datetime
 import io
+import json
+import logging
+import os
 
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
@@ -18,7 +21,36 @@ from terramedic.organizations.models import (
     ReviewStatus,
 )
 
+logger = logging.getLogger(__name__)
+
 _REJECTION_COOLDOWN_DAYS = 90
+
+
+def invoke_worker_lambda(queued_count: int) -> None:
+    """Invoke the worker Lambda asynchronously via boto3.
+
+    Derives the worker function name from AWS_LAMBDA_FUNCTION_NAME
+    (e.g. ``terramedic-dev`` → ``terramedic-dev-worker``).
+    """
+    import boto3
+
+    function_name = os.environ.get("AWS_LAMBDA_FUNCTION_NAME", "")
+    if not function_name:
+        logger.info(
+            "Not running on Lambda — run "
+            "'python manage.py process_evaluations' manually.",
+        )
+        return
+
+    worker_name = f"{function_name}-worker"
+    payload = json.dumps({"limit": queued_count}).encode()
+
+    client = boto3.client("lambda")
+    client.invoke(
+        FunctionName=worker_name,
+        InvocationType="Event",
+        Payload=payload,
+    )
 
 
 @admin.register(Nomination)
@@ -97,6 +129,18 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
             Nomination.objects.bulk_update(
                 to_queue, ["status", "evaluation_attempts"],
             )
+
+        if to_queue:
+            try:
+                invoke_worker_lambda(len(to_queue))
+            except Exception:  # noqa: BLE001
+                logger.exception("Failed to invoke worker Lambda")
+                self.message_user(
+                    request,
+                    "Worker Lambda could not be invoked. "
+                    "Run process_evaluations manually.",
+                    messages.WARNING,
+                )
 
         self.message_user(
             request,
