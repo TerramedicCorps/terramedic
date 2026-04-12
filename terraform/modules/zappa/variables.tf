@@ -54,6 +54,11 @@ variable "worker_schedule_expression" {
   description = "Schedule expression for the worker Lambda (e.g. 'rate(5 minutes)'). Empty to disable."
   type        = string
   default     = ""
+
+  validation {
+    condition     = var.worker_schedule_expression == "" || can(regex("^(rate\\(\\d+ (minutes?|hours?|days?)\\)|cron\\(.+\\))$", var.worker_schedule_expression))
+    error_message = "Must be a valid EventBridge schedule expression (e.g., 'rate(5 minutes)') or empty to disable."
+  }
 }
 
 variable "tags" {
