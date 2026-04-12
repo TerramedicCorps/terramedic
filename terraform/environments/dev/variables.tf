@@ -111,6 +111,13 @@ variable "domain_name" {
   type        = string
 }
 
+# Worker schedule
+variable "worker_schedule_expression" {
+  description = "Schedule expression for the worker Lambda (e.g. 'rate(5 minutes)'). Empty to disable."
+  type        = string
+  default     = "rate(5 minutes)"
+}
+
 # GitHub OIDC
 variable "github_repo" {
   description = "GitHub repository in org/repo format"
