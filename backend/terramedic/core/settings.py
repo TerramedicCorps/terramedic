@@ -32,14 +32,15 @@ if IS_LAMBDA and _raw_secret_key:
 elif _raw_secret_key:
     SECRET_KEY = _raw_secret_key
 elif IS_LAMBDA:
-    # Only Lambda (the real deployed runtime) is treated as production.
-    # Local dev, tests, mypy / django-stubs model introspection, and
-    # ad-hoc manage commands fall through to the insecure dev key below
-    # because they cannot accidentally serve production traffic.
     raise ValueError(
         "SECRET_KEY environment variable is required when running on Lambda",
     )
+elif not DEBUG and "pytest" not in sys.modules:
+    raise ValueError(
+        "SECRET_KEY environment variable is required when DEBUG is false",
+    )
 else:
+    # Allow a fixed key only for local development and test contexts.
     SECRET_KEY = "django-insecure-terramedic-dev-key-change-in-production"
 
 # Parse ALLOWED_HOSTS from environment variable (comma-separated)
