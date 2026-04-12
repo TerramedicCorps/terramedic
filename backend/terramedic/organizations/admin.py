@@ -47,20 +47,34 @@ class OperatingRegionAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     search_fields = ["name", "country_code"]
 
 
-@admin.register(FocusArea)
-class FocusAreaAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+class CuratorTermAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    """Base admin for CuratorProposedTerm subclasses."""
+
     list_display = ["name", "reviewed", "reviewed_by", "reviewed_at"]
     list_filter = ["reviewed"]
     search_fields = ["name"]
     readonly_fields = ["reviewed_by", "reviewed_at"]
+
+    def save_model(
+        self,
+        request: HttpRequest,
+        obj: Any,
+        form: Any,
+        change: bool,
+    ) -> None:
+        if obj.reviewed and obj.reviewed_by is None:
+            obj.reviewed_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(FocusArea)
+class FocusAreaAdmin(CuratorTermAdmin):
+    pass
 
 
 @admin.register(Skill)
-class SkillAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
-    list_display = ["name", "reviewed", "reviewed_by", "reviewed_at"]
-    list_filter = ["reviewed"]
-    search_fields = ["name"]
-    readonly_fields = ["reviewed_by", "reviewed_at"]
+class SkillAdmin(CuratorTermAdmin):
+    pass
 
 
 @admin.register(Tag)

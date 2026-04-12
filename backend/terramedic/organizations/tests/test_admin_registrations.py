@@ -93,6 +93,20 @@ class TestFocusAreaAdmin:
         )
         assert response.status_code == 200
 
+    def test_save_sets_reviewed_by_to_current_user(
+        self, admin_client: Client,
+    ) -> None:
+        fa = FocusArea.objects.create(name="test_term")
+        response = admin_client.post(
+            f"/admin/organizations/focusarea/{fa.pk}/change/",
+            {"name": "test_term", "reviewed": "on"},
+        )
+        assert response.status_code == 302
+        fa.refresh_from_db()
+        assert fa.reviewed is True
+        assert fa.reviewed_by is not None
+        assert fa.reviewed_at is not None
+
 
 @pytest.mark.django_db
 class TestSkillAdmin:
