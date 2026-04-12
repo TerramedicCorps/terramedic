@@ -12,20 +12,85 @@ from django.utils.safestring import mark_safe
 from parler.admin import TranslatableAdmin
 
 from terramedic.organizations.models import (
+    SDG,
     Category,
+    EngagementOpportunity,
+    FocusArea,
+    OperatingRegion,
     Organization,
     OrganizationEvaluation,
     ReviewStatus,
+    Skill,
     Tag,
 )
 
 logger = logging.getLogger(__name__)
 
 
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ["slug", "label"]
+    search_fields = ["slug", "label"]
+
+
+@admin.register(SDG)
+class SDGAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ["number", "name"]
+    search_fields = ["name"]
+    ordering = ["number"]
+
+
+@admin.register(OperatingRegion)
+class OperatingRegionAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ["name", "country_code", "region_code", "continent"]
+    list_filter = ["continent"]
+    search_fields = ["name", "country_code"]
+
+
+class CuratorTermAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    """Base admin for CuratorProposedTerm subclasses."""
+
+    list_display = ["name", "reviewed", "reviewed_by", "reviewed_at"]
+    list_filter = ["reviewed"]
+    search_fields = ["name"]
+    readonly_fields = ["reviewed_by", "reviewed_at"]
+
+    def save_model(
+        self,
+        request: HttpRequest,
+        obj: Any,
+        _form: Any,
+        _change: bool,
+    ) -> None:
+        obj.save(user=request.user)
+
+
+@admin.register(FocusArea)
+class FocusAreaAdmin(CuratorTermAdmin):
+    pass
+
+
+@admin.register(Skill)
+class SkillAdmin(CuratorTermAdmin):
+    pass
+
+
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     list_display = ["name"]
     search_fields = ["name"]
+
+
+@admin.register(EngagementOpportunity)
+class EngagementOpportunityAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = [
+        "organization",
+        "engagement_type",
+        "time_commitment",
+        "location_bound",
+    ]
+    list_filter = ["engagement_type", "time_commitment", "location_bound"]
+    search_fields = ["organization__name", "description"]
 
 
 @admin.register(Organization)
