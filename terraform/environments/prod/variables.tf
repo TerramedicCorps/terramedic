@@ -116,6 +116,13 @@ variable "budget_limit_amount" {
   default     = "30"
 }
 
+# Worker schedule
+variable "worker_schedule_expression" {
+  description = "Schedule expression for the worker Lambda (e.g. 'rate(5 minutes)'). Empty to disable."
+  type        = string
+  default     = "rate(5 minutes)"
+}
+
 # GitHub OIDC
 variable "github_repo" {
   description = "GitHub repository in org/repo format"

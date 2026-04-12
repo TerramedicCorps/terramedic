@@ -122,6 +122,8 @@ module "zappa" {
   ]
   secrets_kms_key_arn = module.secrets.secrets_kms_key_arn
 
+  worker_schedule_expression = var.worker_schedule_expression
+
   tags = var.tags
 }
 
