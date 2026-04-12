@@ -500,7 +500,7 @@ def _save_to_db(data: dict[str, Any]) -> int:
             "Django is not installed. "
             "Use --output to save to a file instead."
         )
-        raise RuntimeError(msg)  # noqa: B904, TRY200
+        raise RuntimeError(msg) from None
 
     os.environ.setdefault(
         "DJANGO_SETTINGS_MODULE", "terramedic.core.settings",

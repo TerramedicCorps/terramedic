@@ -289,6 +289,7 @@ can identify a specific, working engagement pathway for it. Do not assign \
 program. If the org doesn't fit any of these categories, use `other` — but \
 note that orgs with only `other` categories are unlikely to be included."""
 
+
 def _build_output_instructions() -> str:
     """Build the output format section with the schema and field exclusions."""
     field_list = ", ".join(f"`{f}`" for f in _PROGRAMMATIC_FIELDS)

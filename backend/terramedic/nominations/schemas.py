@@ -1,4 +1,5 @@
 import ipaddress
+from datetime import datetime
 from typing import Annotated
 
 from ninja import Schema
@@ -65,4 +66,4 @@ class NominationStatusOut(Schema):
     confirmation_id: str
     status: str
     url: str
-    submitted_at: str
+    submitted_at: datetime

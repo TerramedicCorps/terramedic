@@ -81,7 +81,7 @@ export async function lookupNominationStatus(confirmationId: string): Promise<No
     throw new Error('Confirmation ID is required');
   }
 
-  const response = await fetch(`${API_BASE}/nominations/${trimmed}/status/`);
+  const response = await fetch(`${API_BASE}/nominations/${encodeURIComponent(trimmed)}/status/`);
 
   if (response.status === 404) {
     throw new Error('Nomination not found');
