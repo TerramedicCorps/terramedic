@@ -101,7 +101,7 @@ class TestFocusAreaAdmin:
         assert response.status_code == 200
 
     def test_save_sets_reviewed_by_to_current_user(
-        self, admin_client: Client,
+        self, admin_client: Client, django_user_model: type,
     ) -> None:
         fa = FocusArea.objects.create(name="test_term")
         response = admin_client.post(
@@ -110,8 +110,9 @@ class TestFocusAreaAdmin:
         )
         assert response.status_code == 302
         fa.refresh_from_db()
+        admin_user = django_user_model.objects.get(username="admin")
         assert fa.reviewed is True
-        assert fa.reviewed_by is not None
+        assert fa.reviewed_by == admin_user
         assert fa.reviewed_at is not None
 
 
