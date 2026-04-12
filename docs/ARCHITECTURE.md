@@ -65,7 +65,6 @@ django-parler (i18n), PostGIS (geospatial).
 | `backend/terramedic/organizations/` | Models, API endpoints, admin, fixtures |
 | `backend/terramedic/organizations/models.py` | Organization and Tag models |
 | `backend/terramedic/organizations/api.py` | REST endpoints |
-| `backend/terramedic/organizations/fixtures/seed_data.json` | Seed data (~100 orgs, 31 tags) |
 
 **Models:**
 
@@ -86,10 +85,9 @@ django-parler (i18n), PostGIS (geospatial).
 | `GET /api/organizations/nearby/` | GIS search by lat/lng/radius |
 | `GET /api/health` | Health check |
 
-**Data entry:** Currently via seed fixtures
-(`manage.py seed_if_empty`) and Django admin. The curation
-pipeline (Initiative 1) will automate evaluation; approved
-orgs will be added through the admin or a future write API.
+**Data entry:** Via Django admin and the curation pipeline,
+which evaluates nominated organizations and saves approved
+entries through the admin or a future write API.
 
 ## Infrastructure
 
