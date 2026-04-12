@@ -83,6 +83,10 @@ export async function lookupNominationStatus(confirmationId: string): Promise<No
 
   const response = await fetch(`${API_BASE}/nominations/${encodeURIComponent(trimmed)}/status/`);
 
+  if (response.status === 422) {
+    throw new Error('Invalid confirmation ID format');
+  }
+
   if (response.status === 404) {
     throw new Error('Nomination not found');
   }

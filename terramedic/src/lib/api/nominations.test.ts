@@ -109,6 +109,18 @@ describe('lookupNominationStatus', () => {
     await expect(lookupNominationStatus('')).rejects.toThrow('Confirmation ID is required');
   });
 
+  test('throws for 422 invalid format', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 422,
+      json: () => Promise.resolve({ detail: 'Invalid confirmation ID' })
+    });
+
+    await expect(lookupNominationStatus('not-a-uuid')).rejects.toThrow(
+      'Invalid confirmation ID format'
+    );
+  });
+
   test('throws for 404 not found', async () => {
     fetchMock.mockResolvedValue({
       ok: false,

@@ -49,6 +49,12 @@
       return;
     }
 
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidPattern.test(trimmed)) {
+      errorMessage = 'Invalid confirmation ID format. Please check and try again.';
+      return;
+    }
+
     isLoading = true;
 
     try {

@@ -52,7 +52,7 @@ describe('StatusLookup', () => {
 
   test('displays nominated site as plain text without scheme or query string', async () => {
     mockLookup.mockResolvedValueOnce({
-      confirmation_id: 'test-uuid',
+      confirmation_id: '550e8400-e29b-41d4-a716-446655440000',
       status: 'pending',
       url: 'https://sierraclub.org/virginia?ref=123#top',
       submitted_at: '2026-04-05T12:00:00Z'
@@ -61,7 +61,10 @@ describe('StatusLookup', () => {
 
     render(StatusLookup);
 
-    await user.type(screen.getByLabelText(/confirmation id/i), 'test-uuid');
+    await user.type(
+      screen.getByLabelText(/confirmation id/i),
+      '550e8400-e29b-41d4-a716-446655440000'
+    );
     await user.click(screen.getByRole('button', { name: /check status/i }));
 
     await waitFor(() => {
@@ -72,18 +75,18 @@ describe('StatusLookup', () => {
     });
   });
 
-  test('calls API for any non-empty input', async () => {
-    mockLookup.mockRejectedValueOnce(new Error('Nomination not found'));
+  test('shows format error for non-UUID input without calling API', async () => {
     const user = userEvent.setup();
 
     render(StatusLookup);
 
-    await user.type(screen.getByLabelText(/confirmation id/i), 'some-id');
+    await user.type(screen.getByLabelText(/confirmation id/i), 'not-a-uuid');
     await user.click(screen.getByRole('button', { name: /check status/i }));
 
     await waitFor(() => {
-      expect(mockLookup).toHaveBeenCalledWith('some-id');
+      expect(screen.getByText(/invalid.*format/i)).toBeInTheDocument();
     });
+    expect(mockLookup).not.toHaveBeenCalled();
   });
 
   test('displays error when API returns not found', async () => {
