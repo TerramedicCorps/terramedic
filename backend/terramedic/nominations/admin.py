@@ -12,7 +12,7 @@ from django.urls import URLPattern, path, reverse
 
 from terramedic.nominations.csv_import import parse_nominations_csv
 from terramedic.nominations.models import Nomination, NominationStatus
-from terramedic.nominations.skip_checks import should_skip_url
+from terramedic.nominations.skip_checks import build_skip_urls
 from terramedic.organizations.models import Category
 
 logger = logging.getLogger(__name__)
@@ -77,12 +77,16 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         to_queue: list[Nomination] = []
         skipped_count = 0
 
-        for nomination in queryset:
-            if nomination.status != NominationStatus.PENDING:
-                skipped_count += 1
-                continue
+        pending = [
+            n for n in queryset
+            if n.status == NominationStatus.PENDING
+        ]
+        skipped_count += len(queryset) - len(pending)
 
-            if should_skip_url(nomination.url):
+        skip_urls = build_skip_urls({n.url for n in pending})
+
+        for nomination in pending:
+            if nomination.url in skip_urls:
                 skipped_count += 1
                 continue
 
