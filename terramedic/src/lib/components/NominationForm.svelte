@@ -110,7 +110,7 @@
           name="url"
           type="url"
           bind:value={url}
-          onBlur={validateUrl}
+          on:blur={validateUrl}
           required
           placeholder="https://example.org"
           class="bg-deep-navy w-full text-white"
