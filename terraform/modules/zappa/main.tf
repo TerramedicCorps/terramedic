@@ -292,6 +292,10 @@ resource "aws_iam_role_policy_attachment" "lambda_vpc_access" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
+locals {
+  worker_function_name = "${var.prefix}-worker"
+}
+
 # EventBridge scheduled rule to trigger the worker Lambda
 resource "aws_cloudwatch_event_rule" "worker_schedule" {
   count = var.worker_schedule_expression != "" ? 1 : 0
@@ -307,8 +311,8 @@ resource "aws_cloudwatch_event_target" "worker_lambda" {
   count = var.worker_schedule_expression != "" ? 1 : 0
 
   rule      = aws_cloudwatch_event_rule.worker_schedule[0].name
-  target_id = "${var.prefix}-worker"
-  arn       = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix}-worker"
+  target_id = local.worker_function_name
+  arn       = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${local.worker_function_name}"
 
   input = jsonencode({
     command = "terramedic.nominations.worker.process_evaluation_queue"
@@ -320,7 +324,7 @@ resource "aws_lambda_permission" "eventbridge_worker" {
 
   statement_id  = "AllowEventBridgeInvoke"
   action        = "lambda:InvokeFunction"
-  function_name = "${var.prefix}-worker"
+  function_name = local.worker_function_name
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.worker_schedule[0].arn
 }
