@@ -63,7 +63,7 @@ def create_nomination(
     request: HttpRequest,
     payload: NominationIn,
 ) -> tuple[int, NominationOut] | JsonResponse:
-    # Rate limiting (before honeypot so bots can't bypass it)
+    # Rate limiting (before honeypot so bots still count toward the limit)
     client_ip = _get_client_ip(request)
     ip_hash = _hash_ip(client_ip)
 
