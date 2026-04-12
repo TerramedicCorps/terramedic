@@ -11,18 +11,55 @@ from unittest.mock import MagicMock
 import pytest
 
 from curation.evaluate import (
+    _VALID_ACTIVITY_TYPES,
+    _VALID_CATEGORIES,
     _build_arg_parser,
     _build_user_message,
     _clean_response,
     _extract_json,
     _extract_subpage_urls,
     _html_to_text,
+    _load_schema,
     _save_evaluation,
     _url_to_slug,
     _validate_url,
     evaluate_org,
     main,
 )
+from curation.prompt import SYSTEM_PROMPT
+
+
+class TestSchemaSyncWithPrompt:
+    """Verify schema.json is the single source of truth for prompt and validation."""
+
+    def test_valid_activity_types_match_schema(self) -> None:
+        schema = _load_schema()
+        schema_types = set(
+            schema["properties"]["evidence_of_work"]["items"]
+            ["properties"]["type"]["enum"],
+        )
+        assert schema_types == _VALID_ACTIVITY_TYPES
+
+    def test_valid_categories_match_schema(self) -> None:
+        schema = _load_schema()
+        schema_categories = set(
+            schema["properties"]["accessibility"]["properties"]
+            ["categories"]["items"]["enum"],
+        )
+        assert schema_categories == _VALID_CATEGORIES
+
+    def test_prompt_contains_schema_json(self) -> None:
+        """The prompt should embed the actual JSON schema, not a prose summary."""
+        assert '"$schema"' in SYSTEM_PROMPT or '"properties"' in SYSTEM_PROMPT
+
+    def test_prompt_omits_programmatic_fields(self) -> None:
+        """Fields injected by evaluate.py should not appear in the schema
+        embedded in the prompt, to avoid confusing the model."""
+        # These fields are added programmatically after model response
+        for field in ("evaluated_at", "evaluated_by", "prompt_version",
+                      "evaluation_history"):
+            # Should not appear as a JSON property key in the prompt
+            assert f'"{field}"' not in SYSTEM_PROMPT
 
 
 def _make_valid_evaluation() -> dict[str, Any]:

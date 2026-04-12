@@ -93,7 +93,8 @@ def _default_output_dir() -> str:
 def _load_schema() -> dict[str, Any]:
     """Load the JSON Schema from schema.json."""
     with open(_SCHEMA_PATH) as f:
-        return json.load(f)
+        result: dict[str, Any] = json.load(f)
+        return result
 
 
 def _html_to_text(html: str) -> str:
@@ -236,25 +237,29 @@ def _extract_json(text: str) -> dict[str, Any]:
     raise ValueError(msg)
 
 
-_VALID_ACTIVITY_TYPES = frozenset({
-    "advocacy",
-    "conservation",
-    "education",
-    "litigation",
-    "policy",
-    "research",
-    "restoration",
-    "other",
-})
+def _enum_from_schema(
+    schema: dict[str, Any], *path: str,
+) -> frozenset[str]:
+    """Extract an enum array from a nested schema path."""
+    node = schema
+    for key in path:
+        node = node[key]
+    return frozenset(node)
 
-_VALID_CATEGORIES = frozenset({
-    "donate",
-    "volunteer",
-    "resource",
-    "everyday",
-    "career",
-    "other",
-})
+
+_SCHEMA = _load_schema()
+
+_VALID_ACTIVITY_TYPES: frozenset[str] = _enum_from_schema(
+    _SCHEMA,
+    "properties", "evidence_of_work", "items",
+    "properties", "type", "enum",
+)
+
+_VALID_CATEGORIES: frozenset[str] = _enum_from_schema(
+    _SCHEMA,
+    "properties", "accessibility", "properties",
+    "categories", "items", "enum",
+)
 
 
 def _clean_response(data: dict[str, Any]) -> None:
