@@ -47,8 +47,98 @@
           "type": "string",
           "format": "uri",
           "description": "URL to the organization's logo or representative image."
+        },
+        "verification_sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "url"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Source name (e.g., Charity Navigator, Charity Commission)."
+              },
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "description": "URL to the org's profile or listing."
+              },
+              "rating": {
+                "type": "string",
+                "description": "Rating or score if available (e.g., '4/4 stars', '95/100')."
+              }
+            }
+          },
+          "description": "Third-party registry or watchdog profiles consulted during evaluation."
         }
       }
+    },
+    "geographic_coverage": {
+      "type": "object",
+      "description": "Where the organization operates, beyond just its headquarters.",
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": ["local", "state", "regional", "national", "multinational", "global"],
+          "description": "How broad the organization's geographic reach is."
+        },
+        "operating_countries": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z]{2}$"
+          },
+          "description": "ISO 3166-1 alpha-2 country codes where the organization operates (e.g., ['US', 'KE', 'GB'])."
+        },
+        "operating_regions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["country_code", "name"],
+            "properties": {
+              "country_code": {
+                "type": "string",
+                "pattern": "^[A-Z]{2}$",
+                "description": "ISO 3166-1 alpha-2 country code."
+              },
+              "region_code": {
+                "type": "string",
+                "description": "ISO 3166-2 subdivision code (e.g., US-CA, GB-SCT) if applicable."
+              },
+              "name": {
+                "type": "string",
+                "description": "Human-readable region name (e.g., California, Scotland)."
+              }
+            }
+          },
+          "description": "Specific sub-national regions where the organization operates. Use when the org does not cover an entire country."
+        },
+        "headquarters_coordinates": {
+          "type": "object",
+          "properties": {
+            "lat": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "lng": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            }
+          },
+          "required": ["lat", "lng"],
+          "description": "Latitude and longitude of the organization's headquarters."
+        }
+      }
+    },
+    "focus_areas": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "anyOf": [{ "enum": ["biodiversity_monitoring", "civic_engagement", "climate_adaptation", "climate_communication", "climate_policy", "climate_science", "environmental_education", "environmental_justice", "green_careers", "habitat_restoration", "indigenous_stewardship", "land_conservation", "nature_access", "ocean_conservation", "pollution_reduction", "reforestation", "renewable_energy", "sustainable_agriculture", "sustainable_living", "urban_ecology", "waste_reduction", "water_conservation", "wildlife_protection"] }, { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "description": "Curator-proposed value not yet in the canonical list." }]
+      },
+      "description": "Specific environmental cause areas the organization focuses on. More granular than SDG alignment. New values may be proposed by the curator."
     },
     "sdg_alignment": {
       "type": "array",
@@ -169,6 +259,44 @@
         }
       }
     },
+    "engagement_opportunities": {
+      "type": "array",
+      "description": "Specific ways people can contribute to this organization. More detailed than accessibility categories.",
+      "items": {
+        "type": "object",
+        "required": ["engagement_type", "description"],
+        "properties": {
+          "engagement_type": {
+            "type": "string",
+            "enum": ["volunteer_in_person", "volunteer_remote", "donate_one_time", "donate_recurring", "advocacy", "education", "career", "citizen_science"],
+            "description": "The kind of engagement opportunity. volunteer_in_person/volunteer_remote = donating time and labor to org operations; advocacy = political or social action the org directs (petitions, contacting legislators); education = learning or awareness activities; citizen_science = data collection or monitoring; career = paid employment; donate_one_time/donate_recurring = financial contributions."
+          },
+          "description": {
+            "type": "string",
+            "description": "What the opportunity involves."
+          },
+          "time_commitment": {
+            "type": "string",
+            "enum": ["minutes", "hours_per_week", "days_per_month", "flexible", "event_based"],
+            "description": "Approximate time investment required."
+          },
+          "skills": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+            "description": "Skills that would be useful, as snake_case identifiers (e.g., gis, legal, communications, data_analysis). New values may be proposed by the curator."
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to the specific opportunity or signup page."
+          },
+          "location_bound": {
+            "type": "boolean",
+            "description": "Whether this opportunity requires the participant to be in the org's operating region. Defaults to true for volunteer_in_person and career, false for all others."
+          }
+        }
+      }
+    },
     "evidence_score": {
       "type": "object",
       "description": "Overall assessment of the organization's legitimacy and impact.",
@@ -189,7 +317,7 @@
     "curator_notes": {
       "type": "object",
       "description": "Additional context for the human reviewer.",
-      "required": ["recommendation"],
+      "required": ["recommendation", "confidence"],
       "properties": {
         "flags": {
           "type": "array",
@@ -200,8 +328,14 @@
         },
         "recommendation": {
           "type": "string",
-          "enum": ["include", "exclude", "needs_review"],
-          "description": "Curator's recommendation. Use needs_review when uncertain."
+          "enum": ["include", "exclude"],
+          "description": "Curator's inclusion recommendation. Always make a call — use confidence to express uncertainty."
+        },
+        "confidence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "How confident the curator is in its recommendation (0–100). Low values flag the evaluation for closer human review."
         },
         "notes": {
           "type": "string",
@@ -250,7 +384,7 @@
           },
           "recommendation": {
             "type": "string",
-            "enum": ["include", "exclude", "needs_review"],
+            "enum": ["include", "exclude"],
             "description": "Recommendation from this prior evaluation."
           }
         }
