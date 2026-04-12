@@ -1,6 +1,5 @@
 import datetime
 import io
-import logging
 
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
@@ -18,8 +17,6 @@ from terramedic.organizations.models import (
     OrganizationEvaluation,
     ReviewStatus,
 )
-
-logger = logging.getLogger(__name__)
 
 _REJECTION_COOLDOWN_DAYS = 90
 

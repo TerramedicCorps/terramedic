@@ -1,4 +1,3 @@
-import logging
 from typing import Any
 
 from django.db.models.signals import post_save
@@ -9,8 +8,6 @@ from terramedic.organizations.models.evaluation import (
     OrganizationEvaluation,
     ReviewStatus,
 )
-
-logger = logging.getLogger(__name__)
 
 # Map evaluation review statuses to nomination statuses.
 _EVAL_TO_NOMINATION_STATUS: dict[str, str] = {
