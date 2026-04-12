@@ -1,14 +1,27 @@
+import datetime
 import io
+import logging
 
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
+from django.db.models import QuerySet
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.urls import URLPattern, path, reverse
+from django.utils import timezone
 
 from terramedic.nominations.csv_import import parse_nominations_csv
-from terramedic.nominations.models import Nomination
-from terramedic.organizations.models import Category
+from terramedic.nominations.models import Nomination, NominationStatus
+from terramedic.organizations.models import (
+    Category,
+    Organization,
+    OrganizationEvaluation,
+    ReviewStatus,
+)
+
+logger = logging.getLogger(__name__)
+
+_REJECTION_COOLDOWN_DAYS = 90
 
 
 @admin.register(Nomination)
@@ -27,6 +40,77 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         "submitted_at",
     ]
     change_list_template = "admin/nominations/nomination/change_list.html"
+    actions = ["evaluate_nominations"]
+
+    @admin.action(
+        description="Queue selected nominations for AI evaluation",
+    )
+    def evaluate_nominations(
+        self,
+        request: HttpRequest,
+        queryset: QuerySet[Nomination],
+    ) -> None:
+        # Build skip sets
+        active_eval_urls = set(
+            OrganizationEvaluation.objects.exclude(
+                status=ReviewStatus.REJECTED,
+            ).values_list(
+                "evaluation_data__org_metadata__website_url", flat=True,
+            ),
+        )
+        cooldown_cutoff = timezone.now() - datetime.timedelta(
+            days=_REJECTION_COOLDOWN_DAYS,
+        )
+        recently_rejected_urls = set(
+            OrganizationEvaluation.objects.filter(
+                status=ReviewStatus.REJECTED,
+                created_at__gte=cooldown_cutoff,
+            ).values_list(
+                "evaluation_data__org_metadata__website_url", flat=True,
+            ),
+        )
+        existing_org_urls = set(
+            Organization.objects.values_list("website_url", flat=True),
+        )
+
+        queued_count = 0
+        skipped_count = 0
+
+        for nomination in queryset:
+            if nomination.status != NominationStatus.PENDING:
+                skipped_count += 1
+                continue
+
+            url = nomination.url
+            if url in active_eval_urls:
+                skipped_count += 1
+                continue
+            if url in existing_org_urls:
+                skipped_count += 1
+                continue
+            if url in recently_rejected_urls:
+                skipped_count += 1
+                continue
+
+            nomination.status = NominationStatus.QUEUED
+            nomination.evaluation_attempts = 0
+            nomination.save(
+                update_fields=["status", "evaluation_attempts"],
+            )
+            queued_count += 1
+
+        self.message_user(
+            request,
+            f"Queued {queued_count} nomination(s) for evaluation.",
+            messages.SUCCESS,
+        )
+        if skipped_count:
+            self.message_user(
+                request,
+                f"Skipped {skipped_count} nomination(s) "
+                f"(not pending, already evaluated, or in cooldown).",
+                messages.INFO,
+            )
 
     def get_urls(self) -> list[URLPattern]:
         custom_urls = [

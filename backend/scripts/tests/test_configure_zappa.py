@@ -178,3 +178,43 @@ class TestConfigureZappaSettings:
         assert "domain" not in settings["dev"]
         assert "certificate_arn" not in settings["prod"]
         assert "certificate_arn" not in settings["dev"]
+
+    def test_worker_stages_present(
+        self, tmp_path: Path,
+    ) -> None:
+        output = tmp_path / "zappa_settings.json"
+        configure_zappa_settings(output_path=output)
+
+        settings = json.loads(output.read_text())
+        assert "dev-worker" in settings
+        assert "prod-worker" in settings
+
+    def test_worker_stages_have_long_timeout(
+        self, tmp_path: Path,
+    ) -> None:
+        output = tmp_path / "zappa_settings.json"
+        configure_zappa_settings(output_path=output)
+
+        settings = json.loads(output.read_text())
+        assert settings["dev-worker"]["timeout_seconds"] == 300
+        assert settings["prod-worker"]["timeout_seconds"] == 300
+
+    def test_worker_stages_no_api_gateway(
+        self, tmp_path: Path,
+    ) -> None:
+        output = tmp_path / "zappa_settings.json"
+        configure_zappa_settings(output_path=output)
+
+        settings = json.loads(output.read_text())
+        assert settings["dev-worker"]["apigateway_enabled"] is False
+        assert settings["prod-worker"]["apigateway_enabled"] is False
+
+    def test_worker_stages_no_keep_warm(
+        self, tmp_path: Path,
+    ) -> None:
+        output = tmp_path / "zappa_settings.json"
+        configure_zappa_settings(output_path=output)
+
+        settings = json.loads(output.read_text())
+        assert settings["dev-worker"]["keep_warm"] is False
+        assert settings["prod-worker"]["keep_warm"] is False

@@ -45,6 +45,14 @@ class OrganizationEvaluation(models.Model):
         choices=ReviewStatus.choices,
         default=ReviewStatus.PENDING,
     )
+    nomination = models.ForeignKey(
+        "nominations.Nomination",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="evaluations",
+        help_text="Source nomination that triggered this evaluation.",
+    )
     organization = models.ForeignKey(
         Organization,
         on_delete=models.SET_NULL,

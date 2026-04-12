@@ -179,6 +179,22 @@ def configure_zappa_settings(
                 else {}
             ),
         },
+        "dev-worker": {
+            "extends": "dev",
+            "stage": "dev-worker",
+            "timeout_seconds": 300,
+            "memory_size": 512,
+            "keep_warm": False,
+            "apigateway_enabled": False,
+        },
+        "prod-worker": {
+            "extends": "prod",
+            "stage": "prod-worker",
+            "timeout_seconds": 300,
+            "memory_size": 512,
+            "keep_warm": False,
+            "apigateway_enabled": False,
+        },
     }
 
     config_path = (

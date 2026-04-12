@@ -10,7 +10,10 @@ from terramedic.nominations.models import Nomination, NominationStatus
 @pytest.mark.django_db
 class TestNominationStatus:
     def test_status_choices(self) -> None:
-        expected = {"pending", "evaluating", "evaluated", "approved", "rejected"}
+        expected = {
+            "pending", "queued", "evaluating", "evaluated",
+            "approved", "rejected", "failed",
+        }
         assert set(NominationStatus.values) == expected
 
 
