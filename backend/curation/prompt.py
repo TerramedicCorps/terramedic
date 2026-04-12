@@ -7,7 +7,7 @@ from pathlib import Path
 
 # Bump this version whenever SYSTEM_PROMPT is modified.
 # Format: YYYY.MM.N where N resets to 1 each month.
-PROMPT_VERSION: str = "2026.04.8"
+PROMPT_VERSION: str = "2026.04.9"
 
 # Fields injected programmatically by evaluate.py after the model responds.
 # They are stripped from the schema before embedding in the prompt so the
@@ -162,11 +162,11 @@ These rules apply regardless of nomination category.
 wouldn't easily find via a Google search
 
 **Exclude** organizations that:
-- Are **globally recognized NGOs** at the parent/national level — organizations \
-with massive fundraising operations and international brand recognition \
-(e.g., WWF, Greenpeace, Rainforest Alliance). The test is: would most \
-environmentally aware adults in multiple countries recognize this name? \
-If yes, exclude the parent organization.
+- Are **globally recognized NGOs** at the parent/national level — household-name \
+organizations with massive fundraising operations and international brand \
+recognition. The test is: would most environmentally aware adults in \
+multiple countries recognize this name? If yes, exclude the parent \
+organization.
 - Are primarily **awareness campaigns** with no concrete engagement pathways \
 and no specific theory of change
 - Are **purely partisan organizations** with no environmental mission — orgs \
