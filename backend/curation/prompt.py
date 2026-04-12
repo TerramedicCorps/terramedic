@@ -2,11 +2,52 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 # Bump this version whenever SYSTEM_PROMPT is modified.
 # Format: YYYY.MM.N where N resets to 1 each month.
-PROMPT_VERSION: str = "2026.04.7"
+PROMPT_VERSION: str = "2026.04.9"
 
-SYSTEM_PROMPT: str = """\
+# Fields injected programmatically by evaluate.py after the model responds.
+# They are stripped from the schema before embedding in the prompt so the
+# model doesn't try to produce them.
+_PROGRAMMATIC_FIELDS = (
+    "evaluated_at",
+    "evaluated_by",
+    "prompt_version",
+    "evaluation_history",
+)
+
+
+def _build_output_schema() -> str:
+    """Load schema.json and return a prompt-ready version.
+
+    Removes fields that are injected programmatically and filters the
+    top-level ``required`` list to exclude those fields (since the model
+    shouldn't worry about which fields the *pipeline* adds).
+    """
+    schema_path = Path(__file__).parent / "schema.json"
+    with open(schema_path) as f:
+        schema: dict[str, object] = json.load(f)
+
+    # Strip programmatic fields
+    props = schema.get("properties")
+    if isinstance(props, dict):
+        for field in _PROGRAMMATIC_FIELDS:
+            props.pop(field, None)
+
+    # Update the required list to exclude programmatic fields
+    required = schema.get("required")
+    if isinstance(required, list):
+        schema["required"] = [
+            r for r in required if r not in _PROGRAMMATIC_FIELDS
+        ]
+
+    return json.dumps(schema, indent=2)
+
+
+_CRITERIA_AND_GUIDELINES: str = """\
 You are an environmental organization evaluator for Terramedic, a platform that \
 connects people with vetted environmental organizations. Your task is to research \
 and evaluate a candidate organization for inclusion in the Terramedic database.
@@ -121,11 +162,11 @@ These rules apply regardless of nomination category.
 wouldn't easily find via a Google search
 
 **Exclude** organizations that:
-- Are **globally recognized NGOs** at the parent/national level — organizations \
-with massive fundraising operations and international brand recognition \
-(e.g., WWF, Greenpeace, Rainforest Alliance). The test is: would most \
-environmentally aware adults in multiple countries recognize this name? \
-If yes, exclude the parent organization.
+- Are **globally recognized NGOs** at the parent/national level — household-name \
+organizations with massive fundraising operations and international brand \
+recognition. The test is: would most environmentally aware adults in \
+multiple countries recognize this name? If yes, exclude the parent \
+organization.
 - Are primarily **awareness campaigns** with no concrete engagement pathways \
 and no specific theory of change
 - Are **purely partisan organizations** with no environmental mission — orgs \
@@ -246,37 +287,21 @@ globally recognized NGO.
 can identify a specific, working engagement pathway for it. Do not assign \
 "volunteer" just because an org exists — there must be an actual volunteer \
 program. If the org doesn't fit any of these categories, use `other` — but \
-note that orgs with only `other` categories are unlikely to be included.
+note that orgs with only `other` categories are unlikely to be included."""
 
-## Output format
 
-Return your evaluation as a single JSON object with these fields:
+def _build_output_instructions() -> str:
+    """Build the output format section with the schema and field exclusions."""
+    field_list = ", ".join(f"`{f}`" for f in _PROGRAMMATIC_FIELDS)
+    return (
+        "\n\n## Output format\n\n"
+        "Return your evaluation as a single JSON object conforming to the "
+        f"schema below. Do NOT include {field_list} fields — those are added "
+        "programmatically.\n\n"
+        f"```json\n{_build_output_schema()}\n```\n\n"
+        "Return ONLY the raw JSON object. Do not wrap it in markdown code "
+        "fences or add any text before or after the JSON."
+    )
 
-- `org_metadata`: object with `name` (string, required), `website_url` (string URI, \
-required), and optional fields: `country` (ISO 3166-1 alpha-2), `region`, \
-`legal_status`, `registration_info`, `year_founded` (integer), `description`, \
-`image_url` (URI).
-- `sdg_alignment`: array of objects, each with `sdg` (integer, one of 13, 14, 15), \
-`evidence` (string), and optional `sources` (array of objects, each with \
-`source_url` (URI), `date_accessed` (YYYY-MM-DD), and `excerpt` (verbatim \
-quote from the page)).
-- `evidence_of_work`: array of objects, each with `activity` (string), `type` \
-(one of: advocacy, conservation, education, litigation, policy, research, \
-restoration, other), optional `date` (string), and optional `sources` (array \
-of objects, each with `source_url` (URI), `date_accessed` (YYYY-MM-DD), and \
-`excerpt` (verbatim quote from the page)).
-- `accessibility`: object with optional fields `volunteer_url` (URI), `donate_url` \
-(URI), `toolkit_url` (URI), `categories` (array — valid values: \
-donate, volunteer, resource, everyday, career, other).
-- `evidence_score`: object with `score` (integer 0-5) and `rationale` (string).
-- `curator_notes`: object with `recommendation` (one of: include, exclude), \
-`confidence` (integer 0–100 — how confident you are in the recommendation), \
-optional `flags` (array of strings for issues to check), and \
-optional `notes` (string).
 
-Do NOT include `evaluated_at`, `evaluated_by`, or `prompt_version` fields — \
-those are added programmatically.
-
-Return ONLY the raw JSON object. Do not wrap it in markdown code fences or add any \
-text before or after the JSON.\
-"""
+SYSTEM_PROMPT: str = _CRITERIA_AND_GUIDELINES + _build_output_instructions()

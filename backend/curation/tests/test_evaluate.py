@@ -11,18 +11,56 @@ from unittest.mock import MagicMock
 import pytest
 
 from curation.evaluate import (
+    _VALID_ACTIVITY_TYPES,
+    _VALID_CATEGORIES,
     _build_arg_parser,
     _build_user_message,
     _clean_response,
     _extract_json,
     _extract_subpage_urls,
     _html_to_text,
+    _load_schema,
     _save_evaluation,
+    _save_to_db,
     _url_to_slug,
     _validate_url,
     evaluate_org,
     main,
 )
+from curation.prompt import SYSTEM_PROMPT
+
+
+class TestSchemaSyncWithPrompt:
+    """Verify schema.json is the single source of truth for prompt and validation."""
+
+    def test_valid_activity_types_match_schema(self) -> None:
+        schema = _load_schema()
+        schema_types = set(
+            schema["properties"]["evidence_of_work"]["items"]
+            ["properties"]["type"]["enum"],
+        )
+        assert schema_types == _VALID_ACTIVITY_TYPES
+
+    def test_valid_categories_match_schema(self) -> None:
+        schema = _load_schema()
+        schema_categories = set(
+            schema["properties"]["accessibility"]["properties"]
+            ["categories"]["items"]["enum"],
+        )
+        assert schema_categories == _VALID_CATEGORIES
+
+    def test_prompt_contains_schema_json(self) -> None:
+        """The prompt should embed the actual JSON schema, not a prose summary."""
+        assert '"$schema"' in SYSTEM_PROMPT or '"properties"' in SYSTEM_PROMPT
+
+    def test_prompt_omits_programmatic_fields(self) -> None:
+        """Fields injected by evaluate.py should not appear in the schema
+        embedded in the prompt, to avoid confusing the model."""
+        # These fields are added programmatically after model response
+        for field in ("evaluated_at", "evaluated_by", "prompt_version",
+                      "evaluation_history"):
+            # Should not appear as a JSON property key in the prompt
+            assert f'"{field}"' not in SYSTEM_PROMPT
 
 
 def _make_valid_evaluation() -> dict[str, Any]:
@@ -652,6 +690,54 @@ class TestSaveEvaluation:
         assert loaded["evaluation_history"][1]["prompt_version"] == "0.9"
 
 
+@pytest.mark.django_db
+class TestSaveToDb:
+    def test_creates_evaluation_record(self) -> None:
+        from terramedic.organizations.models import OrganizationEvaluation
+
+        data = _make_valid_evaluation()
+        pk = _save_to_db(data)
+
+        obj = OrganizationEvaluation.objects.get(pk=pk)
+        assert obj.evaluation_data == data
+
+    def test_populates_ai_model(self) -> None:
+        from terramedic.organizations.models import OrganizationEvaluation
+
+        data = _make_valid_evaluation()
+        pk = _save_to_db(data)
+
+        obj = OrganizationEvaluation.objects.get(pk=pk)
+        assert obj.ai_model == "claude-sonnet-4-20250514"
+
+    def test_populates_ai_recommendation(self) -> None:
+        from terramedic.organizations.models import OrganizationEvaluation
+
+        data = _make_valid_evaluation()
+        pk = _save_to_db(data)
+
+        obj = OrganizationEvaluation.objects.get(pk=pk)
+        assert obj.ai_recommendation == "include"
+
+    def test_populates_ai_confidence(self) -> None:
+        from terramedic.organizations.models import OrganizationEvaluation
+
+        data = _make_valid_evaluation()
+        pk = _save_to_db(data)
+
+        obj = OrganizationEvaluation.objects.get(pk=pk)
+        assert obj.ai_confidence == 85
+
+    def test_status_defaults_to_pending(self) -> None:
+        from terramedic.organizations.models import OrganizationEvaluation
+
+        data = _make_valid_evaluation()
+        pk = _save_to_db(data)
+
+        obj = OrganizationEvaluation.objects.get(pk=pk)
+        assert obj.status == "pending"
+
+
 class TestMain:
     def _mock_evaluate(
         self, monkeypatch: pytest.MonkeyPatch,
@@ -718,6 +804,35 @@ class TestMain:
             main(["https://example.org", "--dry-run"])
 
         assert exc_info.value.code == 1
+
+    @pytest.mark.django_db
+    def test_db_flag_saves_to_database(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        from terramedic.organizations.models import OrganizationEvaluation
+
+        self._mock_evaluate(monkeypatch)
+
+        main(["https://example.org", "--db"])
+
+        assert OrganizationEvaluation.objects.count() == 1
+        obj = OrganizationEvaluation.objects.first()
+        assert obj is not None
+        assert obj.ai_model == "claude-sonnet-4-20250514"
+        captured = capsys.readouterr()
+        assert "database" in captured.err
+
+    def test_db_flag_parsed(self) -> None:
+        args = _build_arg_parser().parse_args(
+            ["https://example.org", "--db"],
+        )
+        assert args.db is True
+
+    def test_db_flag_default_false(self) -> None:
+        args = _build_arg_parser().parse_args(["https://example.org"])
+        assert args.db is False
 
     def test_default_output_path_uses_slug(
         self,

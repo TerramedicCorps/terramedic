@@ -43,16 +43,27 @@ automates the evaluation process:
 
 ```bash
 cd backend
-poetry run python -m curation.evaluate https://example.org
+# Save directly to the database for admin review:
+DEBUG=true poetry run python -m curation.evaluate https://example.org --db
+
+# Or save to a JSON file:
+poetry run python -m curation.evaluate https://example.org --output eval.json
 ```
 
 Use `--categories` to guide the evaluation toward specific
 pathways (e.g., `--categories donate resource`).
 
+Use `--db` to save the evaluation as a pending
+`OrganizationEvaluation` record in the database, where it
+will appear in the admin review dashboard. This is the
+preferred workflow — it populates `ai_model`,
+`ai_recommendation`, and `ai_confidence` fields
+automatically.
+
 ## Guardrails
 
-- Raw evaluations are never stored in the public repo
-- All output goes to the private repo for human review
+- Evaluations saved with `--db` land in the admin
+  review queue with status "pending"
 - Only after founder approval does data move to the
   public database
 - Be conservative — recommend "needs_review" when

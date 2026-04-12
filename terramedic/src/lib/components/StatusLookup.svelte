@@ -23,22 +23,19 @@
     rejected: 'text-red-400'
   };
 
-  function safeUrl(url: string): string | null {
-    try {
-      const parsed = new URL(url);
-      return /^https?:$/.test(parsed.protocol) ? parsed.href : null;
-    } catch {
-      return null;
-    }
-  }
-
   async function handleSubmit() {
     errorMessage = '';
     result = null;
 
     const trimmed = confirmationId.trim();
-    if (!trimmed.startsWith('NOM-')) {
-      errorMessage = 'Confirmation ID must start with NOM-.';
+    if (!trimmed) {
+      errorMessage = 'Please enter a confirmation ID.';
+      return;
+    }
+
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidPattern.test(trimmed)) {
+      errorMessage = 'Invalid confirmation ID format. Please check and try again.';
       return;
     }
 
@@ -64,7 +61,7 @@
         type="text"
         bind:value={confirmationId}
         required
-        placeholder="NOM-XXXXXXXXXX"
+        placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000"
         class="bg-deep-navy w-full text-white"
       />
     </div>
@@ -102,24 +99,13 @@
           </dd>
         </div>
         <div>
-          <dt class="text-sm text-gray-400">Nominated URL</dt>
-          <dd>
-            {#if safeUrl(result.url)}
-              <a
-                href={safeUrl(result.url)}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-terra-blue hover:underline">{result.url}</a
-              >
-            {:else}
-              <span class="text-gray-400">{result.url}</span>
-            {/if}
-          </dd>
+          <dt class="text-sm text-gray-400">Nominated Site</dt>
+          <dd class="break-all text-white">{result.display_url}</dd>
         </div>
         <div>
           <dt class="text-sm text-gray-400">Submitted</dt>
           <dd class="text-white">
-            {new Date(result.created_at).toLocaleDateString('en-US', {
+            {new Date(result.submitted_at).toLocaleDateString('en-US', {
               year: 'numeric',
               month: 'long',
               day: 'numeric'

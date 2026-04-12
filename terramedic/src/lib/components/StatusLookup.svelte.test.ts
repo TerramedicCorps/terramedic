@@ -29,34 +29,62 @@ describe('StatusLookup', () => {
 
   test('displays status on successful lookup', async () => {
     mockLookup.mockResolvedValueOnce({
-      confirmation_id: 'NOM-TEST123',
+      confirmation_id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
       status: 'pending',
-      url: 'https://example.org',
-      created_at: '2026-04-05T12:00:00Z'
+      display_url: 'example.org',
+      submitted_at: '2026-04-05T12:00:00Z'
     });
     const user = userEvent.setup();
 
     render(StatusLookup);
 
-    await user.type(screen.getByLabelText(/confirmation id/i), 'NOM-TEST123');
+    await user.type(
+      screen.getByLabelText(/confirmation id/i),
+      'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+    );
     await user.click(screen.getByRole('button', { name: /check status/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/pending/i)).toBeInTheDocument();
-      expect(screen.getByText(/NOM-TEST123/)).toBeInTheDocument();
+      expect(screen.getByText('a1b2c3d4-e5f6-7890-abcd-ef1234567890')).toBeInTheDocument();
     });
   });
 
-  test('shows client-side error for invalid format without calling API', async () => {
+  test('displays nominated site as plain text without scheme or query string', async () => {
+    mockLookup.mockResolvedValueOnce({
+      confirmation_id: '550e8400-e29b-41d4-a716-446655440000',
+      status: 'pending',
+      display_url: 'sierraclub.org/virginia',
+      submitted_at: '2026-04-05T12:00:00Z'
+    });
     const user = userEvent.setup();
 
     render(StatusLookup);
 
-    await user.type(screen.getByLabelText(/confirmation id/i), 'INVALID');
+    await user.type(
+      screen.getByLabelText(/confirmation id/i),
+      '550e8400-e29b-41d4-a716-446655440000'
+    );
     await user.click(screen.getByRole('button', { name: /check status/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/must start with NOM-/i)).toBeInTheDocument();
+      // Should show domain + path, no scheme/query/fragment
+      expect(screen.getByText('sierraclub.org/virginia')).toBeInTheDocument();
+      // Should NOT be a link
+      expect(screen.queryByRole('link', { name: /sierraclub/i })).not.toBeInTheDocument();
+    });
+  });
+
+  test('shows format error for non-UUID input without calling API', async () => {
+    const user = userEvent.setup();
+
+    render(StatusLookup);
+
+    await user.type(screen.getByLabelText(/confirmation id/i), 'not-a-uuid');
+    await user.click(screen.getByRole('button', { name: /check status/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/invalid.*format/i)).toBeInTheDocument();
     });
     expect(mockLookup).not.toHaveBeenCalled();
   });
@@ -67,7 +95,10 @@ describe('StatusLookup', () => {
 
     render(StatusLookup);
 
-    await user.type(screen.getByLabelText(/confirmation id/i), 'NOM-UNKNOWN');
+    await user.type(
+      screen.getByLabelText(/confirmation id/i),
+      'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+    );
     await user.click(screen.getByRole('button', { name: /check status/i }));
 
     await waitFor(() => {
@@ -76,11 +107,12 @@ describe('StatusLookup', () => {
   });
 
   test('error message has role="alert" for screen readers', async () => {
+    mockLookup.mockRejectedValueOnce(new Error('Nomination not found'));
     const user = userEvent.setup();
 
     render(StatusLookup);
 
-    await user.type(screen.getByLabelText(/confirmation id/i), 'INVALID');
+    await user.type(screen.getByLabelText(/confirmation id/i), 'bad-id');
     await user.click(screen.getByRole('button', { name: /check status/i }));
 
     await waitFor(() => {

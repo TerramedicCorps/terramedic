@@ -1,11 +1,13 @@
 /**
- * Nominations API client with mock implementation.
+ * Nominations API client.
  *
- * The backend endpoint (POST /api/nominations/, GET /api/nominations/{id}/status)
- * is being built on another branch. This module provides a mock that returns
- * realistic responses for development and testing. Replace the mock functions
- * with real fetch calls once the backend is available.
+ * Calls the Django backend at POST /api/nominations/ and
+ * GET /api/nominations/{id}/status/.
  */
+
+import { env } from '$env/dynamic/public';
+
+const API_BASE = env.PUBLIC_API_BASE || 'http://localhost:8000/api';
 
 export class ValidationError extends Error {
   fields: Record<string, string>;
@@ -31,56 +33,67 @@ export interface NominationResponse {
 export interface NominationStatus {
   confirmation_id: string;
   status: 'pending' | 'evaluating' | 'evaluated' | 'approved' | 'rejected';
-  url: string;
-  created_at: string;
+  display_url: string;
+  submitted_at: string;
 }
 
 /**
  * Submit a nomination to the API.
- * Currently mocked — returns a generated confirmation ID after a short delay.
  */
 export async function submitNomination(payload: NominationPayload): Promise<NominationResponse> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 600));
+  const response = await fetch(`${API_BASE}/nominations/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
 
-  // Validate URL is present (backend would also validate)
-  if (!payload.url) {
-    throw new Error('URL is required');
+  if (response.status === 422) {
+    const data = await response.json();
+    // Django Ninja returns validation errors as { detail: [...] }
+    const fields: Record<string, string> = {};
+    if (Array.isArray(data.detail)) {
+      for (const err of data.detail) {
+        const field = Array.isArray(err.loc) ? err.loc[err.loc.length - 1] : 'general';
+        fields[field] = err.msg;
+      }
+    }
+    throw new ValidationError(fields);
   }
 
-  if (payload.categories.length === 0) {
-    throw new Error('At least one category is required');
+  if (response.status === 429) {
+    throw new Error('Too many nominations submitted. Please try again later.');
   }
 
-  // Generate a mock confirmation ID
-  const id = `NOM-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+  if (!response.ok) {
+    throw new Error('Something went wrong. Please try again.');
+  }
 
-  return { confirmation_id: id };
+  return await response.json();
 }
 
 /**
  * Look up the status of a nomination by confirmation ID.
- * Currently mocked — always returns "pending" for valid-looking IDs.
  */
 export async function lookupNominationStatus(confirmationId: string): Promise<NominationStatus> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 400));
-
   const trimmed = confirmationId.trim();
 
   if (!trimmed) {
     throw new Error('Confirmation ID is required');
   }
 
-  // Mock: any ID starting with "NOM-" is treated as valid
-  if (!trimmed.startsWith('NOM-')) {
+  const response = await fetch(`${API_BASE}/nominations/${encodeURIComponent(trimmed)}/status/`);
+
+  if (response.status === 422) {
+    throw new Error('Invalid confirmation ID format');
+  }
+
+  if (response.status === 404) {
     throw new Error('Nomination not found');
   }
 
-  return {
-    confirmation_id: trimmed,
-    status: 'pending',
-    url: 'https://example.org',
-    created_at: new Date().toISOString()
-  };
+  if (!response.ok) {
+    throw new Error('Something went wrong. Please try again.');
+  }
+
+  return await response.json();
 }

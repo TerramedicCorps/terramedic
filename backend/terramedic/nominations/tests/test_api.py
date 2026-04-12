@@ -383,7 +383,7 @@ class TestNominationStatus:
         data = response.json()
         assert "ip_hash" not in data
 
-    def test_status_does_not_expose_url(self, client: Client) -> None:
+    def test_status_includes_submitted_at(self, client: Client) -> None:
         nom = Nomination.objects.create(
             url="https://example.org/",
             categories=["volunteer"],
@@ -393,5 +393,32 @@ class TestNominationStatus:
             f"/api/nominations/{nom.confirmation_id}/status/",
         )
         data = response.json()
-        # Public status endpoint should only show status and confirmation_id
+        assert "submitted_at" in data
+        assert data["submitted_at"] is not None
+
+    def test_status_returns_display_url(self, client: Client) -> None:
+        nom = Nomination.objects.create(
+            url="https://example.org/path",
+            categories=["volunteer"],
+            ip_hash="testhash",
+        )
+        response = client.get(
+            f"/api/nominations/{nom.confirmation_id}/status/",
+        )
+        data = response.json()
+        assert data["display_url"] == "example.org/path"
         assert "url" not in data
+
+    def test_status_display_url_strips_query_and_fragment(
+        self, client: Client,
+    ) -> None:
+        nom = Nomination.objects.create(
+            url="https://sierraclub.org/virginia?ref=123#top",
+            categories=["volunteer"],
+            ip_hash="testhash",
+        )
+        response = client.get(
+            f"/api/nominations/{nom.confirmation_id}/status/",
+        )
+        data = response.json()
+        assert data["display_url"] == "sierraclub.org/virginia"
