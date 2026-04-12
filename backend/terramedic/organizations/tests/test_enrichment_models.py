@@ -263,6 +263,17 @@ class TestOperatingRegion:
         r.refresh_from_db()
         assert r.continent == "Europe"
 
+    def test_continent_included_in_update_fields(self) -> None:
+        r = OperatingRegion.objects.create(
+            country_code="US", name="United States",
+        )
+        assert r.continent == "North America"
+        r.country_code = "JP"
+        r.name = "Japan"
+        r.save(update_fields=["country_code", "name"])
+        r.refresh_from_db()
+        assert r.continent == "Asia"
+
     def test_ordering_by_country_then_name(self) -> None:
         OperatingRegion.objects.create(
             country_code="US", name="United States",
