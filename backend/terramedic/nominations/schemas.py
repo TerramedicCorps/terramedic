@@ -64,3 +64,5 @@ class NominationOut(Schema):
 class NominationStatusOut(Schema):
     confirmation_id: str
     status: str
+    url: str
+    submitted_at: str

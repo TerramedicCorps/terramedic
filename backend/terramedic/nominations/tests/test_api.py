@@ -383,7 +383,7 @@ class TestNominationStatus:
         data = response.json()
         assert "ip_hash" not in data
 
-    def test_status_does_not_expose_url(self, client: Client) -> None:
+    def test_status_includes_submitted_at(self, client: Client) -> None:
         nom = Nomination.objects.create(
             url="https://example.org/",
             categories=["volunteer"],
@@ -393,5 +393,17 @@ class TestNominationStatus:
             f"/api/nominations/{nom.confirmation_id}/status/",
         )
         data = response.json()
-        # Public status endpoint should only show status and confirmation_id
-        assert "url" not in data
+        assert "submitted_at" in data
+        assert data["submitted_at"] is not None
+
+    def test_status_includes_url(self, client: Client) -> None:
+        nom = Nomination.objects.create(
+            url="https://example.org/",
+            categories=["volunteer"],
+            ip_hash="testhash",
+        )
+        response = client.get(
+            f"/api/nominations/{nom.confirmation_id}/status/",
+        )
+        data = response.json()
+        assert data["url"] == "https://example.org/"

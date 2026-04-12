@@ -111,4 +111,6 @@ def get_nomination_status(
     return NominationStatusOut(
         confirmation_id=str(nomination.confirmation_id),
         status=nomination.status,
+        url=nomination.url,
+        submitted_at=nomination.submitted_at.isoformat(),
     )
