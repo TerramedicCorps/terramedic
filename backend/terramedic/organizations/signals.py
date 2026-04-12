@@ -4,14 +4,18 @@ from typing import Any
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from terramedic.organizations.models.evaluation import OrganizationEvaluation
+from terramedic.nominations.models import NominationStatus
+from terramedic.organizations.models.evaluation import (
+    OrganizationEvaluation,
+    ReviewStatus,
+)
 
 logger = logging.getLogger(__name__)
 
 # Map evaluation review statuses to nomination statuses.
 _EVAL_TO_NOMINATION_STATUS: dict[str, str] = {
-    "approved": "approved",
-    "rejected": "rejected",
+    ReviewStatus.APPROVED: NominationStatus.APPROVED,
+    ReviewStatus.REJECTED: NominationStatus.REJECTED,
 }
 
 
@@ -28,7 +32,7 @@ def sync_nomination_status(
         return
 
     if created:
-        nomination.status = "evaluated"
+        nomination.status = NominationStatus.EVALUATED
         nomination.save(update_fields=["status"])
         return
 

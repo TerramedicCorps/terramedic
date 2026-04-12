@@ -10,10 +10,10 @@ Usage:
 
 import logging
 import os
-import sys
 from typing import Any
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
+from django.db.models import F
 
 from terramedic.nominations.models import Nomination, NominationStatus
 from terramedic.organizations.models import OrganizationEvaluation
@@ -36,11 +36,11 @@ def evaluate_org(
     return _evaluate_org(url=url, model=model, client=client, categories=categories)
 
 
-def Anthropic(**kwargs: Any) -> Any:  # noqa: N802
+def create_anthropic_client(**kwargs: Any) -> Any:
     """Lazy import wrapper — replaced in tests via mock."""
-    from anthropic import Anthropic as _Anthropic
+    from anthropic import Anthropic
 
-    return _Anthropic(**kwargs)
+    return Anthropic(**kwargs)
 
 
 class Command(BaseCommand):
@@ -57,10 +57,9 @@ class Command(BaseCommand):
     def handle(self, *_args: Any, **options: Any) -> None:
         api_key = os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
-            self.stderr.write("ANTHROPIC_API_KEY is not set.")
-            sys.exit(1)
+            raise CommandError("ANTHROPIC_API_KEY is not set.")
 
-        client = Anthropic(api_key=api_key)
+        client = create_anthropic_client(api_key=api_key)
         limit: int = options["limit"]
 
         nominations = list(
@@ -77,11 +76,18 @@ class Command(BaseCommand):
         failed = 0
 
         for nomination in nominations:
-            nomination.status = NominationStatus.EVALUATING
-            nomination.evaluation_attempts += 1
-            nomination.save(
-                update_fields=["status", "evaluation_attempts"],
+            # Atomic claim: only proceed if still queued (prevents
+            # duplicate processing by concurrent workers).
+            claimed = Nomination.objects.filter(
+                pk=nomination.pk,
+                status=NominationStatus.QUEUED,
+            ).update(
+                status=NominationStatus.EVALUATING,
+                evaluation_attempts=F("evaluation_attempts") + 1,
             )
+            if not claimed:
+                continue
+            nomination.refresh_from_db()
 
             try:
                 data = evaluate_org(

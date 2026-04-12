@@ -26,13 +26,15 @@ _COMMAND = "process_evaluations"
 @pytest.fixture(autouse=True)
 def _set_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+
+
 _EVAL_ORG_PATH = (
     "terramedic.nominations.management.commands"
     ".process_evaluations.evaluate_org"
 )
 _ANTHROPIC_PATH = (
     "terramedic.nominations.management.commands"
-    ".process_evaluations.Anthropic"
+    ".process_evaluations.create_anthropic_client"
 )
 
 
@@ -219,10 +221,12 @@ class TestProcessEvaluationsEdgeCases:
         call_command(_COMMAND)
         mock_eval.assert_not_called()
 
-    def test_missing_api_key_exits_with_error(
+    def test_missing_api_key_raises_command_error(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        from django.core.management.base import CommandError
+
         monkeypatch.delenv("ANTHROPIC_API_KEY")
-        with pytest.raises(SystemExit):
+        with pytest.raises(CommandError, match="ANTHROPIC_API_KEY"):
             call_command(_COMMAND)

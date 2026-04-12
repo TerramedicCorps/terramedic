@@ -73,7 +73,7 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
             Organization.objects.values_list("website_url", flat=True),
         )
 
-        queued_count = 0
+        to_queue: list[Nomination] = []
         skipped_count = 0
 
         for nomination in queryset:
@@ -94,14 +94,16 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
 
             nomination.status = NominationStatus.QUEUED
             nomination.evaluation_attempts = 0
-            nomination.save(
-                update_fields=["status", "evaluation_attempts"],
+            to_queue.append(nomination)
+
+        if to_queue:
+            Nomination.objects.bulk_update(
+                to_queue, ["status", "evaluation_attempts"],
             )
-            queued_count += 1
 
         self.message_user(
             request,
-            f"Queued {queued_count} nomination(s) for evaluation.",
+            f"Queued {len(to_queue)} nomination(s) for evaluation.",
             messages.SUCCESS,
         )
         if skipped_count:
