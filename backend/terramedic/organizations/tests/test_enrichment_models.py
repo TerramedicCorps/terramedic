@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 from django.core.exceptions import ValidationError
@@ -70,7 +71,7 @@ class TestFocusArea:
         assert fa.reviewed_at is None
 
     def test_save_with_user_sets_reviewed_by(
-        self, django_user_model: type,
+        self, django_user_model: Any,
     ) -> None:
         reviewer = django_user_model.objects.create_user(username="reviewer")
         fa = FocusArea.objects.create(name="riparian_buffer")
@@ -130,7 +131,7 @@ class TestSkillAuditFields:
         assert s.reviewed_at is None
 
     def test_save_with_user_sets_reviewed_by(
-        self, django_user_model: type,
+        self, django_user_model: Any,
     ) -> None:
         reviewer = django_user_model.objects.create_user(username="skill_reviewer")
         s = Skill.objects.create(name="data_analysis")

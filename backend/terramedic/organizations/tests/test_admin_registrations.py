@@ -1,5 +1,7 @@
 """Tests for admin registrations of all organization models."""
 
+from typing import Any
+
 import pytest
 from django.contrib import admin
 from django.test import Client
@@ -101,7 +103,7 @@ class TestFocusAreaAdmin:
         assert response.status_code == 200
 
     def test_save_sets_reviewed_by_to_current_user(
-        self, admin_client: Client, django_user_model: type,
+        self, admin_client: Client, django_user_model: Any,
     ) -> None:
         fa = FocusArea.objects.create(name="test_term")
         response = admin_client.post(
