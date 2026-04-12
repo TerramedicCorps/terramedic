@@ -248,10 +248,13 @@ class TestEvaluateActionMessages:
 
 @pytest.mark.django_db
 class TestEvaluateActionScheduledProcessing:
-    def test_success_message_mentions_processing(
+    def test_success_message_does_not_mention_manual_processing(
         self, admin_client: Client,
     ) -> None:
+        """The admin action no longer invokes the worker synchronously,
+        so the success message should not tell users to run anything manually."""
         nom = _make_nomination()
         response = _post_action(admin_client, [nom.pk])
-        content = response.content.decode()
-        assert "within a few minutes" in content.lower()
+        content = response.content.decode().lower()
+        assert "manually" not in content
+        assert "process_evaluations" not in content
