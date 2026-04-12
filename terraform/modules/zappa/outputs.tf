@@ -22,3 +22,8 @@ output "zappa_deployment_role_name" {
   description = "Name of the IAM role for Zappa deployments"
   value       = aws_iam_role.zappa_deployment.name
 }
+
+output "worker_schedule_rule_arn" {
+  description = "ARN of the EventBridge rule that triggers the worker Lambda (null if not configured)"
+  value       = length(aws_cloudwatch_event_rule.worker_schedule) > 0 ? aws_cloudwatch_event_rule.worker_schedule[0].arn : null
+}

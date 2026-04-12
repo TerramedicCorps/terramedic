@@ -1,6 +1,5 @@
 import datetime
 from typing import Any
-from unittest.mock import MagicMock, patch
 
 import pytest
 from django.contrib.auth.models import User
@@ -247,42 +246,19 @@ class TestEvaluateActionMessages:
         assert approved.status == NominationStatus.APPROVED
 
 
-_INVOKE_PATH = "terramedic.nominations.admin.invoke_worker_lambda"
-
-
 @pytest.mark.django_db
-class TestEvaluateActionWorkerInvocation:
-    @patch(_INVOKE_PATH)
-    def test_invokes_worker_after_queuing(
-        self,
-        mock_invoke: MagicMock,
-        admin_client: Client,
-    ) -> None:
-        nom = _make_nomination()
-        _post_action(admin_client, [nom.pk])
-        mock_invoke.assert_called_once()
+class TestEvaluateActionScheduledProcessing:
+    def test_no_invoke_worker_lambda_function(self) -> None:
+        """Synchronous Lambda invoke was removed; worker is triggered
+        by an EventBridge scheduled rule instead."""
+        from terramedic.nominations import admin as admin_module
 
-    @patch(_INVOKE_PATH)
-    def test_does_not_invoke_worker_when_nothing_queued(
-        self,
-        mock_invoke: MagicMock,
-        admin_client: Client,
-    ) -> None:
-        nom = _make_nomination(status=NominationStatus.APPROVED)
-        _post_action(admin_client, [nom.pk])
-        mock_invoke.assert_not_called()
+        assert not hasattr(admin_module, "invoke_worker_lambda")
 
-    @patch(_INVOKE_PATH, side_effect=Exception("boto3 error"))
-    def test_graceful_fallback_on_invoke_failure(
-        self,
-        mock_invoke: MagicMock,
-        admin_client: Client,
+    def test_success_message_mentions_processing(
+        self, admin_client: Client,
     ) -> None:
         nom = _make_nomination()
         response = _post_action(admin_client, [nom.pk])
-        nom.refresh_from_db()
-        # Nomination should still be queued even if invoke fails
-        assert nom.status == NominationStatus.QUEUED
-        # Should show a warning message
         content = response.content.decode()
-        assert "manually" in content.lower() or "process_evaluations" in content
+        assert "within a few minutes" in content.lower()

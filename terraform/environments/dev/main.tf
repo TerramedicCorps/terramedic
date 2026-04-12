@@ -118,6 +118,8 @@ module "zappa" {
   ]
   secrets_kms_key_arn = module.secrets.secrets_kms_key_arn
 
+  worker_schedule_expression = "rate(5 minutes)"
+
   tags = var.tags
 }
 

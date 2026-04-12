@@ -50,6 +50,12 @@ variable "project_name" {
   default     = ""
 }
 
+variable "worker_schedule_expression" {
+  description = "Schedule expression for the worker Lambda (e.g. 'rate(5 minutes)'). Empty to disable."
+  type        = string
+  default     = ""
+}
+
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)
