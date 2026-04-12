@@ -84,10 +84,17 @@ class TestOperatingRegionAdmin:
             region_code="",
             defaults={"name": "United States"},
         )
+        OperatingRegion.objects.get_or_create(
+            country_code="CA",
+            region_code="",
+            defaults={"name": "Canada"},
+        )
         response = admin_client.get(
             "/admin/organizations/operatingregion/?q=United",
         )
         assert response.status_code == 200
+        assert b"United States" in response.content
+        assert b"Canada" not in response.content
 
 
 @pytest.mark.django_db
@@ -97,10 +104,14 @@ class TestFocusAreaAdmin:
         assert response.status_code == 200
 
     def test_filter_by_reviewed(self, admin_client: Client) -> None:
+        FocusArea.objects.create(name="Reviewed Focus Area", reviewed=True)
+        FocusArea.objects.create(name="Unreviewed Focus Area", reviewed=False)
         response = admin_client.get(
             "/admin/organizations/focusarea/?reviewed__exact=1",
         )
         assert response.status_code == 200
+        assert b"Reviewed Focus Area" in response.content
+        assert b"Unreviewed Focus Area" not in response.content
 
     def test_save_sets_reviewed_by_to_current_user(
         self, admin_client: Client, django_user_model: Any,
@@ -125,10 +136,14 @@ class TestSkillAdmin:
         assert response.status_code == 200
 
     def test_filter_by_reviewed(self, admin_client: Client) -> None:
+        Skill.objects.create(name="Reviewed Skill", reviewed=True)
+        Skill.objects.create(name="Unreviewed Skill", reviewed=False)
         response = admin_client.get(
             "/admin/organizations/skill/?reviewed__exact=1",
         )
         assert response.status_code == 200
+        assert b"Reviewed Skill" in response.content
+        assert b"Unreviewed Skill" not in response.content
 
 
 @pytest.mark.django_db
@@ -142,8 +157,24 @@ class TestEngagementOpportunityAdmin:
     def test_filter_by_engagement_type(
         self, admin_client: Client,
     ) -> None:
+        org = Organization.objects.create(name="Test Org")
+        matching = EngagementOpportunity.objects.create(
+            organization=org,
+            engagement_type="donate_one_time",
+            description="Donate once",
+        )
+        non_matching = EngagementOpportunity.objects.create(
+            organization=org,
+            engagement_type="volunteer_remote",
+            description="Volunteer remotely",
+        )
         response = admin_client.get(
             "/admin/organizations/engagementopportunity/"
             "?engagement_type__exact=donate_one_time",
         )
         assert response.status_code == 200
+        result_pks = list(
+            response.context["cl"].queryset.values_list("pk", flat=True),
+        )
+        assert matching.pk in result_pks
+        assert non_matching.pk not in result_pks
