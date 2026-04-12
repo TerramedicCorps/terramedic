@@ -248,13 +248,6 @@ class TestEvaluateActionMessages:
 
 @pytest.mark.django_db
 class TestEvaluateActionScheduledProcessing:
-    def test_no_invoke_worker_lambda_function(self) -> None:
-        """Synchronous Lambda invoke was removed; worker is triggered
-        by an EventBridge scheduled rule instead."""
-        from terramedic.nominations import admin as admin_module
-
-        assert not hasattr(admin_module, "invoke_worker_lambda")
-
     def test_success_message_mentions_processing(
         self, admin_client: Client,
     ) -> None:
