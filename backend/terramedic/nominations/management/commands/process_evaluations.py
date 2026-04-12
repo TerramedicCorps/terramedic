@@ -8,20 +8,27 @@ Usage:
     zappa manage dev "process_evaluations --limit 5"
 """
 
+import datetime
 import logging
 import os
 from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import F
+from django.utils import timezone
 
 from terramedic.nominations.models import Nomination, NominationStatus
-from terramedic.organizations.models import OrganizationEvaluation
+from terramedic.organizations.models import (
+    Organization,
+    OrganizationEvaluation,
+    ReviewStatus,
+)
 
 logger = logging.getLogger(__name__)
 
 _DEFAULT_EVAL_MODEL = "claude-sonnet-4-20250514"
 _MAX_RETRY_ATTEMPTS = 2
+_REJECTION_COOLDOWN_DAYS = 90
 
 
 def evaluate_org(
@@ -41,6 +48,34 @@ def create_anthropic_client(**kwargs: Any) -> Any:
     from anthropic import Anthropic
 
     return Anthropic(**kwargs)
+
+
+def _should_skip(url: str) -> bool:
+    """Check if a URL should be skipped (already evaluated, exists, or in cooldown)."""
+    has_active_eval = (
+        OrganizationEvaluation.objects.exclude(
+            status=ReviewStatus.REJECTED,
+        ).filter(
+            evaluation_data__org_metadata__website_url=url,
+        ).exists()
+    )
+    if has_active_eval:
+        return True
+
+    if Organization.objects.filter(website_url=url).exists():
+        return True
+
+    cooldown_cutoff = timezone.now() - datetime.timedelta(
+        days=_REJECTION_COOLDOWN_DAYS,
+    )
+    has_recent_rejection = (
+        OrganizationEvaluation.objects.filter(
+            status=ReviewStatus.REJECTED,
+            created_at__gte=cooldown_cutoff,
+            evaluation_data__org_metadata__website_url=url,
+        ).exists()
+    )
+    return has_recent_rejection
 
 
 class Command(BaseCommand):
@@ -74,6 +109,7 @@ class Command(BaseCommand):
 
         processed = 0
         failed = 0
+        skipped = 0
 
         for nomination in nominations:
             # Atomic claim: only proceed if still queued (prevents
@@ -88,6 +124,15 @@ class Command(BaseCommand):
             if not claimed:
                 continue
             nomination.refresh_from_db()
+
+            if _should_skip(nomination.url):
+                nomination.status = NominationStatus.PENDING
+                nomination.evaluation_attempts -= 1
+                nomination.save(
+                    update_fields=["status", "evaluation_attempts"],
+                )
+                skipped += 1
+                continue
 
             try:
                 data = evaluate_org(
@@ -119,6 +164,6 @@ class Command(BaseCommand):
             processed += 1
 
         self.stdout.write(
-            f"Processed {processed}, failed {failed} "
+            f"Processed {processed}, failed {failed}, skipped {skipped} "
             f"of {len(nominations)} nomination(s).",
         )

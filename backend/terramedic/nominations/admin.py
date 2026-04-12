@@ -1,4 +1,3 @@
-import datetime
 import io
 import json
 import logging
@@ -10,57 +9,12 @@ from django.db.models import QuerySet
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.urls import URLPattern, path, reverse
-from django.utils import timezone
 
 from terramedic.nominations.csv_import import parse_nominations_csv
 from terramedic.nominations.models import Nomination, NominationStatus
-from terramedic.organizations.models import (
-    Category,
-    Organization,
-    OrganizationEvaluation,
-    ReviewStatus,
-)
+from terramedic.organizations.models import Category
 
 logger = logging.getLogger(__name__)
-
-_REJECTION_COOLDOWN_DAYS = 90
-
-
-def _build_skip_urls(
-    selected_urls: set[str],
-) -> tuple[set[str], set[str], set[str]]:
-    """Return (active_eval_urls, recently_rejected_urls, existing_org_urls)."""
-    active_eval_urls = set(
-        OrganizationEvaluation.objects.exclude(
-            status=ReviewStatus.REJECTED,
-        ).filter(
-            evaluation_data__org_metadata__website_url__in=selected_urls,
-        ).values_list(
-            "evaluation_data__org_metadata__website_url", flat=True,
-        ),
-    ) - {None}
-
-    cooldown_cutoff = timezone.now() - datetime.timedelta(
-        days=_REJECTION_COOLDOWN_DAYS,
-    )
-    recently_rejected_urls = set(
-        OrganizationEvaluation.objects.filter(
-            status=ReviewStatus.REJECTED,
-            created_at__gte=cooldown_cutoff,
-        ).filter(
-            evaluation_data__org_metadata__website_url__in=selected_urls,
-        ).values_list(
-            "evaluation_data__org_metadata__website_url", flat=True,
-        ),
-    ) - {None}
-
-    existing_org_urls = set(
-        Organization.objects.filter(
-            website_url__in=selected_urls,
-        ).values_list("website_url", flat=True),
-    )
-
-    return active_eval_urls, recently_rejected_urls, existing_org_urls
 
 
 def invoke_worker_lambda(queued_count: int) -> None:
@@ -119,34 +73,11 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         request: HttpRequest,
         queryset: QuerySet[Nomination],
     ) -> None:
-        # Constrain skip-set queries to only the selected URLs.
-        selected_urls = set(
-            queryset.filter(
-                status=NominationStatus.PENDING,
-            ).values_list("url", flat=True),
-        )
-        if not selected_urls:
-            self.message_user(
-                request,
-                "No pending nominations in selection.",
-                messages.INFO,
-            )
-            return
-
-        active_eval_urls, recently_rejected_urls, existing_org_urls = (
-            _build_skip_urls(selected_urls)
-        )
-        skip_urls = active_eval_urls | existing_org_urls | recently_rejected_urls
-
         to_queue: list[Nomination] = []
         skipped_count = 0
 
         for nomination in queryset:
             if nomination.status != NominationStatus.PENDING:
-                skipped_count += 1
-                continue
-
-            if nomination.url in skip_urls:
                 skipped_count += 1
                 continue
 
@@ -178,8 +109,7 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         if skipped_count:
             self.message_user(
                 request,
-                f"Skipped {skipped_count} nomination(s) "
-                f"(not pending, already evaluated, or in cooldown).",
+                f"Skipped {skipped_count} nomination(s) (not pending).",
                 messages.INFO,
             )
 

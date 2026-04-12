@@ -1,18 +1,11 @@
-import datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 from django.contrib.auth.models import User
 from django.test import Client
-from django.utils import timezone
 
 from terramedic.nominations.models import Nomination, NominationStatus
-from terramedic.organizations.models import (
-    Organization,
-    OrganizationEvaluation,
-    ReviewStatus,
-)
 
 CHANGELIST_URL = "/admin/nominations/nomination/"
 
@@ -111,128 +104,7 @@ class TestEvaluateActionSkipsNonPending:
 
 
 @pytest.mark.django_db
-class TestEvaluateActionSkipsActiveEvaluation:
-    def test_skips_url_with_pending_evaluation(
-        self, admin_client: Client,
-    ) -> None:
-        OrganizationEvaluation.objects.create(
-            evaluation_data={
-                "org_metadata": {"website_url": "https://example.org"},
-            },
-            status=ReviewStatus.PENDING,
-        )
-        nom = _make_nomination(url="https://example.org")
-        _post_action(admin_client, [nom.pk])
-        nom.refresh_from_db()
-        assert nom.status == NominationStatus.PENDING
-
-    def test_skips_url_with_approved_evaluation(
-        self, admin_client: Client,
-    ) -> None:
-        OrganizationEvaluation.objects.create(
-            evaluation_data={
-                "org_metadata": {"website_url": "https://example.org"},
-            },
-            status=ReviewStatus.APPROVED,
-        )
-        nom = _make_nomination(url="https://example.org")
-        _post_action(admin_client, [nom.pk])
-        nom.refresh_from_db()
-        assert nom.status == NominationStatus.PENDING
-
-    def test_allows_url_with_only_rejected_evaluation_past_cooldown(
-        self, admin_client: Client,
-    ) -> None:
-        ev = OrganizationEvaluation.objects.create(
-            evaluation_data={
-                "org_metadata": {"website_url": "https://example.org"},
-            },
-            status=ReviewStatus.REJECTED,
-        )
-        OrganizationEvaluation.objects.filter(pk=ev.pk).update(
-            created_at=timezone.now() - datetime.timedelta(days=91),
-        )
-        nom = _make_nomination(url="https://example.org")
-        _post_action(admin_client, [nom.pk])
-        nom.refresh_from_db()
-        assert nom.status == NominationStatus.QUEUED
-
-
-@pytest.mark.django_db
-class TestEvaluateActionSkipsExistingOrg:
-    def test_skips_url_matching_existing_org(
-        self, admin_client: Client,
-    ) -> None:
-        org = Organization(
-            name="Example Org",
-            website_url="https://example.org",
-        )
-        org.set_current_language("en")
-        org.description = "An org."
-        org.action_text = "Support"
-        org.save()
-
-        nom = _make_nomination(url="https://example.org")
-        _post_action(admin_client, [nom.pk])
-        nom.refresh_from_db()
-        assert nom.status == NominationStatus.PENDING
-
-
-@pytest.mark.django_db
-class TestEvaluateActionCooldown:
-    def test_skips_recently_rejected_url(
-        self, admin_client: Client,
-    ) -> None:
-        OrganizationEvaluation.objects.create(
-            evaluation_data={
-                "org_metadata": {"website_url": "https://example.org"},
-            },
-            status=ReviewStatus.REJECTED,
-        )
-        nom = _make_nomination(url="https://example.org")
-        _post_action(admin_client, [nom.pk])
-        nom.refresh_from_db()
-        assert nom.status == NominationStatus.PENDING
-
-    def test_allows_old_rejected_url(
-        self, admin_client: Client,
-    ) -> None:
-        ev = OrganizationEvaluation.objects.create(
-            evaluation_data={
-                "org_metadata": {"website_url": "https://example.org"},
-            },
-            status=ReviewStatus.REJECTED,
-        )
-        # Backdate created_at past the 90-day cooldown
-        OrganizationEvaluation.objects.filter(pk=ev.pk).update(
-            created_at=timezone.now() - datetime.timedelta(days=91),
-        )
-        nom = _make_nomination(url="https://example.org")
-        _post_action(admin_client, [nom.pk])
-        nom.refresh_from_db()
-        assert nom.status == NominationStatus.QUEUED
-
-
-@pytest.mark.django_db
 class TestEvaluateActionMessages:
-    def test_skip_reasons_reported(
-        self, admin_client: Client,
-    ) -> None:
-        pending = _make_nomination(url="https://new.org")
-        already_eval = _make_nomination(url="https://evaluated.org")
-        OrganizationEvaluation.objects.create(
-            evaluation_data={
-                "org_metadata": {"website_url": "https://evaluated.org"},
-            },
-            status=ReviewStatus.PENDING,
-        )
-        response = _post_action(
-            admin_client, [pending.pk, already_eval.pk],
-        )
-        content = response.content.decode()
-        assert "1" in content  # 1 queued
-        assert "skip" in content.lower()
-
     def test_mixed_pending_and_non_pending(
         self, admin_client: Client,
     ) -> None:

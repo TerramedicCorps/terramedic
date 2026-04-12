@@ -1,11 +1,17 @@
+import datetime
 from typing import Any
 from unittest.mock import patch
 
 import pytest
 from django.core.management import call_command
+from django.utils import timezone
 
 from terramedic.nominations.models import Nomination, NominationStatus
-from terramedic.organizations.models import OrganizationEvaluation
+from terramedic.organizations.models import (
+    Organization,
+    OrganizationEvaluation,
+    ReviewStatus,
+)
 
 _EVAL_RESULT: dict[str, Any] = {
     "org_metadata": {
@@ -230,3 +236,127 @@ class TestProcessEvaluationsEdgeCases:
         monkeypatch.delenv("ANTHROPIC_API_KEY")
         with pytest.raises(CommandError, match="ANTHROPIC_API_KEY"):
             call_command(_COMMAND)
+
+
+@pytest.mark.django_db
+class TestProcessEvaluationsSkips:
+    """Worker skips queued nominations that shouldn't be evaluated."""
+
+    @patch(_ANTHROPIC_PATH)
+    @patch(_EVAL_ORG_PATH, return_value=_EVAL_RESULT)
+    def test_skips_url_with_active_evaluation(
+        self,
+        mock_eval: Any,
+        mock_anthropic: Any,
+    ) -> None:
+        OrganizationEvaluation.objects.create(
+            evaluation_data={
+                "org_metadata": {"website_url": "https://example.org"},
+            },
+            status=ReviewStatus.PENDING,
+        )
+        nom = _make_queued_nomination(url="https://example.org")
+        call_command(_COMMAND)
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.PENDING
+        mock_eval.assert_not_called()
+
+    @patch(_ANTHROPIC_PATH)
+    @patch(_EVAL_ORG_PATH, return_value=_EVAL_RESULT)
+    def test_skips_url_with_approved_evaluation(
+        self,
+        mock_eval: Any,
+        mock_anthropic: Any,
+    ) -> None:
+        OrganizationEvaluation.objects.create(
+            evaluation_data={
+                "org_metadata": {"website_url": "https://example.org"},
+            },
+            status=ReviewStatus.APPROVED,
+        )
+        nom = _make_queued_nomination(url="https://example.org")
+        call_command(_COMMAND)
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.PENDING
+        mock_eval.assert_not_called()
+
+    @patch(_ANTHROPIC_PATH)
+    @patch(_EVAL_ORG_PATH, return_value=_EVAL_RESULT)
+    def test_skips_url_matching_existing_org(
+        self,
+        mock_eval: Any,
+        mock_anthropic: Any,
+    ) -> None:
+        org = Organization(
+            name="Example Org",
+            website_url="https://example.org",
+        )
+        org.set_current_language("en")
+        org.description = "An org."
+        org.action_text = "Support"
+        org.save()
+
+        nom = _make_queued_nomination(url="https://example.org")
+        call_command(_COMMAND)
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.PENDING
+        mock_eval.assert_not_called()
+
+    @patch(_ANTHROPIC_PATH)
+    @patch(_EVAL_ORG_PATH, return_value=_EVAL_RESULT)
+    def test_skips_recently_rejected_url(
+        self,
+        mock_eval: Any,
+        mock_anthropic: Any,
+    ) -> None:
+        OrganizationEvaluation.objects.create(
+            evaluation_data={
+                "org_metadata": {"website_url": "https://example.org"},
+            },
+            status=ReviewStatus.REJECTED,
+        )
+        nom = _make_queued_nomination(url="https://example.org")
+        call_command(_COMMAND)
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.PENDING
+        mock_eval.assert_not_called()
+
+    @patch(_ANTHROPIC_PATH)
+    @patch(_EVAL_ORG_PATH, return_value=_EVAL_RESULT)
+    def test_allows_old_rejected_url(
+        self,
+        mock_eval: Any,
+        mock_anthropic: Any,
+    ) -> None:
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data={
+                "org_metadata": {"website_url": "https://example.org"},
+            },
+            status=ReviewStatus.REJECTED,
+        )
+        OrganizationEvaluation.objects.filter(pk=ev.pk).update(
+            created_at=timezone.now() - datetime.timedelta(days=91),
+        )
+        nom = _make_queued_nomination(url="https://example.org")
+        call_command(_COMMAND)
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.EVALUATED
+
+    @patch(_ANTHROPIC_PATH)
+    @patch(_EVAL_ORG_PATH, return_value=_EVAL_RESULT)
+    def test_skip_does_not_count_as_failure(
+        self,
+        mock_eval: Any,
+        mock_anthropic: Any,
+    ) -> None:
+        """Skipped nominations should not increment evaluation_attempts."""
+        OrganizationEvaluation.objects.create(
+            evaluation_data={
+                "org_metadata": {"website_url": "https://example.org"},
+            },
+            status=ReviewStatus.PENDING,
+        )
+        nom = _make_queued_nomination(url="https://example.org")
+        call_command(_COMMAND)
+        nom.refresh_from_db()
+        assert nom.evaluation_attempts == 0
