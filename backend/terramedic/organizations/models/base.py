@@ -15,6 +15,7 @@ class CuratorProposedTerm(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        related_name="%(class)s_reviewed",
     )
     reviewed_at = models.DateTimeField(null=True, blank=True)
 
