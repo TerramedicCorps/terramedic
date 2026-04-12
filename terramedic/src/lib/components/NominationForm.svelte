@@ -48,6 +48,8 @@
   async function handleSubmit() {
     if (honeypot) return;
 
+    errorMessage = '';
+
     validateUrl();
     if (urlError) return;
 
@@ -57,7 +59,6 @@
     }
 
     isSubmitting = true;
-    errorMessage = '';
 
     try {
       const result = await submitNomination({ url, categories, notes, website: honeypot });
