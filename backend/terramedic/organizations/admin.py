@@ -49,16 +49,18 @@ class OperatingRegionAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
 
 @admin.register(FocusArea)
 class FocusAreaAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
-    list_display = ["name", "reviewed"]
+    list_display = ["name", "reviewed", "reviewed_by", "reviewed_at"]
     list_filter = ["reviewed"]
     search_fields = ["name"]
+    readonly_fields = ["reviewed_by", "reviewed_at"]
 
 
 @admin.register(Skill)
 class SkillAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
-    list_display = ["name", "reviewed"]
+    list_display = ["name", "reviewed", "reviewed_by", "reviewed_at"]
     list_filter = ["reviewed"]
     search_fields = ["name"]
+    readonly_fields = ["reviewed_by", "reviewed_at"]
 
 
 @admin.register(Tag)

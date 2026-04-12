@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import pytest
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
@@ -60,6 +61,56 @@ class TestFocusArea:
             "biodiversity_monitoring",
             "wildlife_protection",
         ]
+
+    def test_reviewed_by_defaults_null(self) -> None:
+        fa = FocusArea.objects.create(name="wetland_restoration")
+        assert fa.reviewed_by is None
+
+    def test_reviewed_by_tracks_user(self) -> None:
+        user = User.objects.create_user("reviewer", password="testpass")
+        fa = FocusArea.objects.create(
+            name="soil_health", reviewed=True, reviewed_by=user,
+        )
+        fa.refresh_from_db()
+        assert fa.reviewed_by == user
+
+    def test_reviewed_at_defaults_null(self) -> None:
+        fa = FocusArea.objects.create(name="pollinator_habitat")
+        assert fa.reviewed_at is None
+
+    def test_reviewed_at_set_on_review(self) -> None:
+        from django.utils import timezone
+
+        now = timezone.now()
+        fa = FocusArea.objects.create(
+            name="carbon_sequestration",
+            reviewed=True,
+            reviewed_at=now,
+        )
+        fa.refresh_from_db()
+        assert fa.reviewed_at is not None
+
+
+# -- CuratorProposedTerm audit fields on Skill -------------------------
+
+
+@pytest.mark.django_db
+class TestSkillAuditFields:
+    def test_reviewed_by_defaults_null(self) -> None:
+        s = Skill.objects.create(name="water_testing")
+        assert s.reviewed_by is None
+
+    def test_reviewed_by_tracks_user(self) -> None:
+        user = User.objects.create_user("reviewer2", password="testpass")
+        s = Skill.objects.create(
+            name="grant_writing", reviewed=True, reviewed_by=user,
+        )
+        s.refresh_from_db()
+        assert s.reviewed_by == user
+
+    def test_reviewed_at_defaults_null(self) -> None:
+        s = Skill.objects.create(name="public_speaking")
+        assert s.reviewed_at is None
 
 
 # -- SDG ---------------------------------------------------------------
