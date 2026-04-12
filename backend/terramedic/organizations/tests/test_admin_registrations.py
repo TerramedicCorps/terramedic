@@ -141,6 +141,6 @@ class TestEngagementOpportunityAdmin:
     ) -> None:
         response = admin_client.get(
             "/admin/organizations/engagementopportunity/"
-            "?engagement_type=donate",
+            "?engagement_type__exact=donate_one_time",
         )
         assert response.status_code == 200
