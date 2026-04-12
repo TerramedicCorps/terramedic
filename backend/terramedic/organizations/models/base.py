@@ -25,13 +25,26 @@ class CuratorProposedTerm(models.Model):
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         user = kwargs.pop("user", None)
+        update_fields = kwargs.get("update_fields")
+        changed: set[str] = set()
+
         if self.reviewed and self.reviewed_at is None:
             self.reviewed_at = timezone.now()
+            changed.add("reviewed_at")
             if user is not None:
                 self.reviewed_by = user
+                changed.add("reviewed_by")
         elif not self.reviewed:
-            self.reviewed_at = None
-            self.reviewed_by = None
+            if self.reviewed_at is not None:
+                self.reviewed_at = None
+                changed.add("reviewed_at")
+            if self.reviewed_by is not None:
+                self.reviewed_by = None
+                changed.add("reviewed_by")
+
+        if update_fields is not None and changed:
+            kwargs["update_fields"] = set(update_fields) | changed
+
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:

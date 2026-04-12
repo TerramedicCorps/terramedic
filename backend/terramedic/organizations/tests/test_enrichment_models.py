@@ -116,6 +116,29 @@ class TestFocusArea:
         fa.refresh_from_db()
         assert fa.reviewed_at == original_at
 
+    def test_update_fields_includes_mutated_audit_fields(self) -> None:
+        fa = FocusArea.objects.create(name="wetland_mgmt")
+        fa.reviewed = True
+        fa.save(update_fields=["reviewed"])
+        fa.refresh_from_db()
+        assert fa.reviewed is True
+        assert fa.reviewed_at is not None
+
+    def test_update_fields_clears_audit_fields_on_uncheck(
+        self, django_user_model: Any,
+    ) -> None:
+        reviewer = django_user_model.objects.create_user(username="rev2")
+        fa = FocusArea.objects.create(name="mangrove_mgmt", reviewed=True)
+        fa.reviewed_by = reviewer
+        fa.save(update_fields=["reviewed_by"])
+        fa.refresh_from_db()
+        assert fa.reviewed_by == reviewer
+        fa.reviewed = False
+        fa.save(update_fields=["reviewed"])
+        fa.refresh_from_db()
+        assert fa.reviewed_at is None
+        assert fa.reviewed_by is None
+
 
 # -- CuratorProposedTerm audit fields on Skill -------------------------
 
