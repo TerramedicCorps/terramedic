@@ -129,6 +129,23 @@ class TestSkillAuditFields:
         s = Skill.objects.create(name="public_speaking")
         assert s.reviewed_at is None
 
+    def test_save_with_user_sets_reviewed_by(
+        self, django_user_model: type,
+    ) -> None:
+        reviewer = django_user_model.objects.create_user(username="skill_reviewer")
+        s = Skill.objects.create(name="data_analysis")
+        s.reviewed = True
+        s.save(user=reviewer)
+        s.refresh_from_db()
+        assert s.reviewed_by == reviewer
+
+    def test_save_without_user_leaves_reviewed_by_null(self) -> None:
+        s = Skill.objects.create(name="first_aid")
+        s.reviewed = True
+        s.save()
+        s.refresh_from_db()
+        assert s.reviewed_by is None
+
     def test_reviewed_at_auto_set_when_reviewed_toggled_true(self) -> None:
         s = Skill.objects.create(name="grant_writing")
         assert s.reviewed_at is None
@@ -136,6 +153,27 @@ class TestSkillAuditFields:
         s.save()
         s.refresh_from_db()
         assert s.reviewed_at is not None
+
+    def test_reviewed_at_cleared_when_reviewed_toggled_false(self) -> None:
+        s = Skill.objects.create(
+            name="fundraising", reviewed=True,
+        )
+        assert s.reviewed_at is not None
+        s.reviewed = False
+        s.save()
+        s.refresh_from_db()
+        assert s.reviewed_at is None
+        assert s.reviewed_by is None
+
+    def test_reviewed_at_not_overwritten_on_re_save(self) -> None:
+        s = Skill.objects.create(
+            name="project_management", reviewed=True,
+        )
+        original_at = s.reviewed_at
+        s.name = "project_management_updated"
+        s.save()
+        s.refresh_from_db()
+        assert s.reviewed_at == original_at
 
 
 # -- SDG ---------------------------------------------------------------
