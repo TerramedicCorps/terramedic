@@ -8,27 +8,21 @@ Usage:
     zappa manage dev "process_evaluations --limit 5"
 """
 
-import datetime
 import logging
 import os
 from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import F
-from django.utils import timezone
 
 from terramedic.nominations.models import Nomination, NominationStatus
-from terramedic.organizations.models import (
-    Organization,
-    OrganizationEvaluation,
-    ReviewStatus,
-)
+from terramedic.nominations.skip_checks import should_skip_url
+from terramedic.organizations.models import OrganizationEvaluation
 
 logger = logging.getLogger(__name__)
 
 _DEFAULT_EVAL_MODEL = "claude-sonnet-4-20250514"
 _MAX_RETRY_ATTEMPTS = 2
-_REJECTION_COOLDOWN_DAYS = 90
 
 
 def evaluate_org(
@@ -48,34 +42,6 @@ def create_anthropic_client(**kwargs: Any) -> Any:
     from anthropic import Anthropic
 
     return Anthropic(**kwargs)
-
-
-def _should_skip(url: str) -> bool:
-    """Check if a URL should be skipped (already evaluated, exists, or in cooldown)."""
-    has_active_eval = (
-        OrganizationEvaluation.objects.exclude(
-            status=ReviewStatus.REJECTED,
-        ).filter(
-            evaluation_data__org_metadata__website_url=url,
-        ).exists()
-    )
-    if has_active_eval:
-        return True
-
-    if Organization.objects.filter(website_url=url).exists():
-        return True
-
-    cooldown_cutoff = timezone.now() - datetime.timedelta(
-        days=_REJECTION_COOLDOWN_DAYS,
-    )
-    has_recent_rejection = (
-        OrganizationEvaluation.objects.filter(
-            status=ReviewStatus.REJECTED,
-            created_at__gte=cooldown_cutoff,
-            evaluation_data__org_metadata__website_url=url,
-        ).exists()
-    )
-    return has_recent_rejection
 
 
 class Command(BaseCommand):
@@ -125,7 +91,7 @@ class Command(BaseCommand):
                 continue
             nomination.refresh_from_db()
 
-            if _should_skip(nomination.url):
+            if should_skip_url(nomination.url):
                 nomination.status = NominationStatus.PENDING
                 nomination.evaluation_attempts -= 1
                 nomination.save(

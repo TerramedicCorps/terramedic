@@ -12,6 +12,7 @@ from django.urls import URLPattern, path, reverse
 
 from terramedic.nominations.csv_import import parse_nominations_csv
 from terramedic.nominations.models import Nomination, NominationStatus
+from terramedic.nominations.skip_checks import should_skip_url
 from terramedic.organizations.models import Category
 
 logger = logging.getLogger(__name__)
@@ -81,6 +82,10 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
                 skipped_count += 1
                 continue
 
+            if should_skip_url(nomination.url):
+                skipped_count += 1
+                continue
+
             nomination.status = NominationStatus.QUEUED
             nomination.evaluation_attempts = 0
             to_queue.append(nomination)
@@ -109,7 +114,8 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         if skipped_count:
             self.message_user(
                 request,
-                f"Skipped {skipped_count} nomination(s) (not pending).",
+                f"Skipped {skipped_count} nomination(s) "
+                "(not pending, already evaluated, or in cooldown).",
                 messages.INFO,
             )
 
