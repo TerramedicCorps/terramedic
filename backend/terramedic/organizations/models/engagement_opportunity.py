@@ -42,6 +42,7 @@ class EngagementOpportunity(models.Model):
 
     class Meta:
         ordering = ["engagement_type"]
+        verbose_name_plural = "engagement opportunities"
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         # bulk_create / QuerySet.update bypass save(); callers
