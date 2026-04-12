@@ -56,6 +56,11 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         default=[],
         help="Nominated categories (e.g. donate volunteer resource everyday career).",
     )
+    parser.add_argument(
+        "--db",
+        action="store_true",
+        help="Save to database instead of file. Requires Django.",
+    )
     return parser
 
 
@@ -483,6 +488,37 @@ def _save_evaluation(data: dict[str, Any], output_path: str) -> None:
         f.write("\n")
 
 
+def _save_to_db(data: dict[str, Any]) -> int:
+    """Save evaluation data as an OrganizationEvaluation record.
+
+    Returns the ID of the created record.
+    """
+    try:
+        import django
+    except ImportError:
+        msg = (
+            "Django is not installed. "
+            "Use --output to save to a file instead."
+        )
+        raise RuntimeError(msg)  # noqa: B904, TRY200
+
+    os.environ.setdefault(
+        "DJANGO_SETTINGS_MODULE", "terramedic.core.settings",
+    )
+    django.setup()
+
+    from terramedic.organizations.models import OrganizationEvaluation
+
+    curator_notes = data.get("curator_notes", {})
+    obj = OrganizationEvaluation.objects.create(
+        evaluation_data=data,
+        ai_model=data.get("evaluated_by", ""),
+        ai_recommendation=curator_notes.get("recommendation", ""),
+        ai_confidence=curator_notes.get("confidence"),
+    )
+    return obj.pk
+
+
 def main(argv: list[str] | None = None) -> None:
     args = _build_arg_parser().parse_args(argv)
 
@@ -499,15 +535,22 @@ def main(argv: list[str] | None = None) -> None:
     print(json.dumps(result, indent=2))
 
     if not args.dry_run:
-        if args.output:
-            output_path = args.output
-        else:
-            slug = _url_to_slug(args.url)
-            output_path = os.path.join(
-                _default_output_dir(), f"{slug}.json",
+        if args.db:
+            pk = _save_to_db(result)
+            print(
+                f"Saved to database (OrganizationEvaluation pk={pk})",
+                file=sys.stderr,
             )
-        _save_evaluation(result, output_path)
-        print(f"Saved to {output_path}", file=sys.stderr)
+        else:
+            if args.output:
+                output_path = args.output
+            else:
+                slug = _url_to_slug(args.url)
+                output_path = os.path.join(
+                    _default_output_dir(), f"{slug}.json",
+                )
+            _save_evaluation(result, output_path)
+            print(f"Saved to {output_path}", file=sys.stderr)
 
 
 if __name__ == "__main__":

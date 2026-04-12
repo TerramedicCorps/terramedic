@@ -21,6 +21,7 @@ from curation.evaluate import (
     _html_to_text,
     _load_schema,
     _save_evaluation,
+    _save_to_db,
     _url_to_slug,
     _validate_url,
     evaluate_org,
@@ -689,6 +690,54 @@ class TestSaveEvaluation:
         assert loaded["evaluation_history"][1]["prompt_version"] == "0.9"
 
 
+@pytest.mark.django_db
+class TestSaveToDb:
+    def test_creates_evaluation_record(self) -> None:
+        from terramedic.organizations.models import OrganizationEvaluation
+
+        data = _make_valid_evaluation()
+        pk = _save_to_db(data)
+
+        obj = OrganizationEvaluation.objects.get(pk=pk)
+        assert obj.evaluation_data == data
+
+    def test_populates_ai_model(self) -> None:
+        from terramedic.organizations.models import OrganizationEvaluation
+
+        data = _make_valid_evaluation()
+        pk = _save_to_db(data)
+
+        obj = OrganizationEvaluation.objects.get(pk=pk)
+        assert obj.ai_model == "claude-sonnet-4-20250514"
+
+    def test_populates_ai_recommendation(self) -> None:
+        from terramedic.organizations.models import OrganizationEvaluation
+
+        data = _make_valid_evaluation()
+        pk = _save_to_db(data)
+
+        obj = OrganizationEvaluation.objects.get(pk=pk)
+        assert obj.ai_recommendation == "include"
+
+    def test_populates_ai_confidence(self) -> None:
+        from terramedic.organizations.models import OrganizationEvaluation
+
+        data = _make_valid_evaluation()
+        pk = _save_to_db(data)
+
+        obj = OrganizationEvaluation.objects.get(pk=pk)
+        assert obj.ai_confidence == 85
+
+    def test_status_defaults_to_pending(self) -> None:
+        from terramedic.organizations.models import OrganizationEvaluation
+
+        data = _make_valid_evaluation()
+        pk = _save_to_db(data)
+
+        obj = OrganizationEvaluation.objects.get(pk=pk)
+        assert obj.status == "pending"
+
+
 class TestMain:
     def _mock_evaluate(
         self, monkeypatch: pytest.MonkeyPatch,
@@ -755,6 +804,35 @@ class TestMain:
             main(["https://example.org", "--dry-run"])
 
         assert exc_info.value.code == 1
+
+    @pytest.mark.django_db
+    def test_db_flag_saves_to_database(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        from terramedic.organizations.models import OrganizationEvaluation
+
+        self._mock_evaluate(monkeypatch)
+
+        main(["https://example.org", "--db"])
+
+        assert OrganizationEvaluation.objects.count() == 1
+        obj = OrganizationEvaluation.objects.first()
+        assert obj is not None
+        assert obj.ai_model == "claude-sonnet-4-20250514"
+        captured = capsys.readouterr()
+        assert "database" in captured.err
+
+    def test_db_flag_parsed(self) -> None:
+        args = _build_arg_parser().parse_args(
+            ["https://example.org", "--db"],
+        )
+        assert args.db is True
+
+    def test_db_flag_default_false(self) -> None:
+        args = _build_arg_parser().parse_args(["https://example.org"])
+        assert args.db is False
 
     def test_default_output_path_uses_slug(
         self,
