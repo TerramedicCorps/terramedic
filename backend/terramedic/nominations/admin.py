@@ -43,7 +43,10 @@ def invoke_worker_lambda(queued_count: int) -> None:
         return
 
     worker_name = f"{function_name}-worker"
-    payload = json.dumps({"limit": queued_count}).encode()
+    payload = json.dumps({
+        "command": "terramedic.nominations.worker.process_evaluation_queue",
+        "limit": queued_count,
+    }).encode()
 
     client = boto3.client("lambda")
     client.invoke(
