@@ -1,4 +1,5 @@
 import datetime
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -47,7 +48,7 @@ def _make_nomination(
 def _post_action(
     admin_client: Client,
     nomination_ids: list[int],
-) -> object:
+) -> Any:
     return admin_client.post(
         CHANGELIST_URL,
         {
