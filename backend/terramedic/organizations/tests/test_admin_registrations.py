@@ -52,10 +52,15 @@ class TestCategoryAdmin:
         Category.objects.get_or_create(
             slug="test-cat", defaults={"label": "Test Category"},
         )
+        Category.objects.get_or_create(
+            slug="other-cat", defaults={"label": "Other Category"},
+        )
         response = admin_client.get(
             "/admin/organizations/category/?q=Test",
         )
         assert response.status_code == 200
+        assert b"Test Category" in response.content
+        assert b"Other Category" not in response.content
 
 
 @pytest.mark.django_db
