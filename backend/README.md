@@ -38,13 +38,7 @@ The dev server listens on <http://localhost:8000>.
    python manage.py createsuperuser
    ```
 
-2. (Optional) Load seed organizations so the admin isn't empty:
-
-   ```bash
-   LOAD_SEED_DATA=true python manage.py runserver
-   ```
-
-3. Open <http://localhost:8000/admin/> and sign in.
+2. Open <http://localhost:8000/admin/> and sign in.
 
 The evaluation queue dashboard is under **Nominations** →
 **Evaluations** in the admin sidebar.
@@ -59,7 +53,6 @@ docker run --rm -p 8000:8000 \
   -e DEBUG=true \
   -e SECRET_KEY=dev-key \
   -e ALLOWED_HOSTS=localhost,127.0.0.1 \
-  -e LOAD_SEED_DATA=true \
   terramedic-backend
 ```
 
