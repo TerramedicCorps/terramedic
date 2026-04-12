@@ -8,6 +8,7 @@ from django.urls import URLPattern, path, reverse
 
 from terramedic.nominations.csv_import import parse_nominations_csv
 from terramedic.nominations.models import Nomination
+from terramedic.organizations.models import Category
 
 
 @admin.register(Nomination)
@@ -82,9 +83,12 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
                     "Please save it as UTF-8 encoded CSV.",
                 ],
             )
+        valid_categories = set(
+            Category.objects.values_list("slug", flat=True),
+        )
         result = parse_nominations_csv(
             io.StringIO(text),
-            valid_categories={"donate", "volunteer", "resource", "everyday", "career"},
+            valid_categories=valid_categories,
             check_existing=True,
         )
 
