@@ -316,6 +316,7 @@ resource "aws_cloudwatch_event_target" "worker_lambda" {
 
   input = jsonencode({
     command = "terramedic.nominations.worker.process_evaluation_queue"
+    limit   = 50
   })
 }
 
