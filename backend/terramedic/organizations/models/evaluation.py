@@ -1,7 +1,6 @@
 from typing import Any
 
 from django.conf import settings
-from django.contrib.postgres.indexes import GinIndex
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -82,10 +81,6 @@ class OrganizationEvaluation(models.Model):
     class Meta:
         ordering = ["-created_at"]
         indexes = [
-            GinIndex(
-                fields=["evaluation_data"],
-                name="eval_data_gin",
-            ),
             models.Index(
                 fields=["status", "created_at"],
                 name="eval_status_created",
