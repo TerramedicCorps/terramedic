@@ -3,6 +3,7 @@ from __future__ import annotations
 import hmac
 import uuid
 from datetime import timedelta
+from urllib.parse import urlparse
 
 from django.http import HttpRequest, JsonResponse
 from django.utils import timezone
@@ -108,9 +109,13 @@ def get_nomination_status(
     except Nomination.DoesNotExist as exc:
         raise HttpError(404, "Nomination not found") from exc
 
+    parsed = urlparse(nomination.url)
+    path = "" if parsed.path == "/" else parsed.path
+    display_url = f"{parsed.hostname}{path}" if parsed.hostname else ""
+
     return NominationStatusOut(
         confirmation_id=str(nomination.confirmation_id),
         status=nomination.status,
-        url=nomination.url,
+        display_url=display_url,
         submitted_at=nomination.submitted_at,
     )

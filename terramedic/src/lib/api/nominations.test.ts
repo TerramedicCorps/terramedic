@@ -89,7 +89,7 @@ describe('lookupNominationStatus', () => {
         Promise.resolve({
           confirmation_id: 'test-uuid',
           status: 'pending',
-          url: 'https://example.org',
+          display_url: 'example.org',
           submitted_at: '2026-04-12T12:00:00+00:00'
         })
     });
@@ -101,7 +101,7 @@ describe('lookupNominationStatus', () => {
     );
     expect(result.confirmation_id).toBe('test-uuid');
     expect(result.status).toBe('pending');
-    expect(result.url).toBe('https://example.org');
+    expect(result.display_url).toBe('example.org');
     expect(result.submitted_at).toBeTruthy();
   });
 

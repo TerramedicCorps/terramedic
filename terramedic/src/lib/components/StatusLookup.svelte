@@ -23,22 +23,6 @@
     rejected: 'text-red-400'
   };
 
-  /**
-   * Extract domain + path from a URL for display as plain text.
-   * Strips scheme, query strings, and fragments to avoid exposing
-   * a clickable or copy-pasteable full URL on the public status page.
-   */
-  function displaySite(url: string): string {
-    try {
-      const parsed = new URL(url);
-      if (!/^https?:$/.test(parsed.protocol)) return '';
-      const path = parsed.pathname === '/' ? '' : parsed.pathname;
-      return parsed.host + path;
-    } catch {
-      return '';
-    }
-  }
-
   async function handleSubmit() {
     errorMessage = '';
     result = null;
@@ -116,7 +100,7 @@
         </div>
         <div>
           <dt class="text-sm text-gray-400">Nominated Site</dt>
-          <dd class="break-all text-white">{displaySite(result.url)}</dd>
+          <dd class="break-all text-white">{result.display_url}</dd>
         </div>
         <div>
           <dt class="text-sm text-gray-400">Submitted</dt>

@@ -33,7 +33,7 @@ export interface NominationResponse {
 export interface NominationStatus {
   confirmation_id: string;
   status: 'pending' | 'evaluating' | 'evaluated' | 'approved' | 'rejected';
-  url: string;
+  display_url: string;
   submitted_at: string;
 }
 

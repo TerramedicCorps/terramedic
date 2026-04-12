@@ -31,7 +31,7 @@ describe('StatusLookup', () => {
     mockLookup.mockResolvedValueOnce({
       confirmation_id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
       status: 'pending',
-      url: 'https://example.org',
+      display_url: 'example.org',
       submitted_at: '2026-04-05T12:00:00Z'
     });
     const user = userEvent.setup();
@@ -54,7 +54,7 @@ describe('StatusLookup', () => {
     mockLookup.mockResolvedValueOnce({
       confirmation_id: '550e8400-e29b-41d4-a716-446655440000',
       status: 'pending',
-      url: 'https://sierraclub.org/virginia?ref=123#top',
+      display_url: 'sierraclub.org/virginia',
       submitted_at: '2026-04-05T12:00:00Z'
     });
     const user = userEvent.setup();
