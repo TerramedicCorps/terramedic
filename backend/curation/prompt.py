@@ -23,9 +23,9 @@ _PROGRAMMATIC_FIELDS = (
 def _build_output_schema() -> str:
     """Load schema.json and return a prompt-ready version.
 
-    Removes fields that are injected programmatically and the top-level
-    ``required`` list (since the model shouldn't worry about which fields
-    the *pipeline* adds).
+    Removes fields that are injected programmatically and filters the
+    top-level ``required`` list to exclude those fields (since the model
+    shouldn't worry about which fields the *pipeline* adds).
     """
     schema_path = Path(__file__).parent / "schema.json"
     with open(schema_path) as f:
