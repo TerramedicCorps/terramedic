@@ -59,12 +59,10 @@ class CuratorTermAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         self,
         request: HttpRequest,
         obj: Any,
-        form: Any,
-        change: bool,
+        _form: Any,
+        _change: bool,
     ) -> None:
-        if obj.reviewed and obj.reviewed_by is None:
-            obj.reviewed_by = request.user
-        super().save_model(request, obj, form, change)
+        obj.save(user=request.user)
 
 
 @admin.register(FocusArea)

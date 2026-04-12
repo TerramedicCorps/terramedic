@@ -69,6 +69,23 @@ class TestFocusArea:
         fa = FocusArea.objects.create(name="pollinator_habitat")
         assert fa.reviewed_at is None
 
+    def test_save_with_user_sets_reviewed_by(
+        self, django_user_model: type,
+    ) -> None:
+        reviewer = django_user_model.objects.create_user(username="reviewer")
+        fa = FocusArea.objects.create(name="riparian_buffer")
+        fa.reviewed = True
+        fa.save(user=reviewer)
+        fa.refresh_from_db()
+        assert fa.reviewed_by == reviewer
+
+    def test_save_without_user_leaves_reviewed_by_null(self) -> None:
+        fa = FocusArea.objects.create(name="urban_canopy")
+        fa.reviewed = True
+        fa.save()
+        fa.refresh_from_db()
+        assert fa.reviewed_by is None
+
     def test_reviewed_at_auto_set_when_reviewed_toggled_true(self) -> None:
         fa = FocusArea.objects.create(name="carbon_sequestration")
         assert fa.reviewed_at is None

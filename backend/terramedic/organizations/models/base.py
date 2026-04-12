@@ -23,8 +23,11 @@ class CuratorProposedTerm(models.Model):
         ordering = ["name"]
 
     def save(self, *args: Any, **kwargs: Any) -> None:
+        user = kwargs.pop("user", None)
         if self.reviewed and self.reviewed_at is None:
             self.reviewed_at = timezone.now()
+            if user is not None:
+                self.reviewed_by = user
         elif not self.reviewed:
             self.reviewed_at = None
             self.reviewed_by = None
