@@ -9,10 +9,12 @@ from terramedic.organizations.models import Category
 
 class NominationStatus(models.TextChoices):
     PENDING = "pending"
+    QUEUED = "queued"
     EVALUATING = "evaluating"
     EVALUATED = "evaluated"
     APPROVED = "approved"
     REJECTED = "rejected"
+    FAILED = "failed"
 
 
 class Nomination(models.Model):
@@ -39,6 +41,7 @@ class Nomination(models.Model):
         unique=True,
         editable=False,
     )
+    evaluation_attempts = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
         ordering = ["-submitted_at"]

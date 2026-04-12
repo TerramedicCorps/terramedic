@@ -132,6 +132,24 @@ jobs:
             poetry run zappa deploy ${{ env.DEPLOY_ENV }} --docker-image-uri "$IMAGE_URI"
           fi
 
+      - name: Deploy worker Lambda
+        working-directory: ./backend
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          WORKER_STAGE="${{ env.DEPLOY_ENV }}-worker"
+          IMAGE_URI="${ECR_REGISTRY}/terramedic-${{ env.DEPLOY_ENV }}:latest"
+          FUNCTION_NAME="terramedic-${WORKER_STAGE}"
+
+          if aws lambda get-function --function-name "$FUNCTION_NAME" 2>/dev/null; then
+            echo "Updating worker Lambda..."
+            aws lambda wait function-updated --function-name "$FUNCTION_NAME"
+            poetry run zappa update "$WORKER_STAGE" --docker-image-uri "$IMAGE_URI"
+          else
+            echo "Creating worker Lambda..."
+            poetry run zappa deploy "$WORKER_STAGE" --docker-image-uri "$IMAGE_URI"
+          fi
+
       - name: Run database migrations
         working-directory: ./backend
         run: |

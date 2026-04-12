@@ -1,14 +1,96 @@
+import datetime
 import io
+import json
+import logging
+import os
 
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
+from django.db.models import QuerySet
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.urls import URLPattern, path, reverse
+from django.utils import timezone
 
 from terramedic.nominations.csv_import import parse_nominations_csv
-from terramedic.nominations.models import Nomination
-from terramedic.organizations.models import Category
+from terramedic.nominations.models import Nomination, NominationStatus
+from terramedic.organizations.models import (
+    Category,
+    Organization,
+    OrganizationEvaluation,
+    ReviewStatus,
+)
+
+logger = logging.getLogger(__name__)
+
+_REJECTION_COOLDOWN_DAYS = 90
+
+
+def _build_skip_urls(
+    selected_urls: set[str],
+) -> tuple[set[str], set[str], set[str]]:
+    """Return (active_eval_urls, recently_rejected_urls, existing_org_urls)."""
+    active_eval_urls = set(
+        OrganizationEvaluation.objects.exclude(
+            status=ReviewStatus.REJECTED,
+        ).filter(
+            evaluation_data__org_metadata__website_url__in=selected_urls,
+        ).values_list(
+            "evaluation_data__org_metadata__website_url", flat=True,
+        ),
+    ) - {None}
+
+    cooldown_cutoff = timezone.now() - datetime.timedelta(
+        days=_REJECTION_COOLDOWN_DAYS,
+    )
+    recently_rejected_urls = set(
+        OrganizationEvaluation.objects.filter(
+            status=ReviewStatus.REJECTED,
+            created_at__gte=cooldown_cutoff,
+        ).filter(
+            evaluation_data__org_metadata__website_url__in=selected_urls,
+        ).values_list(
+            "evaluation_data__org_metadata__website_url", flat=True,
+        ),
+    ) - {None}
+
+    existing_org_urls = set(
+        Organization.objects.filter(
+            website_url__in=selected_urls,
+        ).values_list("website_url", flat=True),
+    )
+
+    return active_eval_urls, recently_rejected_urls, existing_org_urls
+
+
+def invoke_worker_lambda(queued_count: int) -> None:
+    """Invoke the worker Lambda asynchronously via boto3.
+
+    Derives the worker function name from AWS_LAMBDA_FUNCTION_NAME
+    (e.g. ``terramedic-dev`` → ``terramedic-dev-worker``).
+    """
+    import boto3
+
+    function_name = os.environ.get("AWS_LAMBDA_FUNCTION_NAME", "")
+    if not function_name:
+        logger.info(
+            "Not running on Lambda — run "
+            "'python manage.py process_evaluations' manually.",
+        )
+        return
+
+    worker_name = f"{function_name}-worker"
+    payload = json.dumps({
+        "command": "terramedic.nominations.worker.process_evaluation_queue",
+        "limit": queued_count,
+    }).encode()
+
+    client = boto3.client("lambda")
+    client.invoke(
+        FunctionName=worker_name,
+        InvocationType="Event",
+        Payload=payload,
+    )
 
 
 @admin.register(Nomination)
@@ -27,6 +109,79 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         "submitted_at",
     ]
     change_list_template = "admin/nominations/nomination/change_list.html"
+    actions = ["evaluate_nominations"]
+
+    @admin.action(
+        description="Queue selected nominations for AI evaluation",
+    )
+    def evaluate_nominations(
+        self,
+        request: HttpRequest,
+        queryset: QuerySet[Nomination],
+    ) -> None:
+        # Constrain skip-set queries to only the selected URLs.
+        selected_urls = set(
+            queryset.filter(
+                status=NominationStatus.PENDING,
+            ).values_list("url", flat=True),
+        )
+        if not selected_urls:
+            self.message_user(
+                request,
+                "No pending nominations in selection.",
+                messages.INFO,
+            )
+            return
+
+        active_eval_urls, recently_rejected_urls, existing_org_urls = (
+            _build_skip_urls(selected_urls)
+        )
+        skip_urls = active_eval_urls | existing_org_urls | recently_rejected_urls
+
+        to_queue: list[Nomination] = []
+        skipped_count = 0
+
+        for nomination in queryset:
+            if nomination.status != NominationStatus.PENDING:
+                skipped_count += 1
+                continue
+
+            if nomination.url in skip_urls:
+                skipped_count += 1
+                continue
+
+            nomination.status = NominationStatus.QUEUED
+            nomination.evaluation_attempts = 0
+            to_queue.append(nomination)
+
+        if to_queue:
+            Nomination.objects.bulk_update(
+                to_queue, ["status", "evaluation_attempts"],
+            )
+            try:
+                invoke_worker_lambda(len(to_queue))
+            except Exception:  # noqa: BLE001
+                logger.exception("Failed to invoke worker Lambda")
+                self.message_user(
+                    request,
+                    "Worker Lambda could not be invoked. "
+                    "Run process_evaluations manually.",
+                    messages.WARNING,
+                )
+
+        if to_queue:
+            self.message_user(
+                request,
+                f"Queued {len(to_queue)} nomination(s) for evaluation.",
+                messages.SUCCESS,
+            )
+        if skipped_count:
+            self.message_user(
+                request,
+                f"Skipped {skipped_count} nomination(s) "
+                f"(not pending, already evaluated, or in cooldown).",
+                messages.INFO,
+            )
 
     def get_urls(self) -> list[URLPattern]:
         custom_urls = [
