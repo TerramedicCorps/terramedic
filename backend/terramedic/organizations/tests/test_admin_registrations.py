@@ -11,6 +11,7 @@ from terramedic.organizations.models import (
     FocusArea,
     OperatingRegion,
     Organization,
+    OrganizationEvaluation,
     Skill,
     Tag,
 )
@@ -31,6 +32,7 @@ class TestAdminRegistrations:
             Skill,
             # Already registered — included for completeness
             Organization,
+            OrganizationEvaluation,
             Tag,
         ],
     )
