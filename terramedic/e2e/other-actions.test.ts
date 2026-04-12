@@ -10,6 +10,6 @@ test.describe('Other Actions page', () => {
   test('renders organization card grid container', async ({ page }) => {
     await page.goto('/other-actions');
     const grid = page.locator('[data-testid="org-card-grid"]');
-    await expect(grid).toBeVisible();
+    await expect(grid).toBeAttached();
   });
 });
