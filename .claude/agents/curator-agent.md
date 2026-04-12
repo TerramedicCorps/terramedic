@@ -66,6 +66,7 @@ automatically.
   review queue with status "pending"
 - Only after founder approval does data move to the
   public database
-- Be conservative — recommend "needs_review" when
-  uncertain
+- Be conservative — use only "include" or "exclude"
+  recommendations, and express uncertainty with a lower
+  numeric confidence score
 - Follow the human-AI framing guidelines in AGENTS.md
