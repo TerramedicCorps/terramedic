@@ -28,8 +28,10 @@ def _serialize_org(
         "action_text": org.action_text,
         "website_url": org.website_url,
         "image_url": org.image_url,
-        "categories": list(org.categories.values_list("slug", flat=True)),
-        "tags": list(org.tags.values_list("name", flat=True)),
+        "categories": list(
+            org.categories.order_by("slug").values_list("slug", flat=True),
+        ),
+        "tags": list(org.tags.order_by("name").values_list("name", flat=True)),
         "sort_order": org.sort_order,
     }
 
