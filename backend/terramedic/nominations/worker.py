@@ -18,6 +18,6 @@ def process_evaluation_queue(
     Accepts an optional ``limit`` key in the event payload.
     """
     event = event or {}
-    limit = event.get("limit", 10)
+    limit = max(1, min(int(event.get("limit", 10)), 50))
     call_command("process_evaluations", "--limit", str(limit))
     return {"status": "ok", "limit": limit}

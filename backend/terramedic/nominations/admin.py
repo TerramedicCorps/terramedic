@@ -86,7 +86,7 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
             ).values_list(
                 "evaluation_data__org_metadata__website_url", flat=True,
             ),
-        )
+        ) - {None}
         cooldown_cutoff = timezone.now() - datetime.timedelta(
             days=_REJECTION_COOLDOWN_DAYS,
         )
@@ -97,7 +97,7 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
             ).values_list(
                 "evaluation_data__org_metadata__website_url", flat=True,
             ),
-        )
+        ) - {None}
         existing_org_urls = set(
             Organization.objects.values_list("website_url", flat=True),
         )
@@ -129,8 +129,6 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
             Nomination.objects.bulk_update(
                 to_queue, ["status", "evaluation_attempts"],
             )
-
-        if to_queue:
             try:
                 invoke_worker_lambda(len(to_queue))
             except Exception:  # noqa: BLE001
@@ -142,11 +140,12 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
                     messages.WARNING,
                 )
 
-        self.message_user(
-            request,
-            f"Queued {len(to_queue)} nomination(s) for evaluation.",
-            messages.SUCCESS,
-        )
+        if to_queue:
+            self.message_user(
+                request,
+                f"Queued {len(to_queue)} nomination(s) for evaluation.",
+                messages.SUCCESS,
+            )
         if skipped_count:
             self.message_user(
                 request,
