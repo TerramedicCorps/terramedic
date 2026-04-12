@@ -12,7 +12,7 @@ from terramedic.organizations.models.tag import Tag
 
 class Organization(TranslatableModel):
     name = models.CharField(max_length=200)
-    website_url = models.URLField()
+    website_url = models.URLField(db_index=True)
     image_url = models.URLField(blank=True, default="")
     categories = models.ManyToManyField(
         Category,
