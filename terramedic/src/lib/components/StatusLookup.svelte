@@ -43,8 +43,12 @@
 
     try {
       result = await lookupNominationStatus(trimmed);
-    } catch {
-      errorMessage = 'Nomination not found. Please check your confirmation ID and try again.';
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('not found')) {
+        errorMessage = 'Nomination not found. Please check your confirmation ID and try again.';
+      } else {
+        errorMessage = 'Something went wrong. Please try again later.';
+      }
     } finally {
       isLoading = false;
     }

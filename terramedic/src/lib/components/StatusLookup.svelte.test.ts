@@ -106,6 +106,23 @@ describe('StatusLookup', () => {
     });
   });
 
+  test('displays generic error for network failures', async () => {
+    mockLookup.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    const user = userEvent.setup();
+
+    render(StatusLookup);
+
+    await user.type(
+      screen.getByLabelText(/confirmation id/i),
+      'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+    );
+    await user.click(screen.getByRole('button', { name: /check status/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/something went wrong/i)).toBeInTheDocument();
+    });
+  });
+
   test('error message has role="alert" for screen readers', async () => {
     mockLookup.mockRejectedValueOnce(new Error('Nomination not found'));
     const user = userEvent.setup();
