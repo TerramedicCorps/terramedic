@@ -41,6 +41,7 @@ def configure_zappa_settings(
 
     domain_name = get_env("DOMAIN_NAME", "")
     certificate_arn = get_env("ACM_CERTIFICATE_ARN", "")
+    anthropic_api_key = get_env("ANTHROPIC_API_KEY", "")
 
     use_custom_docker = (
         get_env("USE_CUSTOM_DOCKER", "false").lower() == "true"
@@ -186,6 +187,16 @@ def configure_zappa_settings(
             "memory_size": 512,
             "keep_warm": False,
             "apigateway_enabled": False,
+            "environment_variables": {
+                **base_env_vars,
+                "ENVIRONMENT": "development",
+                "DEBUG": "false",
+                **(
+                    {"ANTHROPIC_API_KEY": anthropic_api_key}
+                    if anthropic_api_key
+                    else {}
+                ),
+            },
         },
         "prod-worker": {
             "extends": "prod",
@@ -194,6 +205,16 @@ def configure_zappa_settings(
             "memory_size": 512,
             "keep_warm": False,
             "apigateway_enabled": False,
+            "environment_variables": {
+                **base_env_vars,
+                "ENVIRONMENT": "production",
+                "DEBUG": "false",
+                **(
+                    {"ANTHROPIC_API_KEY": anthropic_api_key}
+                    if anthropic_api_key
+                    else {}
+                ),
+            },
         },
     }
 
