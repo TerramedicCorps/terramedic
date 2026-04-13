@@ -135,41 +135,25 @@ jobs:
             poetry run zappa deploy ${{ env.DEPLOY_ENV }} --docker-image-uri "$IMAGE_URI"
           fi
 
-      - name: Deploy worker Lambda
+      - name: Deploy worker and evaluator Lambdas
         working-directory: ./backend
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          WORKER_STAGE="${{ env.DEPLOY_ENV }}-worker"
           IMAGE_URI="${ECR_REGISTRY}/terramedic-${{ env.DEPLOY_ENV }}:latest"
-          FUNCTION_NAME="terramedic-${WORKER_STAGE}"
+          for ROLE in worker evaluator; do
+            STAGE="${{ env.DEPLOY_ENV }}-${ROLE}"
+            FUNCTION_NAME="terramedic-${STAGE}"
 
-          if aws lambda get-function --function-name "$FUNCTION_NAME" 2>/dev/null; then
-            echo "Updating worker Lambda..."
-            aws lambda wait function-updated --function-name "$FUNCTION_NAME"
-            poetry run zappa update "$WORKER_STAGE" --docker-image-uri "$IMAGE_URI"
-          else
-            echo "Creating worker Lambda..."
-            poetry run zappa deploy "$WORKER_STAGE" --docker-image-uri "$IMAGE_URI"
-          fi
-
-      - name: Deploy evaluator Lambda
-        working-directory: ./backend
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        run: |
-          EVALUATOR_STAGE="${{ env.DEPLOY_ENV }}-evaluator"
-          IMAGE_URI="${ECR_REGISTRY}/terramedic-${{ env.DEPLOY_ENV }}:latest"
-          FUNCTION_NAME="terramedic-${EVALUATOR_STAGE}"
-
-          if aws lambda get-function --function-name "$FUNCTION_NAME" 2>/dev/null; then
-            echo "Updating evaluator Lambda..."
-            aws lambda wait function-updated --function-name "$FUNCTION_NAME"
-            poetry run zappa update "$EVALUATOR_STAGE" --docker-image-uri "$IMAGE_URI"
-          else
-            echo "Creating evaluator Lambda..."
-            poetry run zappa deploy "$EVALUATOR_STAGE" --docker-image-uri "$IMAGE_URI"
-          fi
+            if aws lambda get-function --function-name "$FUNCTION_NAME" 2>/dev/null; then
+              echo "Updating ${ROLE} Lambda..."
+              aws lambda wait function-updated --function-name "$FUNCTION_NAME"
+              poetry run zappa update "$STAGE" --docker-image-uri "$IMAGE_URI"
+            else
+              echo "Creating ${ROLE} Lambda..."
+              poetry run zappa deploy "$STAGE" --docker-image-uri "$IMAGE_URI"
+            fi
+          done
 
       - name: Run database migrations
         working-directory: ./backend
