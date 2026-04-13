@@ -1,4 +1,4 @@
-"""Skip curation tests when optional dependencies are not installed."""
+"""Skip curation tests when dependencies are not installed."""
 
 import pytest
 
@@ -9,6 +9,6 @@ try:
     import jsonschema  # type: ignore[import-untyped]  # noqa: F401
 except ImportError:
     pytest.skip(
-        "curation optional dependencies not installed (poetry install --with curation)",
+        "curation dependencies not installed (poetry install)",
         allow_module_level=True,
     )

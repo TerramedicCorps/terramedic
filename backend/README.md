@@ -22,8 +22,7 @@ Django backend for the Terramedic platform.
 cd backend
 python3.14 -m venv .venv
 source .venv/bin/activate
-poetry install --with curation  # omit --with curation if you
-                                 # don't need the AI eval CLI
+poetry install
 python manage.py migrate
 python manage.py runserver
 ```

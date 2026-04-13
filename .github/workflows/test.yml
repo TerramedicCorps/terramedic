@@ -45,7 +45,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: backend
-        run: poetry install --no-interaction --with curation
+        run: poetry install --no-interaction
 
       - name: Create local DB directory
         working-directory: backend
