@@ -378,7 +378,7 @@ resource "aws_sqs_queue" "evaluation_results" {
   count = var.worker_schedule_expression != "" ? 1 : 0
 
   name                       = "${var.prefix}-evaluation-results"
-  visibility_timeout_seconds = 60
+  visibility_timeout_seconds = 360 # > worker Lambda timeout (300s)
   message_retention_seconds  = 86400
   tags                       = var.tags
 
