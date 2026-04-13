@@ -192,6 +192,40 @@ class TestHandleEvaluationRequest:
             mock_resolve.assert_called_once_with(arn, "key")
             mock_anthropic.assert_called_once_with(api_key="resolved-key")
 
+    def test_raises_when_api_key_missing(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from terramedic.nominations.evaluator import handle_evaluation_request
+
+        monkeypatch.delenv("ANTHROPIC_API_KEY")
+
+        event = _make_sqs_event([{
+            "nomination_id": 1,
+            "url": "https://example.org",
+            "categories": None,
+            "evaluation_attempts": 1,
+        }])
+        with pytest.raises(RuntimeError, match="ANTHROPIC_API_KEY is not set"):
+            handle_evaluation_request(event)
+
+    def test_raises_when_api_key_empty(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from terramedic.nominations.evaluator import handle_evaluation_request
+
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "")
+
+        event = _make_sqs_event([{
+            "nomination_id": 1,
+            "url": "https://example.org",
+            "categories": None,
+            "evaluation_attempts": 1,
+        }])
+        with pytest.raises(RuntimeError, match="ANTHROPIC_API_KEY is not set"):
+            handle_evaluation_request(event)
+
     @patch(f"{_EVALUATOR_MODULE}.boto3")
     @patch(_EVALUATE_ORG_PATH, return_value=_EVAL_RESULT)
     @patch(_ANTHROPIC_PATH)

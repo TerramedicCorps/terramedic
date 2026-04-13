@@ -44,6 +44,9 @@ def handle_evaluation_request(
 ) -> dict[str, Any]:
     """Process SQS messages containing evaluation requests."""
     raw_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not raw_key:
+        msg = "ANTHROPIC_API_KEY is not set"
+        raise RuntimeError(msg)
     api_key = resolve_secret(raw_key, "key") if is_arn(raw_key) else raw_key
     client = Anthropic(api_key=api_key)
 
