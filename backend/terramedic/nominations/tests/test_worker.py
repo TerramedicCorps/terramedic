@@ -213,6 +213,25 @@ class TestHandleDispatch:
         urls = [json.loads(c[1]["MessageBody"])["url"] for c in calls]
         assert urls == ["https://first.org", "https://second.org"]
 
+    @patch(f"{_WORKER_MODULE}.boto3")
+    def test_sqs_send_failure_reverts_nomination(
+        self, mock_boto3: Any, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from terramedic.nominations.worker import _handle_dispatch
+
+        monkeypatch.setenv("EVALUATION_REQUESTS_QUEUE_URL", "https://sqs.test/queue")
+        mock_sqs = MagicMock()
+        mock_sqs.send_message.side_effect = Exception("SQS throttle")
+        mock_boto3.client.return_value = mock_sqs
+
+        nom = _make_queued_nomination()
+        result = _handle_dispatch(_make_eventbridge_event())
+
+        assert result["dispatched"] == 0
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.QUEUED
+        assert nom.evaluation_attempts == 0
+
 
 # ── Results ──────────────────────────────────────────────────────
 

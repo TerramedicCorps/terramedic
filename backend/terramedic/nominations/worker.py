@@ -78,15 +78,27 @@ def _handle_dispatch(event: dict[str, Any]) -> dict[str, Any]:
             skipped += 1
             continue
 
-        sqs.send_message(
-            QueueUrl=queue_url,
-            MessageBody=json.dumps({
-                "nomination_id": nomination.pk,
-                "url": nomination.url,
-                "categories": nomination.categories,
-                "evaluation_attempts": nomination.evaluation_attempts,
-            }),
-        )
+        try:
+            sqs.send_message(
+                QueueUrl=queue_url,
+                MessageBody=json.dumps({
+                    "nomination_id": nomination.pk,
+                    "url": nomination.url,
+                    "categories": nomination.categories,
+                    "evaluation_attempts": nomination.evaluation_attempts,
+                }),
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "Failed to dispatch nomination %s to SQS.",
+                nomination.pk,
+            )
+            nomination.status = NominationStatus.QUEUED
+            nomination.evaluation_attempts -= 1
+            nomination.save(
+                update_fields=["status", "evaluation_attempts"],
+            )
+            continue
         dispatched += 1
 
     logger.info(
