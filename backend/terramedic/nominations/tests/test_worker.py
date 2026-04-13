@@ -263,7 +263,7 @@ class TestHandleResults:
         assert ev.ai_confidence == 80
 
     def test_sets_nomination_evaluated_on_success(self) -> None:
-        """Django signal should update nomination status to EVALUATED."""
+        """Worker explicitly sets nomination status to EVALUATED."""
         from terramedic.nominations.worker import _handle_results
 
         nom = _make_queued_nomination()

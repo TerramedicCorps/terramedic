@@ -139,6 +139,11 @@ def _handle_results(event: dict[str, Any]) -> dict[str, Any]:
                 },
             )
             if created:
+                # Explicit status update (the post_save signal in
+                # organizations.signals also does this, but keeping
+                # it here makes the worker self-contained).
+                nomination.status = NominationStatus.EVALUATED
+                nomination.save(update_fields=["status"])
                 processed += 1
             else:
                 logger.info(
