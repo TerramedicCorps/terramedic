@@ -7,23 +7,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from terramedic.nominations.models import Nomination, NominationStatus
+from terramedic.nominations.tests.conftest import EVAL_RESULT, make_sqs_event
 from terramedic.organizations.models import (
     OrganizationEvaluation,
     ReviewStatus,
 )
-
-_EVAL_RESULT: dict[str, Any] = {
-    "org_metadata": {
-        "name": "Test Org",
-        "website_url": "https://example.org",
-    },
-    "evidence_score": {"score": 3},
-    "curator_notes": {
-        "recommendation": "include",
-        "confidence": 80,
-    },
-    "evaluated_by": "claude-sonnet-4-20250514",
-}
 
 _WORKER_MODULE = "terramedic.nominations.worker"
 
@@ -42,19 +30,6 @@ def _make_queued_nomination(
 def _make_eventbridge_event(limit: int = 10) -> dict[str, Any]:
     """Simulate an EventBridge scheduled event (via Zappa command envelope)."""
     return {"limit": limit}
-
-
-def _make_sqs_results_event(records: list[dict[str, Any]]) -> dict[str, Any]:
-    """Simulate an SQS event with evaluation results."""
-    return {
-        "Records": [
-            {
-                "eventSource": "aws:sqs",
-                "body": json.dumps(record),
-            }
-            for record in records
-        ],
-    }
 
 
 # ── Routing ──────────────────────────────────────────────────────
@@ -79,7 +54,7 @@ class TestEventRouting:
         from terramedic.nominations.worker import process_evaluation_queue
 
         mock_results.return_value = {"status": "ok"}
-        event = _make_sqs_results_event([{"nomination_id": 1}])
+        event = make_sqs_event([{"nomination_id": 1}])
         process_evaluation_queue(event)
         mock_results.assert_called_once()
 
@@ -245,11 +220,11 @@ class TestHandleResults:
         nom.status = NominationStatus.EVALUATING
         nom.save(update_fields=["status"])
 
-        event = _make_sqs_results_event([{
+        event = make_sqs_event([{
             "nomination_id": nom.pk,
             "evaluation_attempts": 1,
             "success": True,
-            "data": _EVAL_RESULT,
+            "data": EVAL_RESULT,
         }])
         result = _handle_results(event)
 
@@ -270,11 +245,11 @@ class TestHandleResults:
         nom.status = NominationStatus.EVALUATING
         nom.save(update_fields=["status"])
 
-        event = _make_sqs_results_event([{
+        event = make_sqs_event([{
             "nomination_id": nom.pk,
             "evaluation_attempts": 1,
             "success": True,
-            "data": _EVAL_RESULT,
+            "data": EVAL_RESULT,
         }])
         _handle_results(event)
 
@@ -289,7 +264,7 @@ class TestHandleResults:
         nom.evaluation_attempts = 1
         nom.save(update_fields=["status", "evaluation_attempts"])
 
-        event = _make_sqs_results_event([{
+        event = make_sqs_event([{
             "nomination_id": nom.pk,
             "evaluation_attempts": 1,
             "success": False,
@@ -309,7 +284,7 @@ class TestHandleResults:
         nom.evaluation_attempts = 2
         nom.save(update_fields=["status", "evaluation_attempts"])
 
-        event = _make_sqs_results_event([{
+        event = make_sqs_event([{
             "nomination_id": nom.pk,
             "evaluation_attempts": 2,
             "success": False,
@@ -324,11 +299,11 @@ class TestHandleResults:
     def test_handles_missing_nomination(self) -> None:
         from terramedic.nominations.worker import _handle_results
 
-        event = _make_sqs_results_event([{
+        event = make_sqs_event([{
             "nomination_id": 99999,
             "evaluation_attempts": 1,
             "success": True,
-            "data": _EVAL_RESULT,
+            "data": EVAL_RESULT,
         }])
         # Should not raise
         result = _handle_results(event)
@@ -346,18 +321,18 @@ class TestHandleResults:
         nom2.status = NominationStatus.EVALUATING
         nom2.save(update_fields=["status"])
 
-        result2 = dict(_EVAL_RESULT)
+        result2 = dict(EVAL_RESULT)
         result2["org_metadata"] = {
             "name": "Org Two",
             "website_url": "https://two.org",
         }
 
-        event = _make_sqs_results_event([
+        event = make_sqs_event([
             {
                 "nomination_id": nom1.pk,
                 "evaluation_attempts": 1,
                 "success": True,
-                "data": _EVAL_RESULT,
+                "data": EVAL_RESULT,
             },
             {
                 "nomination_id": nom2.pk,
@@ -382,11 +357,11 @@ class TestHandleResults:
             "nomination_id": nom.pk,
             "evaluation_attempts": 1,
             "success": True,
-            "data": _EVAL_RESULT,
+            "data": EVAL_RESULT,
         }
         # Process the same result twice (SQS at-least-once delivery)
-        _handle_results(_make_sqs_results_event([record]))
-        result = _handle_results(_make_sqs_results_event([record]))
+        _handle_results(make_sqs_event([record]))
+        result = _handle_results(make_sqs_event([record]))
 
         assert result["processed"] == 0  # second delivery is a no-op
         assert OrganizationEvaluation.objects.count() == 1
@@ -398,7 +373,7 @@ class TestHandleResults:
         nom.status = NominationStatus.EVALUATING
         nom.save(update_fields=["status"])
 
-        event = _make_sqs_results_event([{
+        event = make_sqs_event([{
             "nomination_id": nom.pk,
             "evaluation_attempts": 1,
             "success": False,

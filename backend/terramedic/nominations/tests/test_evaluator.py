@@ -6,34 +6,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-_EVAL_RESULT: dict[str, Any] = {
-    "org_metadata": {
-        "name": "Test Org",
-        "website_url": "https://example.org",
-    },
-    "evidence_score": {"score": 3},
-    "curator_notes": {
-        "recommendation": "include",
-        "confidence": 80,
-    },
-    "evaluated_by": "claude-sonnet-4-20250514",
-}
+from terramedic.nominations.tests.conftest import EVAL_RESULT, make_sqs_event
 
 _EVALUATOR_MODULE = "terramedic.nominations.evaluator"
 _EVALUATE_ORG_PATH = f"{_EVALUATOR_MODULE}.evaluate_org"
 _ANTHROPIC_PATH = f"{_EVALUATOR_MODULE}.Anthropic"
-
-
-def _make_sqs_event(records: list[dict[str, Any]]) -> dict[str, Any]:
-    return {
-        "Records": [
-            {
-                "eventSource": "aws:sqs",
-                "body": json.dumps(record),
-            }
-            for record in records
-        ],
-    }
 
 
 @pytest.fixture(autouse=True)
@@ -44,7 +21,7 @@ def _set_env(monkeypatch: pytest.MonkeyPatch) -> None:
 
 class TestHandleEvaluationRequest:
     @patch(f"{_EVALUATOR_MODULE}.boto3")
-    @patch(_EVALUATE_ORG_PATH, return_value=_EVAL_RESULT)
+    @patch(_EVALUATE_ORG_PATH, return_value=EVAL_RESULT)
     @patch(_ANTHROPIC_PATH)
     def test_successful_evaluation_sends_success_result(
         self,
@@ -57,7 +34,7 @@ class TestHandleEvaluationRequest:
         mock_sqs = MagicMock()
         mock_boto3.client.return_value = mock_sqs
 
-        event = _make_sqs_event([{
+        event = make_sqs_event([{
             "nomination_id": 42,
             "url": "https://example.org",
             "categories": ["volunteer"],
@@ -71,7 +48,7 @@ class TestHandleEvaluationRequest:
         body = json.loads(call_kwargs["MessageBody"])
         assert body["nomination_id"] == 42
         assert body["success"] is True
-        assert body["data"] == _EVAL_RESULT
+        assert body["data"] == EVAL_RESULT
         assert body["evaluation_attempts"] == 1
 
     @patch(f"{_EVALUATOR_MODULE}.boto3")
@@ -88,7 +65,7 @@ class TestHandleEvaluationRequest:
         mock_sqs = MagicMock()
         mock_boto3.client.return_value = mock_sqs
 
-        event = _make_sqs_event([{
+        event = make_sqs_event([{
             "nomination_id": 42,
             "url": "https://example.org",
             "categories": None,
@@ -103,7 +80,7 @@ class TestHandleEvaluationRequest:
         assert "error" in body
 
     @patch(f"{_EVALUATOR_MODULE}.boto3")
-    @patch(_EVALUATE_ORG_PATH, return_value=_EVAL_RESULT)
+    @patch(_EVALUATE_ORG_PATH, return_value=EVAL_RESULT)
     @patch(_ANTHROPIC_PATH)
     def test_passes_url_and_categories_to_evaluate_org(
         self,
@@ -115,7 +92,7 @@ class TestHandleEvaluationRequest:
 
         mock_boto3.client.return_value = MagicMock()
 
-        event = _make_sqs_event([{
+        event = make_sqs_event([{
             "nomination_id": 1,
             "url": "https://special.org",
             "categories": ["donate", "volunteer"],
@@ -129,7 +106,7 @@ class TestHandleEvaluationRequest:
         assert call_kwargs["categories"] == ["donate", "volunteer"]
 
     @patch(f"{_EVALUATOR_MODULE}.boto3")
-    @patch(_EVALUATE_ORG_PATH, return_value=_EVAL_RESULT)
+    @patch(_EVALUATE_ORG_PATH, return_value=EVAL_RESULT)
     @patch(_ANTHROPIC_PATH)
     def test_processes_multiple_records(
         self,
@@ -142,7 +119,7 @@ class TestHandleEvaluationRequest:
         mock_sqs = MagicMock()
         mock_boto3.client.return_value = mock_sqs
 
-        event = _make_sqs_event([
+        event = make_sqs_event([
             {
                 "nomination_id": 1,
                 "url": "https://one.org",
@@ -162,7 +139,7 @@ class TestHandleEvaluationRequest:
         assert mock_sqs.send_message.call_count == 2
 
     @patch(f"{_EVALUATOR_MODULE}.boto3")
-    @patch(_EVALUATE_ORG_PATH, return_value=_EVAL_RESULT)
+    @patch(_EVALUATE_ORG_PATH, return_value=EVAL_RESULT)
     def test_resolves_anthropic_arn(
         self,
         mock_eval: Any,
@@ -181,7 +158,7 @@ class TestHandleEvaluationRequest:
             patch(resolve_path, return_value="resolved-key") as mock_resolve,
             patch(anthropic_path) as mock_anthropic,
         ):
-            event = _make_sqs_event([{
+            event = make_sqs_event([{
                 "nomination_id": 1,
                 "url": "https://example.org",
                 "categories": None,
@@ -200,7 +177,7 @@ class TestHandleEvaluationRequest:
 
         monkeypatch.delenv("ANTHROPIC_API_KEY")
 
-        event = _make_sqs_event([{
+        event = make_sqs_event([{
             "nomination_id": 1,
             "url": "https://example.org",
             "categories": None,
@@ -217,7 +194,7 @@ class TestHandleEvaluationRequest:
 
         monkeypatch.setenv("ANTHROPIC_API_KEY", "")
 
-        event = _make_sqs_event([{
+        event = make_sqs_event([{
             "nomination_id": 1,
             "url": "https://example.org",
             "categories": None,
@@ -227,7 +204,7 @@ class TestHandleEvaluationRequest:
             handle_evaluation_request(event)
 
     @patch(f"{_EVALUATOR_MODULE}.boto3")
-    @patch(_EVALUATE_ORG_PATH, return_value=_EVAL_RESULT)
+    @patch(_EVALUATE_ORG_PATH, return_value=EVAL_RESULT)
     @patch(_ANTHROPIC_PATH)
     def test_sqs_send_failure_does_not_crash_lambda(
         self,
@@ -241,7 +218,7 @@ class TestHandleEvaluationRequest:
         mock_sqs.send_message.side_effect = Exception("SQS throttle")
         mock_boto3.client.return_value = mock_sqs
 
-        event = _make_sqs_event([{
+        event = make_sqs_event([{
             "nomination_id": 42,
             "url": "https://example.org",
             "categories": ["volunteer"],
@@ -252,7 +229,7 @@ class TestHandleEvaluationRequest:
         assert result["status"] == "ok"
 
     @patch(f"{_EVALUATOR_MODULE}.boto3")
-    @patch(_EVALUATE_ORG_PATH, return_value=_EVAL_RESULT)
+    @patch(_EVALUATE_ORG_PATH, return_value=EVAL_RESULT)
     @patch(_ANTHROPIC_PATH)
     def test_null_categories_passed_as_none(
         self,
@@ -264,7 +241,7 @@ class TestHandleEvaluationRequest:
 
         mock_boto3.client.return_value = MagicMock()
 
-        event = _make_sqs_event([{
+        event = make_sqs_event([{
             "nomination_id": 1,
             "url": "https://example.org",
             "categories": None,
