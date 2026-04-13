@@ -237,6 +237,42 @@ class TestProcessEvaluationsEdgeCases:
         with pytest.raises(CommandError, match="ANTHROPIC_API_KEY"):
             call_command(_COMMAND)
 
+    @patch(_ANTHROPIC_PATH)
+    @patch(_EVAL_ORG_PATH, return_value=_EVAL_RESULT)
+    def test_resolves_arn_via_secrets_manager(
+        self,
+        mock_eval: Any,
+        mock_anthropic: Any,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """When ANTHROPIC_API_KEY is a Secrets Manager ARN, the command
+        resolves it to the actual key before creating the client."""
+        arn = "arn:aws:secretsmanager:us-east-1:123:secret:my-key"
+        monkeypatch.setenv("ANTHROPIC_API_KEY", arn)
+        _make_queued_nomination()
+
+        resolve_path = (
+            "terramedic.nominations.management.commands"
+            ".process_evaluations.resolve_secret"
+        )
+        with patch(resolve_path, return_value="resolved-key") as mock_resolve:
+            call_command(_COMMAND)
+            mock_resolve.assert_called_once_with(arn, "key")
+        mock_anthropic.assert_called_once_with(api_key="resolved-key")
+
+    @patch(_ANTHROPIC_PATH)
+    @patch(_EVAL_ORG_PATH, return_value=_EVAL_RESULT)
+    def test_plain_key_used_directly(
+        self,
+        mock_eval: Any,
+        mock_anthropic: Any,
+    ) -> None:
+        """When ANTHROPIC_API_KEY is a plain string (local dev),
+        it is passed directly to the Anthropic client."""
+        _make_queued_nomination()
+        call_command(_COMMAND)
+        mock_anthropic.assert_called_once_with(api_key="test-key")
+
 
 @pytest.mark.django_db
 class TestProcessEvaluationsSkips:

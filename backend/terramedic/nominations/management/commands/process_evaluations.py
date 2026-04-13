@@ -15,6 +15,7 @@ from typing import Any
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import F
 
+from terramedic.core.secrets import is_arn, resolve_secret
 from terramedic.nominations.models import Nomination, NominationStatus
 from terramedic.nominations.skip_checks import should_skip_url
 from terramedic.organizations.models import OrganizationEvaluation
@@ -56,10 +57,11 @@ class Command(BaseCommand):
         )
 
     def handle(self, *_args: Any, **options: Any) -> None:
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
-        if not api_key:
+        raw_key = os.environ.get("ANTHROPIC_API_KEY")
+        if not raw_key:
             raise CommandError("ANTHROPIC_API_KEY is not set.")
 
+        api_key = resolve_secret(raw_key, "key") if is_arn(raw_key) else raw_key
         client = create_anthropic_client(api_key=api_key)
         limit: int = options["limit"]
 

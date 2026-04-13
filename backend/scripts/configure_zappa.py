@@ -41,7 +41,7 @@ def configure_zappa_settings(
 
     domain_name = get_env("DOMAIN_NAME", "")
     certificate_arn = get_env("ACM_CERTIFICATE_ARN", "")
-    anthropic_api_key = get_env("ANTHROPIC_API_KEY", "")
+    anthropic_secret_arn = get_env("ANTHROPIC_SECRET_ARN", "")
 
     use_custom_docker = (
         get_env("USE_CUSTOM_DOCKER", "false").lower() == "true"
@@ -192,8 +192,8 @@ def configure_zappa_settings(
                 "DATABASE_URL": db_secret_arn,
                 "SECRET_KEY": django_secret_arn,
                 **(
-                    {"ANTHROPIC_API_KEY": anthropic_api_key}
-                    if anthropic_api_key
+                    {"ANTHROPIC_API_KEY": anthropic_secret_arn}
+                    if anthropic_secret_arn
                     else {}
                 ),
             },
@@ -209,8 +209,8 @@ def configure_zappa_settings(
                 "DATABASE_URL": db_secret_arn,
                 "SECRET_KEY": django_secret_arn,
                 **(
-                    {"ANTHROPIC_API_KEY": anthropic_api_key}
-                    if anthropic_api_key
+                    {"ANTHROPIC_API_KEY": anthropic_secret_arn}
+                    if anthropic_secret_arn
                     else {}
                 ),
             },

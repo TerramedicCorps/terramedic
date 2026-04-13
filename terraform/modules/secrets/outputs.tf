@@ -13,6 +13,11 @@ output "secrets_kms_key_arn" {
   value       = aws_kms_key.secrets.arn
 }
 
+output "anthropic_api_key_secret_arn" {
+  description = "ARN of the Anthropic API key secret"
+  value       = aws_secretsmanager_secret.anthropic_api_key.arn
+}
+
 output "site_password_secret_arn" {
   description = "ARN of the site password secret"
   value       = aws_secretsmanager_secret.site_password_secret.arn
