@@ -63,7 +63,7 @@ def handle_evaluation_request(
         try:
             data = evaluate_org(
                 url=url,
-                model=_DEFAULT_EVAL_MODEL,
+                model=os.environ.get("EVAL_MODEL", _DEFAULT_EVAL_MODEL),
                 client=client,
                 categories=categories,
             )

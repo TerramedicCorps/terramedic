@@ -231,6 +231,32 @@ class TestHandleEvaluationRequest:
     @patch(f"{_EVALUATOR_MODULE}.boto3")
     @patch(_EVALUATE_ORG_PATH, return_value=EVAL_RESULT)
     @patch(_ANTHROPIC_PATH)
+    def test_uses_eval_model_env_var_when_set(
+        self,
+        mock_anthropic: Any,
+        mock_eval: Any,
+        mock_boto3: Any,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from terramedic.nominations.evaluator import handle_evaluation_request
+
+        monkeypatch.setenv("EVAL_MODEL", "claude-opus-4-20250514")
+        mock_boto3.client.return_value = MagicMock()
+
+        event = make_sqs_event([{
+            "nomination_id": 1,
+            "url": "https://example.org",
+            "categories": None,
+            "evaluation_attempts": 1,
+        }])
+        handle_evaluation_request(event)
+
+        call_kwargs = mock_eval.call_args[1]
+        assert call_kwargs["model"] == "claude-opus-4-20250514"
+
+    @patch(f"{_EVALUATOR_MODULE}.boto3")
+    @patch(_EVALUATE_ORG_PATH, return_value=EVAL_RESULT)
+    @patch(_ANTHROPIC_PATH)
     def test_null_categories_passed_as_none(
         self,
         mock_anthropic: Any,

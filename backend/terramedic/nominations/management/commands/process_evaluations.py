@@ -105,7 +105,7 @@ class Command(BaseCommand):
             try:
                 data = evaluate_org(
                     url=nomination.url,
-                    model=_DEFAULT_EVAL_MODEL,
+                    model=os.environ.get("EVAL_MODEL", _DEFAULT_EVAL_MODEL),
                     client=client,
                     categories=nomination.categories or None,
                 )
