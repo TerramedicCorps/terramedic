@@ -127,14 +127,25 @@ def _handle_results(event: dict[str, Any]) -> dict[str, Any]:
         if body.get("success"):
             data = body["data"]
             curator_notes = data.get("curator_notes", {})
-            OrganizationEvaluation.objects.create(
-                evaluation_data=data,
-                ai_model=data.get("evaluated_by", ""),
-                ai_recommendation=curator_notes.get("recommendation", ""),
-                ai_confidence=curator_notes.get("confidence"),
+            _, created = OrganizationEvaluation.objects.get_or_create(
                 nomination=nomination,
+                defaults={
+                    "evaluation_data": data,
+                    "ai_model": data.get("evaluated_by", ""),
+                    "ai_recommendation": curator_notes.get(
+                        "recommendation", "",
+                    ),
+                    "ai_confidence": curator_notes.get("confidence"),
+                },
             )
-            processed += 1
+            if created:
+                processed += 1
+            else:
+                logger.info(
+                    "Evaluation already exists for nomination %s; "
+                    "skipping duplicate result.",
+                    nomination_id,
+                )
         else:
             if evaluation_attempts >= _MAX_RETRY_ATTEMPTS:
                 nomination.status = NominationStatus.FAILED

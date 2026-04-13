@@ -371,6 +371,26 @@ class TestHandleResults:
         assert result["processed"] == 2
         assert OrganizationEvaluation.objects.count() == 2
 
+    def test_duplicate_result_is_idempotent(self) -> None:
+        from terramedic.nominations.worker import _handle_results
+
+        nom = _make_queued_nomination()
+        nom.status = NominationStatus.EVALUATING
+        nom.save(update_fields=["status"])
+
+        record = {
+            "nomination_id": nom.pk,
+            "evaluation_attempts": 1,
+            "success": True,
+            "data": _EVAL_RESULT,
+        }
+        # Process the same result twice (SQS at-least-once delivery)
+        _handle_results(_make_sqs_results_event([record]))
+        result = _handle_results(_make_sqs_results_event([record]))
+
+        assert result["processed"] == 0  # second delivery is a no-op
+        assert OrganizationEvaluation.objects.count() == 1
+
     def test_failure_creates_no_evaluation(self) -> None:
         from terramedic.nominations.worker import _handle_results
 
