@@ -21,11 +21,6 @@ boto3 = "^1.42.63"
 zappa = "^0.61.4"
 psycopg = {version = ">=3.2", extras = ["binary"]}
 google-analytics-data = "^0.20.0"
-
-[tool.poetry.group.curation]
-optional = true
-
-[tool.poetry.group.curation.dependencies]
 anthropic = "^0.89.0"
 jsonschema = "^4.26.0"
 beautifulsoup4 = "^4.14.3"
