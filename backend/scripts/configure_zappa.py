@@ -42,6 +42,8 @@ def configure_zappa_settings(
     domain_name = get_env("DOMAIN_NAME", "")
     certificate_arn = get_env("ACM_CERTIFICATE_ARN", "")
     anthropic_secret_arn = get_env("ANTHROPIC_SECRET_ARN", "")
+    eval_requests_queue_url = get_env("EVALUATION_REQUESTS_QUEUE_URL", "")
+    eval_results_queue_url = get_env("EVALUATION_RESULTS_QUEUE_URL", "")
 
     use_custom_docker = (
         get_env("USE_CUSTOM_DOCKER", "false").lower() == "true"
@@ -188,8 +190,43 @@ def configure_zappa_settings(
             "memory_size": 512,
             "keep_warm": False,
             "apigateway_enabled": False,
+            "environment_variables": {
+                **base_env_vars,
+                "ENVIRONMENT": "development",
+                "DEBUG": "false",
+                **(
+                    {"EVALUATION_REQUESTS_QUEUE_URL": eval_requests_queue_url}
+                    if eval_requests_queue_url
+                    else {}
+                ),
+            },
             "aws_environment_variables": {
                 "DATABASE_URL": db_secret_arn,
+                "SECRET_KEY": django_secret_arn,
+            },
+        },
+        "dev-evaluator": {
+            "extends": "dev",
+            "stage": "dev-evaluator",
+            "timeout_seconds": 300,
+            "memory_size": 512,
+            "keep_warm": False,
+            "apigateway_enabled": False,
+            "vpc_config": {
+                "SubnetIds": [],
+                "SecurityGroupIds": [],
+            },
+            "environment_variables": {
+                **base_env_vars,
+                "ENVIRONMENT": "development",
+                "DEBUG": "false",
+                **(
+                    {"EVALUATION_RESULTS_QUEUE_URL": eval_results_queue_url}
+                    if eval_results_queue_url
+                    else {}
+                ),
+            },
+            "aws_environment_variables": {
                 "SECRET_KEY": django_secret_arn,
                 **(
                     {"ANTHROPIC_API_KEY": anthropic_secret_arn}
@@ -205,8 +242,43 @@ def configure_zappa_settings(
             "memory_size": 512,
             "keep_warm": False,
             "apigateway_enabled": False,
+            "environment_variables": {
+                **base_env_vars,
+                "ENVIRONMENT": "production",
+                "DEBUG": "false",
+                **(
+                    {"EVALUATION_REQUESTS_QUEUE_URL": eval_requests_queue_url}
+                    if eval_requests_queue_url
+                    else {}
+                ),
+            },
             "aws_environment_variables": {
                 "DATABASE_URL": db_secret_arn,
+                "SECRET_KEY": django_secret_arn,
+            },
+        },
+        "prod-evaluator": {
+            "extends": "prod",
+            "stage": "prod-evaluator",
+            "timeout_seconds": 300,
+            "memory_size": 512,
+            "keep_warm": False,
+            "apigateway_enabled": False,
+            "vpc_config": {
+                "SubnetIds": [],
+                "SecurityGroupIds": [],
+            },
+            "environment_variables": {
+                **base_env_vars,
+                "ENVIRONMENT": "production",
+                "DEBUG": "false",
+                **(
+                    {"EVALUATION_RESULTS_QUEUE_URL": eval_results_queue_url}
+                    if eval_results_queue_url
+                    else {}
+                ),
+            },
+            "aws_environment_variables": {
                 "SECRET_KEY": django_secret_arn,
                 **(
                     {"ANTHROPIC_API_KEY": anthropic_secret_arn}
