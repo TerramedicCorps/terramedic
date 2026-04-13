@@ -229,6 +229,31 @@ class TestHandleEvaluationRequest:
     @patch(f"{_EVALUATOR_MODULE}.boto3")
     @patch(_EVALUATE_ORG_PATH, return_value=_EVAL_RESULT)
     @patch(_ANTHROPIC_PATH)
+    def test_sqs_send_failure_does_not_crash_lambda(
+        self,
+        mock_anthropic: Any,
+        mock_eval: Any,
+        mock_boto3: Any,
+    ) -> None:
+        from terramedic.nominations.evaluator import handle_evaluation_request
+
+        mock_sqs = MagicMock()
+        mock_sqs.send_message.side_effect = Exception("SQS throttle")
+        mock_boto3.client.return_value = mock_sqs
+
+        event = _make_sqs_event([{
+            "nomination_id": 42,
+            "url": "https://example.org",
+            "categories": ["volunteer"],
+            "evaluation_attempts": 1,
+        }])
+        # Should not raise — SQS failure should be caught and logged
+        result = handle_evaluation_request(event)
+        assert result["status"] == "ok"
+
+    @patch(f"{_EVALUATOR_MODULE}.boto3")
+    @patch(_EVALUATE_ORG_PATH, return_value=_EVAL_RESULT)
+    @patch(_ANTHROPIC_PATH)
     def test_null_categories_passed_as_none(
         self,
         mock_anthropic: Any,
