@@ -362,7 +362,7 @@ resource "aws_sqs_queue" "evaluation_requests" {
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.evaluation_requests_dlq[0].arn
-    maxReceiveCount     = 2
+    maxReceiveCount     = 2 # Low: each attempt calls the Anthropic API (~$)
   })
 }
 
@@ -384,7 +384,7 @@ resource "aws_sqs_queue" "evaluation_results" {
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.evaluation_results_dlq[0].arn
-    maxReceiveCount     = 3
+    maxReceiveCount     = 3 # Higher: worker retries are cheap (DB writes only)
   })
 }
 
