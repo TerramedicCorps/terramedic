@@ -188,10 +188,9 @@ def configure_zappa_settings(
             "memory_size": 512,
             "keep_warm": False,
             "apigateway_enabled": False,
-            "environment_variables": {
-                **base_env_vars,
-                "ENVIRONMENT": "development",
-                "DEBUG": "false",
+            "aws_environment_variables": {
+                "DATABASE_URL": db_secret_arn,
+                "SECRET_KEY": django_secret_arn,
                 **(
                     {"ANTHROPIC_API_KEY": anthropic_api_key}
                     if anthropic_api_key
@@ -206,10 +205,9 @@ def configure_zappa_settings(
             "memory_size": 512,
             "keep_warm": False,
             "apigateway_enabled": False,
-            "environment_variables": {
-                **base_env_vars,
-                "ENVIRONMENT": "production",
-                "DEBUG": "false",
+            "aws_environment_variables": {
+                "DATABASE_URL": db_secret_arn,
+                "SECRET_KEY": django_secret_arn,
                 **(
                     {"ANTHROPIC_API_KEY": anthropic_api_key}
                     if anthropic_api_key
