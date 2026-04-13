@@ -9,11 +9,12 @@ WORKDIR /var/task
 COPY pyproject.toml poetry.lock ./
 RUN pip install --no-cache-dir poetry==2.1.3 && \
     poetry config virtualenvs.create false && \
-    poetry install --only main --no-root --no-interaction --no-ansi && \
+    poetry install --only main,curation --no-root --no-interaction --no-ansi && \
     pip uninstall -y poetry
 
 # Copy application code
 COPY terramedic/ ./terramedic/
+COPY curation/ ./curation/
 COPY manage.py ./
 COPY handler.py ./
 
