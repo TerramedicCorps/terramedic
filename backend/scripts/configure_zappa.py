@@ -133,7 +133,8 @@ def configure_zappa_settings(
             "stage": "dev",
             docker_image_key: docker_image_dev,
             "memory_size": 512,
-            "keep_warm": False,
+            "keep_warm": True,
+            "keep_warm_expression": "rate(4 minutes)",
             "environment_variables": {
                 **base_env_vars,
                 "ENVIRONMENT": "development",
