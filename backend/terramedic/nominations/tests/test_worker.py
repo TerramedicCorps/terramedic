@@ -6,25 +6,18 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from terramedic.nominations.models import Nomination, NominationStatus
-from terramedic.nominations.tests.conftest import EVAL_RESULT, make_sqs_event
+from terramedic.nominations.models import NominationStatus
+from terramedic.nominations.tests.conftest import (
+    EVAL_RESULT,
+    make_queued_nomination,
+    make_sqs_event,
+)
 from terramedic.organizations.models import (
     OrganizationEvaluation,
     ReviewStatus,
 )
 
 _WORKER_MODULE = "terramedic.nominations.worker"
-
-
-def _make_queued_nomination(
-    url: str = "https://example.org",
-) -> Nomination:
-    return Nomination.objects.create(
-        url=url,
-        categories=["volunteer"],
-        ip_hash=None,
-        status=NominationStatus.QUEUED,
-    )
 
 
 def _make_eventbridge_event(limit: int = 10) -> dict[str, Any]:
@@ -84,7 +77,7 @@ class TestHandleDispatch:
         mock_sqs = MagicMock()
         mock_boto3.client.return_value = mock_sqs
 
-        nom = _make_queued_nomination()
+        nom = make_queued_nomination()
         _handle_dispatch(_make_eventbridge_event())
 
         mock_sqs.send_message.assert_called_once()
@@ -105,7 +98,7 @@ class TestHandleDispatch:
         monkeypatch.setenv("EVALUATION_REQUESTS_QUEUE_URL", "https://sqs.test/queue")
         mock_boto3.client.return_value = MagicMock()
 
-        nom = _make_queued_nomination()
+        nom = make_queued_nomination()
         _handle_dispatch(_make_eventbridge_event())
 
         nom.refresh_from_db()
@@ -128,7 +121,7 @@ class TestHandleDispatch:
             },
             status=ReviewStatus.PENDING,
         )
-        nom = _make_queued_nomination(url="https://example.org")
+        nom = make_queued_nomination(url="https://example.org")
         result = _handle_dispatch(_make_eventbridge_event())
 
         assert result["dispatched"] == 0
@@ -147,8 +140,8 @@ class TestHandleDispatch:
         mock_sqs = MagicMock()
         mock_boto3.client.return_value = mock_sqs
 
-        _make_queued_nomination(url="https://first.org")
-        _make_queued_nomination(url="https://second.org")
+        make_queued_nomination(url="https://first.org")
+        make_queued_nomination(url="https://second.org")
         result = _handle_dispatch({"limit": 1})
 
         assert result["dispatched"] == 1
@@ -179,8 +172,8 @@ class TestHandleDispatch:
         mock_sqs = MagicMock()
         mock_boto3.client.return_value = mock_sqs
 
-        _make_queued_nomination(url="https://first.org")
-        _make_queued_nomination(url="https://second.org")
+        make_queued_nomination(url="https://first.org")
+        make_queued_nomination(url="https://second.org")
         _handle_dispatch(_make_eventbridge_event())
 
         calls = mock_sqs.send_message.call_args_list
@@ -198,7 +191,7 @@ class TestHandleDispatch:
         mock_sqs.send_message.side_effect = Exception("SQS throttle")
         mock_boto3.client.return_value = mock_sqs
 
-        nom = _make_queued_nomination()
+        nom = make_queued_nomination()
         result = _handle_dispatch(_make_eventbridge_event())
 
         assert result["dispatched"] == 0
@@ -227,7 +220,7 @@ class TestHandleResults:
     def test_creates_evaluation_on_success(self) -> None:
         from terramedic.nominations.worker import _handle_results
 
-        nom = _make_queued_nomination()
+        nom = make_queued_nomination()
         nom.status = NominationStatus.EVALUATING
         nom.save(update_fields=["status"])
 
@@ -252,7 +245,7 @@ class TestHandleResults:
         """Worker explicitly sets nomination status to EVALUATED."""
         from terramedic.nominations.worker import _handle_results
 
-        nom = _make_queued_nomination()
+        nom = make_queued_nomination()
         nom.status = NominationStatus.EVALUATING
         nom.save(update_fields=["status"])
 
@@ -270,7 +263,7 @@ class TestHandleResults:
     def test_reverts_to_queued_on_first_failure(self) -> None:
         from terramedic.nominations.worker import _handle_results
 
-        nom = _make_queued_nomination()
+        nom = make_queued_nomination()
         nom.status = NominationStatus.EVALUATING
         nom.evaluation_attempts = 1
         nom.save(update_fields=["status", "evaluation_attempts"])
@@ -290,7 +283,7 @@ class TestHandleResults:
     def test_sets_failed_on_second_failure(self) -> None:
         from terramedic.nominations.worker import _handle_results
 
-        nom = _make_queued_nomination()
+        nom = make_queued_nomination()
         nom.status = NominationStatus.EVALUATING
         nom.evaluation_attempts = 2
         nom.save(update_fields=["status", "evaluation_attempts"])
@@ -324,11 +317,11 @@ class TestHandleResults:
     def test_processes_multiple_results(self) -> None:
         from terramedic.nominations.worker import _handle_results
 
-        nom1 = _make_queued_nomination(url="https://one.org")
+        nom1 = make_queued_nomination(url="https://one.org")
         nom1.status = NominationStatus.EVALUATING
         nom1.save(update_fields=["status"])
 
-        nom2 = _make_queued_nomination(url="https://two.org")
+        nom2 = make_queued_nomination(url="https://two.org")
         nom2.status = NominationStatus.EVALUATING
         nom2.save(update_fields=["status"])
 
@@ -360,7 +353,7 @@ class TestHandleResults:
     def test_duplicate_result_is_idempotent(self) -> None:
         from terramedic.nominations.worker import _handle_results
 
-        nom = _make_queued_nomination()
+        nom = make_queued_nomination()
         nom.status = NominationStatus.EVALUATING
         nom.save(update_fields=["status"])
 
@@ -380,7 +373,7 @@ class TestHandleResults:
     def test_failure_creates_no_evaluation(self) -> None:
         from terramedic.nominations.worker import _handle_results
 
-        nom = _make_queued_nomination()
+        nom = make_queued_nomination()
         nom.status = NominationStatus.EVALUATING
         nom.save(update_fields=["status"])
 

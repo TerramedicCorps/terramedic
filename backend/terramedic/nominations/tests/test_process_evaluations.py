@@ -6,8 +6,8 @@ import pytest
 from django.core.management import call_command
 from django.utils import timezone
 
-from terramedic.nominations.models import Nomination, NominationStatus
-from terramedic.nominations.tests.conftest import EVAL_RESULT
+from terramedic.nominations.models import NominationStatus
+from terramedic.nominations.tests.conftest import EVAL_RESULT, make_queued_nomination
 from terramedic.organizations.models import (
     Organization,
     OrganizationEvaluation,
@@ -32,16 +32,6 @@ _ANTHROPIC_PATH = (
 )
 
 
-def _make_queued_nomination(
-    url: str = "https://example.org",
-) -> Nomination:
-    return Nomination.objects.create(
-        url=url,
-        categories=["volunteer"],
-        ip_hash=None,
-        status=NominationStatus.QUEUED,
-    )
-
 
 @pytest.mark.django_db
 class TestProcessEvaluationsSuccess:
@@ -52,7 +42,7 @@ class TestProcessEvaluationsSuccess:
         mock_eval: Any,
         mock_anthropic: Any,
     ) -> None:
-        nom = _make_queued_nomination()
+        nom = make_queued_nomination()
         call_command(_COMMAND)
         nom.refresh_from_db()
         assert nom.status == NominationStatus.EVALUATED
@@ -64,7 +54,7 @@ class TestProcessEvaluationsSuccess:
         mock_eval: Any,
         mock_anthropic: Any,
     ) -> None:
-        nom = _make_queued_nomination()
+        nom = make_queued_nomination()
         call_command(_COMMAND)
         assert OrganizationEvaluation.objects.count() == 1
         ev = OrganizationEvaluation.objects.first()
@@ -78,7 +68,7 @@ class TestProcessEvaluationsSuccess:
         mock_eval: Any,
         mock_anthropic: Any,
     ) -> None:
-        _make_queued_nomination()
+        make_queued_nomination()
         call_command(_COMMAND)
         ev = OrganizationEvaluation.objects.first()
         assert ev is not None
@@ -93,7 +83,7 @@ class TestProcessEvaluationsSuccess:
         mock_eval: Any,
         mock_anthropic: Any,
     ) -> None:
-        _make_queued_nomination(url="https://special.org")
+        make_queued_nomination(url="https://special.org")
         call_command(_COMMAND)
         mock_eval.assert_called_once()
         call_kwargs = mock_eval.call_args
@@ -107,7 +97,7 @@ class TestProcessEvaluationsSuccess:
         mock_eval: Any,
         mock_anthropic: Any,
     ) -> None:
-        nom = _make_queued_nomination()
+        nom = make_queued_nomination()
         statuses_during: list[str] = []
 
         def capture_status(**kwargs: Any) -> dict[str, Any]:
@@ -126,8 +116,8 @@ class TestProcessEvaluationsSuccess:
         mock_eval: Any,
         mock_anthropic: Any,
     ) -> None:
-        nom1 = _make_queued_nomination(url="https://first.org")
-        nom2 = _make_queued_nomination(url="https://second.org")
+        nom1 = make_queued_nomination(url="https://first.org")
+        nom2 = make_queued_nomination(url="https://second.org")
         call_command(_COMMAND)
         urls = [c[1]["url"] for c in mock_eval.call_args_list]
         assert urls == [nom1.url, nom2.url]
@@ -139,8 +129,8 @@ class TestProcessEvaluationsSuccess:
         mock_eval: Any,
         mock_anthropic: Any,
     ) -> None:
-        _make_queued_nomination(url="https://first.org")
-        _make_queued_nomination(url="https://second.org")
+        make_queued_nomination(url="https://first.org")
+        make_queued_nomination(url="https://second.org")
         call_command(_COMMAND, "--limit", "1")
         assert mock_eval.call_count == 1
 
@@ -154,7 +144,7 @@ class TestProcessEvaluationsFailure:
         mock_eval: Any,
         mock_anthropic: Any,
     ) -> None:
-        nom = _make_queued_nomination()
+        nom = make_queued_nomination()
         call_command(_COMMAND)
         nom.refresh_from_db()
         assert nom.status == NominationStatus.QUEUED
@@ -167,7 +157,7 @@ class TestProcessEvaluationsFailure:
         mock_eval: Any,
         mock_anthropic: Any,
     ) -> None:
-        nom = _make_queued_nomination()
+        nom = make_queued_nomination()
         nom.evaluation_attempts = 1
         nom.save(update_fields=["evaluation_attempts"])
         call_command(_COMMAND)
@@ -182,7 +172,7 @@ class TestProcessEvaluationsFailure:
         mock_eval: Any,
         mock_anthropic: Any,
     ) -> None:
-        _make_queued_nomination()
+        make_queued_nomination()
         call_command(_COMMAND)
         assert OrganizationEvaluation.objects.count() == 0
 
@@ -194,8 +184,8 @@ class TestProcessEvaluationsFailure:
         mock_anthropic: Any,
     ) -> None:
         mock_eval.side_effect = [ValueError("bad"), EVAL_RESULT]
-        nom1 = _make_queued_nomination(url="https://bad.org")
-        nom2 = _make_queued_nomination(url="https://good.org")
+        nom1 = make_queued_nomination(url="https://bad.org")
+        nom2 = make_queued_nomination(url="https://good.org")
         call_command(_COMMAND)
         nom1.refresh_from_db()
         nom2.refresh_from_db()
@@ -237,7 +227,7 @@ class TestProcessEvaluationsEdgeCases:
         resolves it to the actual key before creating the client."""
         arn = "arn:aws:secretsmanager:us-east-1:123:secret:my-key"
         monkeypatch.setenv("ANTHROPIC_API_KEY", arn)
-        _make_queued_nomination()
+        make_queued_nomination()
 
         resolve_path = (
             "terramedic.nominations.management.commands"
@@ -257,7 +247,7 @@ class TestProcessEvaluationsEdgeCases:
     ) -> None:
         """When ANTHROPIC_API_KEY is a plain string (local dev),
         it is passed directly to the Anthropic client."""
-        _make_queued_nomination()
+        make_queued_nomination()
         call_command(_COMMAND)
         mock_anthropic.assert_called_once_with(api_key="test-key")
 
@@ -279,7 +269,7 @@ class TestProcessEvaluationsSkips:
             },
             status=ReviewStatus.PENDING,
         )
-        nom = _make_queued_nomination(url="https://example.org")
+        nom = make_queued_nomination(url="https://example.org")
         call_command(_COMMAND)
         nom.refresh_from_db()
         assert nom.status == NominationStatus.PENDING
@@ -298,7 +288,7 @@ class TestProcessEvaluationsSkips:
             },
             status=ReviewStatus.APPROVED,
         )
-        nom = _make_queued_nomination(url="https://example.org")
+        nom = make_queued_nomination(url="https://example.org")
         call_command(_COMMAND)
         nom.refresh_from_db()
         assert nom.status == NominationStatus.PENDING
@@ -320,7 +310,7 @@ class TestProcessEvaluationsSkips:
         org.action_text = "Support"
         org.save()
 
-        nom = _make_queued_nomination(url="https://example.org")
+        nom = make_queued_nomination(url="https://example.org")
         call_command(_COMMAND)
         nom.refresh_from_db()
         assert nom.status == NominationStatus.PENDING
@@ -339,7 +329,7 @@ class TestProcessEvaluationsSkips:
             },
             status=ReviewStatus.REJECTED,
         )
-        nom = _make_queued_nomination(url="https://example.org")
+        nom = make_queued_nomination(url="https://example.org")
         call_command(_COMMAND)
         nom.refresh_from_db()
         assert nom.status == NominationStatus.PENDING
@@ -361,7 +351,7 @@ class TestProcessEvaluationsSkips:
         OrganizationEvaluation.objects.filter(pk=ev.pk).update(
             created_at=timezone.now() - datetime.timedelta(days=91),
         )
-        nom = _make_queued_nomination(url="https://example.org")
+        nom = make_queued_nomination(url="https://example.org")
         call_command(_COMMAND)
         nom.refresh_from_db()
         assert nom.status == NominationStatus.EVALUATED
@@ -380,7 +370,7 @@ class TestProcessEvaluationsSkips:
             },
             status=ReviewStatus.PENDING,
         )
-        nom = _make_queued_nomination(url="https://example.org")
+        nom = make_queued_nomination(url="https://example.org")
         call_command(_COMMAND)
         nom.refresh_from_db()
         assert nom.evaluation_attempts == 0

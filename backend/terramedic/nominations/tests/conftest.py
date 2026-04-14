@@ -28,3 +28,17 @@ def make_sqs_event(records: list[dict[str, Any]]) -> dict[str, Any]:
             for record in records
         ],
     }
+
+
+def make_queued_nomination(
+    url: str = "https://example.org",
+) -> Any:
+    """Create a Nomination in QUEUED status for testing."""
+    from terramedic.nominations.models import Nomination, NominationStatus
+
+    return Nomination.objects.create(
+        url=url,
+        categories=["volunteer"],
+        ip_hash=None,
+        status=NominationStatus.QUEUED,
+    )
