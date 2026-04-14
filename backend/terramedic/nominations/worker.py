@@ -43,7 +43,10 @@ def process_evaluation_queue(
 def _handle_dispatch(event: dict[str, Any]) -> dict[str, Any]:
     """Query DB for queued nominations and send to SQS."""
     limit = max(1, min(int(event.get("limit", 10)), 50))
-    queue_url = os.environ["EVALUATION_REQUESTS_QUEUE_URL"]
+    queue_url = os.environ.get("EVALUATION_REQUESTS_QUEUE_URL", "")
+    if not queue_url:
+        msg = "EVALUATION_REQUESTS_QUEUE_URL is not set"
+        raise RuntimeError(msg)
     sqs = boto3.client("sqs")
 
     dispatched = 0

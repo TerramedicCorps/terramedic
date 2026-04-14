@@ -206,6 +206,18 @@ class TestHandleDispatch:
         assert nom.status == NominationStatus.QUEUED
         assert nom.evaluation_attempts == 0
 
+    def test_raises_when_queue_url_missing(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from terramedic.nominations.worker import _handle_dispatch
+
+        monkeypatch.delenv("EVALUATION_REQUESTS_QUEUE_URL", raising=False)
+
+        with pytest.raises(
+            RuntimeError, match="EVALUATION_REQUESTS_QUEUE_URL is not set",
+        ):
+            _handle_dispatch(_make_eventbridge_event())
+
 
 # ── Results ──────────────────────────────────────────────────────
 
