@@ -1,6 +1,7 @@
-"""Shared nomination-claiming logic used by worker and management command."""
+"""Shared helpers used by the worker, evaluator, and management command."""
 
 from collections.abc import Generator
+from typing import Any
 
 from django.db.models import F
 
@@ -8,6 +9,18 @@ from terramedic.nominations.models import Nomination, NominationStatus
 from terramedic.nominations.skip_checks import should_skip_url
 
 DEFAULT_EVAL_MODEL = "claude-sonnet-4-20250514"
+
+
+def evaluate_org(
+    url: str,
+    model: str,
+    client: Any = None,
+    categories: list[str] | None = None,
+) -> dict[str, Any]:
+    """Lazy-import wrapper — replaced in tests via mock."""
+    from curation.evaluate import evaluate_org as _evaluate_org
+
+    return _evaluate_org(url=url, model=model, client=client, categories=categories)
 
 
 def claim_nominations(limit: int) -> Generator[Nomination]:

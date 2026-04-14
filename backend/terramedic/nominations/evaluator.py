@@ -13,21 +13,9 @@ from typing import Any
 import boto3
 
 from terramedic.core.secrets import is_arn, resolve_secret
-from terramedic.nominations.claim import DEFAULT_EVAL_MODEL
+from terramedic.nominations.claim import DEFAULT_EVAL_MODEL, evaluate_org  # noqa: F401
 
 logger = logging.getLogger(__name__)
-
-
-def evaluate_org(
-    url: str,
-    model: str,
-    client: Any = None,
-    categories: list[str] | None = None,
-) -> dict[str, Any]:
-    """Lazy-import wrapper — replaced in tests via mock."""
-    from curation.evaluate import evaluate_org as _evaluate_org
-
-    return _evaluate_org(url=url, model=model, client=client, categories=categories)
 
 
 def Anthropic(**kwargs: Any) -> Any:  # noqa: N802

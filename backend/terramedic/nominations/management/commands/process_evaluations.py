@@ -15,25 +15,17 @@ from typing import Any
 from django.core.management.base import BaseCommand, CommandError
 
 from terramedic.core.secrets import is_arn, resolve_secret
-from terramedic.nominations.claim import DEFAULT_EVAL_MODEL, claim_nominations
+from terramedic.nominations.claim import (
+    DEFAULT_EVAL_MODEL,
+    claim_nominations,
+    evaluate_org,  # noqa: F401
+)
 from terramedic.nominations.models import NominationStatus
 from terramedic.organizations.models import OrganizationEvaluation
 
 logger = logging.getLogger(__name__)
 
 _MAX_RETRY_ATTEMPTS = 2
-
-
-def evaluate_org(
-    url: str,
-    model: str,
-    client: Any = None,
-    categories: list[str] | None = None,
-) -> dict[str, Any]:
-    """Lazy import wrapper — replaced in tests via mock."""
-    from curation.evaluate import evaluate_org as _evaluate_org
-
-    return _evaluate_org(url=url, model=model, client=client, categories=categories)
 
 
 def create_anthropic_client(**kwargs: Any) -> Any:
