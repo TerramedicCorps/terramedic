@@ -69,15 +69,9 @@ def handle_evaluation_request(
                 "error": f"evaluate_org failed for {url}",
             }
 
-        try:
-            sqs.send_message(
-                QueueUrl=results_queue_url,
-                MessageBody=json.dumps(result_message),
-            )
-        except Exception:  # noqa: BLE001
-            logger.exception(
-                "Failed to send result to SQS for nomination %s",
-                nomination_id,
-            )
+        sqs.send_message(
+            QueueUrl=results_queue_url,
+            MessageBody=json.dumps(result_message),
+        )
 
     return {"status": "ok"}

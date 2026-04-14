@@ -206,12 +206,14 @@ class TestHandleEvaluationRequest:
     @patch(f"{_EVALUATOR_MODULE}.boto3")
     @patch(_EVALUATE_ORG_PATH, return_value=EVAL_RESULT)
     @patch(_ANTHROPIC_PATH)
-    def test_sqs_send_failure_does_not_crash_lambda(
+    def test_sqs_send_failure_propagates_for_retry(
         self,
         mock_anthropic: Any,
         mock_eval: Any,
         mock_boto3: Any,
     ) -> None:
+        """SQS send failure must propagate so the message stays on the
+        requests queue and is retried by the redrive policy."""
         from terramedic.nominations.evaluator import handle_evaluation_request
 
         mock_sqs = MagicMock()
@@ -224,9 +226,8 @@ class TestHandleEvaluationRequest:
             "categories": ["volunteer"],
             "evaluation_attempts": 1,
         }])
-        # Should not raise — SQS failure should be caught and logged
-        result = handle_evaluation_request(event)
-        assert result["status"] == "ok"
+        with pytest.raises(Exception, match="SQS throttle"):
+            handle_evaluation_request(event)
 
     @patch(f"{_EVALUATOR_MODULE}.boto3")
     @patch(_EVALUATE_ORG_PATH, return_value=EVAL_RESULT)
