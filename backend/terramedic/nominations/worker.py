@@ -15,10 +15,9 @@ import os
 from typing import Any
 
 import boto3
-from django.db.models import F
 
+from terramedic.nominations.claim import claim_nominations
 from terramedic.nominations.models import Nomination, NominationStatus
-from terramedic.nominations.skip_checks import should_skip_url
 from terramedic.organizations.models import OrganizationEvaluation
 
 logger = logging.getLogger(__name__)
@@ -47,37 +46,9 @@ def _handle_dispatch(event: dict[str, Any]) -> dict[str, Any]:
     queue_url = os.environ["EVALUATION_REQUESTS_QUEUE_URL"]
     sqs = boto3.client("sqs")
 
-    nominations = list(
-        Nomination.objects.filter(
-            status=NominationStatus.QUEUED,
-        ).order_by("submitted_at")[:limit],
-    )
-
     dispatched = 0
-    skipped = 0
 
-    for nomination in nominations:
-        # Atomic claim: only proceed if still queued.
-        claimed = Nomination.objects.filter(
-            pk=nomination.pk,
-            status=NominationStatus.QUEUED,
-        ).update(
-            status=NominationStatus.EVALUATING,
-            evaluation_attempts=F("evaluation_attempts") + 1,
-        )
-        if not claimed:
-            continue
-        nomination.refresh_from_db()
-
-        if should_skip_url(nomination.url):
-            nomination.status = NominationStatus.PENDING
-            nomination.evaluation_attempts -= 1
-            nomination.save(
-                update_fields=["status", "evaluation_attempts"],
-            )
-            skipped += 1
-            continue
-
+    for nomination in claim_nominations(limit):
         try:
             sqs.send_message(
                 QueueUrl=queue_url,
@@ -101,11 +72,8 @@ def _handle_dispatch(event: dict[str, Any]) -> dict[str, Any]:
             continue
         dispatched += 1
 
-    logger.info(
-        "Dispatched %d, skipped %d of %d nomination(s).",
-        dispatched, skipped, len(nominations),
-    )
-    return {"status": "ok", "dispatched": dispatched, "skipped": skipped}
+    logger.info("Dispatched %d nomination(s).", dispatched)
+    return {"status": "ok", "dispatched": dispatched}
 
 
 def _handle_results(event: dict[str, Any]) -> dict[str, Any]:

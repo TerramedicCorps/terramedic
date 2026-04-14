@@ -131,7 +131,6 @@ class TestHandleDispatch:
         nom = _make_queued_nomination(url="https://example.org")
         result = _handle_dispatch(_make_eventbridge_event())
 
-        assert result["skipped"] == 1
         assert result["dispatched"] == 0
         mock_sqs.send_message.assert_not_called()
         nom.refresh_from_db()
