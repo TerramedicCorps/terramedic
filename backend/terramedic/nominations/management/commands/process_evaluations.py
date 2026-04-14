@@ -15,13 +15,12 @@ from typing import Any
 from django.core.management.base import BaseCommand, CommandError
 
 from terramedic.core.secrets import is_arn, resolve_secret
-from terramedic.nominations.claim import claim_nominations
+from terramedic.nominations.claim import DEFAULT_EVAL_MODEL, claim_nominations
 from terramedic.nominations.models import NominationStatus
 from terramedic.organizations.models import OrganizationEvaluation
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_EVAL_MODEL = "claude-sonnet-4-20250514"
 _MAX_RETRY_ATTEMPTS = 2
 
 
@@ -71,7 +70,7 @@ class Command(BaseCommand):
             try:
                 data = evaluate_org(
                     url=nomination.url,
-                    model=os.environ.get("EVAL_MODEL", _DEFAULT_EVAL_MODEL),
+                    model=os.environ.get("EVAL_MODEL", DEFAULT_EVAL_MODEL),
                     client=client,
                     categories=nomination.categories or None,
                 )

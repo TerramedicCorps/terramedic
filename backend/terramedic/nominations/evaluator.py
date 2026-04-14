@@ -13,10 +13,9 @@ from typing import Any
 import boto3
 
 from terramedic.core.secrets import is_arn, resolve_secret
+from terramedic.nominations.claim import DEFAULT_EVAL_MODEL
 
 logger = logging.getLogger(__name__)
-
-_DEFAULT_EVAL_MODEL = "claude-sonnet-4-20250514"
 
 
 def evaluate_org(
@@ -63,7 +62,7 @@ def handle_evaluation_request(
         try:
             data = evaluate_org(
                 url=url,
-                model=os.environ.get("EVAL_MODEL", _DEFAULT_EVAL_MODEL),
+                model=os.environ.get("EVAL_MODEL", DEFAULT_EVAL_MODEL),
                 client=client,
                 categories=categories,
             )

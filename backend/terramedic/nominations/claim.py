@@ -7,6 +7,8 @@ from django.db.models import F
 from terramedic.nominations.models import Nomination, NominationStatus
 from terramedic.nominations.skip_checks import should_skip_url
 
+DEFAULT_EVAL_MODEL = "claude-sonnet-4-20250514"
+
 
 def claim_nominations(limit: int) -> Generator[Nomination]:
     """Claim queued nominations atomically and yield non-skipped ones.
