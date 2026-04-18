@@ -64,18 +64,21 @@ def append_event_mapping(
 ) -> None:
     """Append an ``AWS_EVENT_MAPPING = {...}`` block to the file.
 
-    Idempotent: returns early if every ARN in ``mapping`` is already
-    present in the file. Checking for the string ``AWS_EVENT_MAPPING``
-    alone would give a false positive because
-    ``zappa save-python-settings-file`` emits an empty
-    ``AWS_EVENT_MAPPING={}`` assignment for every stage — we need to
-    append our populated one after it (later module-level assignments
-    win on import).
+    Idempotent: returns early if every ``arn -> handler`` pair from
+    ``mapping`` is already present in the file. Matching on the pair
+    (rather than the ARN alone) correctly triggers a re-append when
+    a handler is renamed or the ARN appears in some unrelated
+    context. Later module-level assignments win on import, so our
+    populated block correctly overrides any earlier empty or stale
+    one that ``zappa save-python-settings-file`` may have emitted.
     """
     if not mapping:
         return
     content = settings_path.read_text()
-    if all(arn in content for arn in mapping):
+    if all(
+        f"{arn!r}: {handler!r}" in content
+        for arn, handler in mapping.items()
+    ):
         return
     lines = [
         "",
