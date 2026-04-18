@@ -205,8 +205,9 @@ def configure_zappa_settings(
         # Queue URLs go into aws_environment_variables (→ Lambda's
         # Environment.Variables) so they're stage-specific. Putting
         # them in environment_variables would bake them into
-        # zappa_settings.py, which is generated for the `dev` stage
-        # only and shared across all 3 Lambdas — wrong target.
+        # zappa_settings.py, which is generated for the main deployed
+        # stage (`dev` or `prod`) and then shared by the worker and
+        # evaluator Lambdas/images — wrong target.
         # Worker: in VPC, has DB access, dispatches to requests queue
         settings[f"{env_key}-worker"] = {
             **lambda_base,
