@@ -483,3 +483,47 @@ class TestHandleResults:
         nom.refresh_from_db()
         assert nom.status == NominationStatus.EVALUATING
         assert nom.evaluation_attempts == 2
+
+    def test_atomic_update_loses_race_to_concurrent_sweep(self) -> None:
+        """If the row is flipped to FAILED between the fetch and the
+        conditional update (simulating a concurrent sweep or worker),
+        the atomic compare-and-swap affects 0 rows and the result is
+        ignored — no evaluation created, no status overwrite."""
+        from terramedic.nominations.worker import Nomination as WorkerNom
+        from terramedic.nominations.worker import _handle_results
+
+        nom = make_queued_nomination()
+        nom.status = NominationStatus.EVALUATING
+        nom.evaluation_attempts = 1
+        nom.save(update_fields=["status", "evaluation_attempts"])
+
+        real_filter = WorkerNom.objects.filter
+
+        def racing_filter(*args: object, **kwargs: object) -> object:
+            # Simulate a concurrent sweep flipping the row to FAILED
+            # after the conditional UPDATE's filter is built but
+            # before it runs.
+            real_filter(pk=nom.pk).update(
+                status=NominationStatus.FAILED,
+            )
+            # Restore the original filter so the UPDATE itself runs
+            # normally against the now-FAILED row.
+            WorkerNom.objects.filter = real_filter  # type: ignore[method-assign]
+            return real_filter(*args, **kwargs)
+
+        event = make_sqs_event([{
+            "nomination_id": nom.pk,
+            "evaluation_attempts": 1,
+            "success": True,
+            "data": EVAL_RESULT,
+        }])
+        try:
+            WorkerNom.objects.filter = racing_filter  # type: ignore[method-assign]
+            result = _handle_results(event)
+        finally:
+            WorkerNom.objects.filter = real_filter  # type: ignore[method-assign]
+
+        assert result["processed"] == 0
+        assert OrganizationEvaluation.objects.count() == 0
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.FAILED
