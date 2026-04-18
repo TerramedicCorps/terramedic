@@ -1,11 +1,16 @@
 """Tests for the nomination claiming helper."""
 
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
+from django.utils import timezone
 
-from terramedic.nominations.claim import claim_nominations
-from terramedic.nominations.models import NominationStatus
+from terramedic.nominations.claim import (
+    claim_nominations,
+    sweep_stuck_claims,
+)
+from terramedic.nominations.models import Nomination, NominationStatus
 from terramedic.nominations.tests.conftest import make_queued_nomination
 
 
@@ -71,3 +76,77 @@ class TestClaimNominations:
     def test_empty_queue(self) -> None:
         result = list(claim_nominations(limit=10))
         assert len(result) == 0
+
+    def test_sets_claimed_at(self) -> None:
+        nom = make_queued_nomination()
+        assert nom.claimed_at is None
+        before = timezone.now()
+
+        list(claim_nominations(limit=10))
+
+        nom.refresh_from_db()
+        assert nom.claimed_at is not None
+        assert nom.claimed_at >= before
+
+
+@pytest.mark.django_db
+class TestSweepStuckClaims:
+    def test_sweeps_old_evaluating_to_failed(self) -> None:
+        nom = make_queued_nomination()
+        nom.status = NominationStatus.EVALUATING
+        nom.claimed_at = timezone.now() - timedelta(hours=1)
+        nom.save(update_fields=["status", "claimed_at"])
+
+        swept = sweep_stuck_claims()
+
+        assert swept == 1
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.FAILED
+
+    def test_leaves_recent_evaluating_alone(self) -> None:
+        nom = make_queued_nomination()
+        nom.status = NominationStatus.EVALUATING
+        nom.claimed_at = timezone.now()
+        nom.save(update_fields=["status", "claimed_at"])
+
+        swept = sweep_stuck_claims()
+
+        assert swept == 0
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.EVALUATING
+
+    def test_sweeps_null_claimed_at_evaluating(self) -> None:
+        # Pre-migration rows, or any row that somehow entered
+        # EVALUATING without a claim timestamp, must not leak.
+        nom = make_queued_nomination()
+        Nomination.objects.filter(pk=nom.pk).update(
+            status=NominationStatus.EVALUATING,
+            claimed_at=None,
+        )
+
+        swept = sweep_stuck_claims()
+
+        assert swept == 1
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.FAILED
+
+    def test_does_not_touch_other_statuses(self) -> None:
+        # Intentionally set claimed_at to old so the date cutoff
+        # would otherwise match — the status filter should protect
+        # these rows.
+        old_claim = timezone.now() - timedelta(hours=1)
+        for status in (
+            NominationStatus.QUEUED,
+            NominationStatus.EVALUATED,
+            NominationStatus.FAILED,
+            NominationStatus.PENDING,
+        ):
+            nom = make_queued_nomination(f"https://{status}.org")
+            Nomination.objects.filter(pk=nom.pk).update(
+                status=status,
+                claimed_at=old_claim,
+            )
+
+        swept = sweep_stuck_claims()
+
+        assert swept == 0

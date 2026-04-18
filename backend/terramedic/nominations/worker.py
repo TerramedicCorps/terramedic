@@ -16,7 +16,7 @@ from typing import Any
 
 import boto3
 
-from terramedic.nominations.claim import claim_nominations
+from terramedic.nominations.claim import claim_nominations, sweep_stuck_claims
 from terramedic.nominations.models import Nomination, NominationStatus
 from terramedic.organizations.models import OrganizationEvaluation
 
@@ -48,6 +48,8 @@ def _handle_dispatch(event: dict[str, Any]) -> dict[str, Any]:
         msg = "EVALUATION_REQUESTS_QUEUE_URL is not set"
         raise RuntimeError(msg)
     sqs = boto3.client("sqs")
+
+    sweep_stuck_claims()
 
     dispatched = 0
 
