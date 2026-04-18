@@ -94,11 +94,10 @@ through the admin or a future write API.
 
 ## Nomination evaluation pipeline
 
-Two Lambdas connected by SQS. Splitting the original
-single worker eliminates the NAT Gateway (~$32/mo): the
-evaluator makes outbound HTTPS calls to Anthropic and
-target websites, which would otherwise need NAT from
-inside the VPC.
+Two Lambdas connected by SQS. The worker sits in the VPC
+to reach RDS; the evaluator sits outside the VPC so its
+outbound HTTPS calls (Anthropic + target websites) don't
+need a NAT Gateway (~$32/mo).
 
 ```text
 EventBridge (5 min)
