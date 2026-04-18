@@ -53,6 +53,10 @@ class Nomination(models.Model):
 
     class Meta:
         ordering = ["-submitted_at"]
+        indexes = [
+            # Supports sweep_stuck_claims: filter by status + claimed_at.
+            models.Index(fields=["status", "claimed_at"]),
+        ]
 
     MAX_NOTES_LENGTH = 2000
 
