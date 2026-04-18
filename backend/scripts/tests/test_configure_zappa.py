@@ -225,9 +225,10 @@ class TestConfigureZappaSettings:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         # aws_environment_variables → Lambda's Environment.Variables
-        # (stage-specific). environment_variables bakes into a shared
-        # zappa_settings.py generated for `dev` only, so putting the
-        # queue URL there would leak dev's URL to dev-worker.
+        # (stage-specific). environment_variables bakes values into
+        # the settings file generated for the currently deployed
+        # stage, so putting the queue URL there could leak it across
+        # related stages such as dev/dev-worker or prod/prod-worker.
         url = "https://sqs.us-east-1.amazonaws.com/1/requests"
         monkeypatch.setenv("EVALUATION_REQUESTS_QUEUE_URL", url)
         output = tmp_path / "zappa_settings.json"
