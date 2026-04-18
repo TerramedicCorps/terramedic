@@ -31,6 +31,13 @@ class TestSqsUrlToArn:
             == "arn:aws:sqs:eu-west-2:1:queue-name"
         )
 
+    def test_fifo_queue_url(self) -> None:
+        url = "https://sqs.us-east-1.amazonaws.com/1/my-queue.fifo"
+        assert (
+            sqs_url_to_arn(url)
+            == "arn:aws:sqs:us-east-1:1:my-queue.fifo"
+        )
+
 
 class TestBuildEventMapping:
     def test_both_queues(self) -> None:
