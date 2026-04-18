@@ -33,13 +33,13 @@ Tailwind CSS v4, Flowbite Svelte components.
 
 **Key paths:**
 
-| Path | Purpose |
-|---|---|
-| `terramedic/src/routes/` | Pages: home, about, volunteer, donate, resources, careers, other-actions, warming-stripes, contact-us, privacy |
-| `terramedic/src/lib/components/` | Reusable components (~24 files) |
-| `terramedic/src/lib/server/api.ts` | API client — fetches org data from the backend |
-| `terramedic/src/lib/utils/` | Client utilities (analytics, etc.) |
-| `terramedic/src/app.css` | Global styles, Tailwind v4 theme tokens |
+| Path                               | Purpose                                                                                                        |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `terramedic/src/routes/`           | Pages: home, about, volunteer, donate, resources, careers, other-actions, warming-stripes, contact-us, privacy |
+| `terramedic/src/lib/components/`   | Reusable components (~24 files)                                                                                |
+| `terramedic/src/lib/server/api.ts` | API client — fetches org data from the backend                                                                 |
+| `terramedic/src/lib/utils/`        | Client utilities (analytics, etc.)                                                                             |
+| `terramedic/src/app.css`           | Global styles, Tailwind v4 theme tokens                                                                        |
 
 **Data flow:** Each page that shows org data has a
 `+page.server.ts` load function that calls
@@ -59,13 +59,13 @@ django-parler (i18n), PostGIS (geospatial).
 
 **Key paths:**
 
-| Path | Purpose |
-|---|---|
-| `backend/terramedic/core/` | Settings, URL routing, API instance, secrets |
-| `backend/terramedic/organizations/` | Models, API endpoints, admin, fixtures |
-| `backend/terramedic/organizations/models.py` | Organization and Tag models |
-| `backend/terramedic/organizations/api.py` | REST endpoints |
-| `backend/terramedic/nominations/` | Nomination model + async evaluation pipeline (worker, evaluator) |
+| Path                                         | Purpose                                                          |
+| -------------------------------------------- | ---------------------------------------------------------------- |
+| `backend/terramedic/core/`                   | Settings, URL routing, API instance, secrets                     |
+| `backend/terramedic/organizations/`          | Models, API endpoints, admin, fixtures                           |
+| `backend/terramedic/organizations/models.py` | Organization and Tag models                                      |
+| `backend/terramedic/organizations/api.py`    | REST endpoints                                                   |
+| `backend/terramedic/nominations/`            | Nomination model + async evaluation pipeline (worker, evaluator) |
 
 **Models:**
 
@@ -79,12 +79,12 @@ django-parler (i18n), PostGIS (geospatial).
 
 **API endpoints** (all public, no auth):
 
-| Endpoint | Description |
-|---|---|
-| `GET /api/organizations/` | List orgs, optional `?category=` filter |
-| `GET /api/organizations/{id}/` | Single org |
-| `GET /api/organizations/nearby/` | GIS search by lat/lng/radius |
-| `GET /api/health` | Health check |
+| Endpoint                         | Description                             |
+| -------------------------------- | --------------------------------------- |
+| `GET /api/organizations/`        | List orgs, optional `?category=` filter |
+| `GET /api/organizations/{id}/`   | Single org                              |
+| `GET /api/organizations/nearby/` | GIS search by lat/lng/radius            |
+| `GET /api/health`                | Health check                            |
 
 **Data entry:** Orgs reach the public catalogue via Django
 admin. New candidates come from the nomination pipeline
@@ -105,8 +105,8 @@ EventBridge (5 min)
         ▼
   ┌──────────┐    evaluation-requests    ┌───────────┐
   │  worker  │──────── SQS ─────────────▶│ evaluator │
-  │  (VPC)   │                            │ (no VPC)  │
-  │          │◀──────── SQS ─────────────│           │
+  │  (VPC)   │                           │ (no VPC)  │
+  │          │◀─────── SQS ────-─────────│           │
   └────┬─────┘    evaluation-results     └───────────┘
        │
        ▼
@@ -160,15 +160,15 @@ environment.
 
 All workflows in `.github/workflows/`:
 
-| Workflow | Triggers | Purpose |
-|---|---|---|
-| `lint.yml` | Push, PRs | Prettier, ESLint, YAML lint, markdown lint, Ruff, mypy |
-| `test.yml` | Push, PRs | pytest (backend), Vitest + Playwright (frontend) |
-| `security.yml` | Push, PRs, weekly | CodeQL analysis |
-| `secret-scan.yml` | PRs to main | Gitleaks secret detection |
-| `secret-scan.yml` | Push, PRs | Gitleaks secret detection |
-| `deploy.yml` | Push to main/dev | Build Docker image, push to ECR, deploy via Zappa |
-| `dev_cost_control.yml` | Schedule | AWS dev environment cost monitoring |
+| Workflow               | Triggers          | Purpose                                                |
+| ---------------------- | ----------------- | ------------------------------------------------------ |
+| `lint.yml`             | Push, PRs         | Prettier, ESLint, YAML lint, markdown lint, Ruff, mypy |
+| `test.yml`             | Push, PRs         | pytest (backend), Vitest + Playwright (frontend)       |
+| `security.yml`         | Push, PRs, weekly | CodeQL analysis                                        |
+| `secret-scan.yml`      | PRs to main       | Gitleaks secret detection                              |
+| `secret-scan.yml`      | Push, PRs         | Gitleaks secret detection                              |
+| `deploy.yml`           | Push to main/dev  | Build Docker image, push to ECR, deploy via Zappa      |
+| `dev_cost_control.yml` | Schedule          | AWS dev environment cost monitoring                    |
 
 Deployment uses GitHub OIDC for AWS authentication — no
 long-lived credentials. Push to `main` deploys to prod;
