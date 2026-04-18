@@ -273,6 +273,7 @@ locals {
   interface_endpoints = {
     secretsmanager = "com.amazonaws.${var.aws_region}.secretsmanager"
     logs           = "com.amazonaws.${var.aws_region}.logs"
+    sqs            = "com.amazonaws.${var.aws_region}.sqs"
   }
   endpoint_subnet_ids = (
     length(local.private_subnet_ids) > 0 && var.enable_single_az_endpoints
