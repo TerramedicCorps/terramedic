@@ -113,13 +113,14 @@ EventBridge (5 min)
     RDS (writes OrganizationEvaluation)
 ```
 
-- **Worker** (`nominations/worker.py`) — in VPC,
-  DB-facing. Handles two event types: EventBridge
+- **Worker** (`backend/terramedic/nominations/worker.py`) —
+  in VPC, DB-facing. Handles two event types: EventBridge
   (claim + skip-check queued nominations, enqueue to
   SQS) and SQS (persist results).
-- **Evaluator** (`nominations/evaluator.py`) — no VPC.
-  Fetches the org website, calls Anthropic, sends the
-  result back via the results queue.
+- **Evaluator**
+  (`backend/terramedic/nominations/evaluator.py`) — no
+  VPC. Fetches the org website, calls Anthropic, sends
+  the result back via the results queue.
 - **Queues**: `*-evaluation-requests` (DLQ after 2
   receives — Anthropic calls cost money) and
   `*-evaluation-results` (DLQ after 3 — DB-only
