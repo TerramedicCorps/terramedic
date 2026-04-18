@@ -89,6 +89,7 @@ jobs:
         run: |
           poetry run python scripts/configure_zappa.py
           poetry run zappa save-python-settings-file ${{ env.DEPLOY_ENV }}
+          poetry run python scripts/inject_event_mapping.py
 
       - name: Build and push Docker image
         working-directory: ./backend

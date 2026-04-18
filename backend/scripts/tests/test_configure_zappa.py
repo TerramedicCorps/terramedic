@@ -218,3 +218,48 @@ class TestConfigureZappaSettings:
         settings = json.loads(output.read_text())
         assert settings["dev-worker"]["keep_warm"] is False
         assert settings["prod-worker"]["keep_warm"] is False
+
+    def test_worker_queue_url_in_aws_environment_variables(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        # aws_environment_variables → Lambda's Environment.Variables
+        # (stage-specific). environment_variables bakes values into
+        # the settings file generated for the currently deployed
+        # stage, so putting the queue URL there could leak it across
+        # related stages such as dev/dev-worker or prod/prod-worker.
+        url = "https://sqs.us-east-1.amazonaws.com/1/requests"
+        monkeypatch.setenv("EVALUATION_REQUESTS_QUEUE_URL", url)
+        output = tmp_path / "zappa_settings.json"
+        configure_zappa_settings(output_path=output)
+
+        settings = json.loads(output.read_text())
+        worker = settings["dev-worker"]
+        assert worker["aws_environment_variables"][
+            "EVALUATION_REQUESTS_QUEUE_URL"
+        ] == url
+        assert (
+            "EVALUATION_REQUESTS_QUEUE_URL"
+            not in worker["environment_variables"]
+        )
+
+    def test_evaluator_queue_url_in_aws_environment_variables(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        url = "https://sqs.us-east-1.amazonaws.com/1/results"
+        monkeypatch.setenv("EVALUATION_RESULTS_QUEUE_URL", url)
+        output = tmp_path / "zappa_settings.json"
+        configure_zappa_settings(output_path=output)
+
+        settings = json.loads(output.read_text())
+        evaluator = settings["dev-evaluator"]
+        assert evaluator["aws_environment_variables"][
+            "EVALUATION_RESULTS_QUEUE_URL"
+        ] == url
+        assert (
+            "EVALUATION_RESULTS_QUEUE_URL"
+            not in evaluator["environment_variables"]
+        )
