@@ -161,15 +161,16 @@ environment.
 
 All workflows in `.github/workflows/`:
 
-| Workflow               | Triggers          | Purpose                                                |
-| ---------------------- | ----------------- | ------------------------------------------------------ |
-| `lint.yml`             | Push, PRs         | Prettier, ESLint, YAML lint, markdown lint, Ruff, mypy |
-| `test.yml`             | Push, PRs         | pytest (backend), Vitest + Playwright (frontend)       |
-| `security.yml`         | Push, PRs, weekly | CodeQL analysis                                        |
-| `secret-scan.yml`      | PRs to main       | Gitleaks secret detection                              |
-| `secret-scan.yml`      | Push, PRs         | Gitleaks secret detection                              |
-| `deploy.yml`           | Push to main/dev  | Build Docker image, push to ECR, deploy via Zappa      |
-| `dev_cost_control.yml` | Schedule          | AWS dev environment cost monitoring                    |
+| Workflow                    | Triggers                | Purpose                                                |
+| --------------------------- | ----------------------- | ------------------------------------------------------ |
+| `lint.yml`                  | Push, PRs               | Prettier, ESLint, YAML lint, markdown lint, Ruff, mypy |
+| `test.yml`                  | Push, PRs               | pytest (backend), Vitest + Playwright (frontend)       |
+| `security.yml`              | Push, PRs, weekly       | CodeQL analysis                                        |
+| `secret-scan.yml`           | Push, PRs to main/dev   | Gitleaks secret detection                              |
+| `dependency-review.yml`     | PRs to main             | Dependency change risk review                          |
+| `dependabot-auto-merge.yml` | Dependabot PR events    | Auto-merge non-major Dependabot PRs                    |
+| `deploy.yml`                | Push to main/dev        | Build Docker image, push to ECR, deploy via Zappa     |
+| `dev_cost_control.yml`      | Schedule                | AWS dev environment cost monitoring                    |
 
 Deployment uses GitHub OIDC for AWS authentication — no
 long-lived credentials. Push to `main` deploys to prod;
