@@ -65,6 +65,7 @@ django-parler (i18n), PostGIS (geospatial).
 | `backend/terramedic/organizations/` | Models, API endpoints, admin, fixtures |
 | `backend/terramedic/organizations/models.py` | Organization and Tag models |
 | `backend/terramedic/organizations/api.py` | REST endpoints |
+| `backend/terramedic/nominations/` | Nomination model + async evaluation pipeline (worker, evaluator) |
 
 **Models:**
 
@@ -85,9 +86,49 @@ django-parler (i18n), PostGIS (geospatial).
 | `GET /api/organizations/nearby/` | GIS search by lat/lng/radius |
 | `GET /api/health` | Health check |
 
-**Data entry:** Via Django admin and the curation pipeline,
-which evaluates nominated organizations and saves approved
-entries through the admin or a future write API.
+**Data entry:** Orgs reach the public catalogue via Django
+admin. New candidates come from the nomination pipeline
+(next section), which writes `OrganizationEvaluation`
+records for curator review; approved orgs are then added
+through the admin or a future write API.
+
+## Nomination evaluation pipeline
+
+Two Lambdas connected by SQS. Splitting the original
+single worker eliminates the NAT Gateway (~$32/mo): the
+evaluator makes outbound HTTPS calls to Anthropic and
+target websites, which would otherwise need NAT from
+inside the VPC.
+
+```text
+EventBridge (5 min)
+        │
+        ▼
+  ┌──────────┐    evaluation-requests    ┌───────────┐
+  │  worker  │──────── SQS ─────────────▶│ evaluator │
+  │  (VPC)   │                            │ (no VPC)  │
+  │          │◀──────── SQS ─────────────│           │
+  └────┬─────┘    evaluation-results     └───────────┘
+       │
+       ▼
+    RDS (writes OrganizationEvaluation)
+```
+
+- **Worker** (`nominations/worker.py`) — in VPC,
+  DB-facing. Handles two event types: EventBridge
+  (claim + skip-check queued nominations, enqueue to
+  SQS) and SQS (persist results).
+- **Evaluator** (`nominations/evaluator.py`) — no VPC.
+  Fetches the org website, calls Anthropic, sends the
+  result back via the results queue.
+- **Queues**: `*-evaluation-requests` (DLQ after 2
+  receives — Anthropic calls cost money) and
+  `*-evaluation-results` (DLQ after 3 — DB-only
+  retries are cheap).
+- `EVALUATION_REQUESTS_QUEUE_URL` and
+  `EVALUATION_RESULTS_QUEUE_URL` are set as GitHub
+  environment variables (dev, prod) so Zappa injects
+  them at deploy time.
 
 ## Infrastructure
 
@@ -103,7 +144,8 @@ entries through the admin or a future write API.
 
 Provisions the AWS infrastructure across shared and prod
 accounts. Key modules: networking (VPC, subnets),
-database (RDS), lambda-ecr, zappa (S3 + IAM), secrets
+database (RDS), lambda-ecr, zappa (S3 + IAM + SQS +
+EventBridge for the evaluation pipeline), secrets
 (Secrets Manager), storage (S3 + CloudFront), github-oidc,
 monitoring (CloudWatch, budgets).
 
@@ -155,6 +197,10 @@ them fully before modifying.
   and router registration
 - `backend/terramedic/organizations/models.py` — Schema
   changes require migrations
+- `backend/terramedic/nominations/worker.py` — Evaluation
+  dispatcher + results persister (in VPC)
+- `backend/terramedic/nominations/evaluator.py` — Outbound
+  Anthropic + website fetch (outside VPC)
 - `backend/Dockerfile` — Lambda runtime image
 - `backend/entrypoint.sh` — Startup: migrations + seed
 
