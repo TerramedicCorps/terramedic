@@ -386,3 +386,48 @@ class TestHandleResults:
         _handle_results(event)
 
         assert OrganizationEvaluation.objects.count() == 0
+
+    def test_late_success_does_not_resurrect_swept_nomination(self) -> None:
+        """If sweep_stuck_claims has already marked a nomination
+        FAILED, a late success result must not create an evaluation
+        or flip the status back to EVALUATED."""
+        from terramedic.nominations.worker import _handle_results
+
+        nom = make_queued_nomination()
+        nom.status = NominationStatus.FAILED  # swept earlier
+        nom.save(update_fields=["status"])
+
+        event = make_sqs_event([{
+            "nomination_id": nom.pk,
+            "evaluation_attempts": 1,
+            "success": True,
+            "data": EVAL_RESULT,
+        }])
+        result = _handle_results(event)
+
+        assert result["processed"] == 0
+        assert OrganizationEvaluation.objects.count() == 0
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.FAILED
+
+    def test_late_failure_does_not_resurrect_swept_nomination(self) -> None:
+        """If sweep_stuck_claims has already marked a nomination
+        FAILED, a late failure result must not revert it to QUEUED."""
+        from terramedic.nominations.worker import _handle_results
+
+        nom = make_queued_nomination()
+        nom.status = NominationStatus.FAILED  # swept earlier
+        nom.evaluation_attempts = 1
+        nom.save(update_fields=["status", "evaluation_attempts"])
+
+        event = make_sqs_event([{
+            "nomination_id": nom.pk,
+            "evaluation_attempts": 1,
+            "success": False,
+            "error": "evaluate_org failed",
+        }])
+        result = _handle_results(event)
+
+        assert result["failed"] == 0
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.FAILED

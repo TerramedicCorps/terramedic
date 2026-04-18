@@ -97,6 +97,19 @@ def _handle_results(event: dict[str, Any]) -> dict[str, Any]:
             logger.warning("Nomination %s not found, skipping", nomination_id)
             continue
 
+        if nomination.status != NominationStatus.EVALUATING:
+            # Guard against late results after sweep_stuck_claims has
+            # already marked this nomination FAILED (or any other
+            # terminal state). Applying the result here would resurrect
+            # a row curators have already seen and potentially acted on.
+            logger.warning(
+                "Ignoring late %s result for nomination %s (status=%s).",
+                "success" if body.get("success") else "failure",
+                nomination_id,
+                nomination.status,
+            )
+            continue
+
         if body.get("success"):
             data = body["data"]
             curator_notes = data.get("curator_notes", {})
