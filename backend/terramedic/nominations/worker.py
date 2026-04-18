@@ -110,6 +110,21 @@ def _handle_results(event: dict[str, Any]) -> dict[str, Any]:
             )
             continue
 
+        if evaluation_attempts != nomination.evaluation_attempts:
+            # SQS is at-least-once: a delayed or duplicated message
+            # from attempt N-1 could arrive while attempt N is in
+            # progress. Apply only the result that matches the current
+            # attempt to avoid overwriting newer state.
+            logger.warning(
+                "Ignoring stale %s result for nomination %s "
+                "(message_attempt=%s, current_attempt=%s).",
+                "success" if body.get("success") else "failure",
+                nomination_id,
+                evaluation_attempts,
+                nomination.evaluation_attempts,
+            )
+            continue
+
         if body.get("success"):
             data = body["data"]
             curator_notes = data.get("curator_notes", {})
