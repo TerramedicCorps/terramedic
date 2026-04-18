@@ -126,6 +126,29 @@ class TestAppendEventMapping:
 
         assert after_first == after_second
 
+    def test_appends_despite_empty_aws_event_mapping_from_zappa(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        # Regression: `zappa save-python-settings-file` emits an empty
+        # AWS_EVENT_MAPPING={} line. A naive substring-based idempotency
+        # guard would match it and skip the append, silently leaving
+        # the pipeline broken.
+        settings = tmp_path / "zappa_settings.py"
+        settings.write_text(
+            "API_STAGE='dev'\nAWS_EVENT_MAPPING={}\n",
+        )
+        mapping = {
+            "arn:aws:sqs:us-east-1:1:foo": "module.func",
+        }
+
+        append_event_mapping(settings, mapping)
+
+        content = settings.read_text()
+        namespace: dict[str, object] = {}
+        exec(content, namespace)  # noqa: S102
+        assert namespace["AWS_EVENT_MAPPING"] == mapping
+
 
 class TestRequireMappingInCi:
     def test_ci_with_complete_mapping_passes(
