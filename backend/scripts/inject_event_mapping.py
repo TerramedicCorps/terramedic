@@ -62,8 +62,15 @@ def append_event_mapping(
     settings_path: Path,
     mapping: dict[str, str],
 ) -> None:
-    """Append an ``AWS_EVENT_MAPPING = {...}`` block to the file."""
+    """Append an ``AWS_EVENT_MAPPING = {...}`` block to the file.
+
+    Idempotent: returns early if the file already contains an
+    ``AWS_EVENT_MAPPING`` assignment, so re-runs don't accumulate
+    duplicate blocks.
+    """
     if not mapping:
+        return
+    if "AWS_EVENT_MAPPING" in settings_path.read_text():
         return
     lines = [
         "",

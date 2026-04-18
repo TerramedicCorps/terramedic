@@ -99,6 +99,24 @@ class TestAppendEventMapping:
 
         assert settings.read_text() == original
 
+    def test_second_call_does_not_duplicate(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        settings = tmp_path / "zappa_settings.py"
+        settings.write_text("SOME_SETTING = 1\n")
+        mapping = {
+            "arn:aws:sqs:us-east-1:1:foo": "module.func",
+        }
+
+        append_event_mapping(settings, mapping)
+        after_first = settings.read_text()
+
+        append_event_mapping(settings, mapping)
+        after_second = settings.read_text()
+
+        assert after_first == after_second
+
 
 class TestRequireMappingInCi:
     def test_ci_with_nonempty_mapping_passes(
