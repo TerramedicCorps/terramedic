@@ -128,12 +128,15 @@ class TestAppendEventMapping:
 
 
 class TestRequireMappingInCi:
-    def test_ci_with_nonempty_mapping_passes(
+    def test_ci_with_complete_mapping_passes(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         monkeypatch.setenv("CI", "true")
-        require_mapping_in_ci({"arn:aws:sqs:us-east-1:1:q": "fn"})
+        require_mapping_in_ci({
+            "arn:aws:sqs:us-east-1:1:req": EVALUATOR_HANDLER,
+            "arn:aws:sqs:us-east-1:1:res": WORKER_HANDLER,
+        })
 
     def test_no_ci_with_empty_mapping_passes(
         self,
@@ -150,6 +153,35 @@ class TestRequireMappingInCi:
         monkeypatch.setenv("CI", "true")
         with pytest.raises(SystemExit) as exc:
             require_mapping_in_ci({})
+        assert exc.value.code == 1
+        err = capsys.readouterr().err
+        assert "EVALUATION_REQUESTS_QUEUE_URL" in err
+        assert "EVALUATION_RESULTS_QUEUE_URL" in err
+
+    def test_ci_with_only_requests_url_exits_nonzero(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        monkeypatch.setenv("CI", "true")
+        with pytest.raises(SystemExit) as exc:
+            require_mapping_in_ci({
+                "arn:aws:sqs:us-east-1:1:req": EVALUATOR_HANDLER,
+            })
+        assert exc.value.code == 1
+        err = capsys.readouterr().err
+        assert "EVALUATION_RESULTS_QUEUE_URL" in err
+
+    def test_ci_with_only_results_url_exits_nonzero(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        monkeypatch.setenv("CI", "true")
+        with pytest.raises(SystemExit) as exc:
+            require_mapping_in_ci({
+                "arn:aws:sqs:us-east-1:1:res": WORKER_HANDLER,
+            })
         assert exc.value.code == 1
         err = capsys.readouterr().err
         assert "EVALUATION_REQUESTS_QUEUE_URL" in err

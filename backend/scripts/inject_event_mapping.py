@@ -86,20 +86,30 @@ def append_event_mapping(
 
 
 def require_mapping_in_ci(mapping: dict[str, str]) -> None:
-    """In CI, refuse to deploy without any SQS routing entries.
+    """In CI, refuse to deploy without both SQS routing entries.
 
-    Silently skipping would reproduce the exact runtime failure this
-    script is designed to prevent ("Cannot find a function to process
-    the triggered event") the next time an SQS event arrives.
+    The deploy workflow always brings up both the worker and the
+    evaluator, and each Lambda receives SQS events for its own queue.
+    A mapping that covers only one handler would leave the other
+    Lambda reproducing the exact runtime failure this script is
+    designed to prevent ("Cannot find a function to process the
+    triggered event").
     """
     if not os.environ.get("CI"):
         return
-    if mapping:
+    handlers = set(mapping.values())
+    missing_urls = []
+    if EVALUATOR_HANDLER not in handlers:
+        missing_urls.append("EVALUATION_REQUESTS_QUEUE_URL")
+    if WORKER_HANDLER not in handlers:
+        missing_urls.append("EVALUATION_RESULTS_QUEUE_URL")
+    if not missing_urls:
         return
     sys.stderr.write(
-        "Error: CI is set but neither EVALUATION_REQUESTS_QUEUE_URL "
-        "nor EVALUATION_RESULTS_QUEUE_URL is defined. The worker and "
-        "evaluator Lambdas would fail SQS routing at runtime.\n",
+        "Error: CI is set but the following queue URL(s) are not "
+        f"defined: {', '.join(missing_urls)}. Both are required; "
+        "missing one would leave the corresponding Lambda unable to "
+        "route its SQS events at runtime.\n",
     )
     sys.exit(1)
 
