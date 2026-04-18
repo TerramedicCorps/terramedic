@@ -202,22 +202,25 @@ def configure_zappa_settings(
             "ENVIRONMENT": env_cfg["env_name"],
             "DEBUG": "false",
         }
+        # Queue URLs go into aws_environment_variables (→ Lambda's
+        # Environment.Variables) so they're stage-specific. Putting
+        # them in environment_variables would bake them into
+        # zappa_settings.py, which is generated for the `dev` stage
+        # only and shared across all 3 Lambdas — wrong target.
         # Worker: in VPC, has DB access, dispatches to requests queue
         settings[f"{env_key}-worker"] = {
             **lambda_base,
             "extends": env_cfg["extends"],
             "stage": f"{env_key}-worker",
-            "environment_variables": {
-                **env_vars,
+            "environment_variables": env_vars,
+            "aws_environment_variables": {
+                "DATABASE_URL": db_secret_arn,
+                "SECRET_KEY": django_secret_arn,
                 **(
                     {"EVALUATION_REQUESTS_QUEUE_URL": eval_requests_queue_url}
                     if eval_requests_queue_url
                     else {}
                 ),
-            },
-            "aws_environment_variables": {
-                "DATABASE_URL": db_secret_arn,
-                "SECRET_KEY": django_secret_arn,
             },
         }
         # Evaluator: outside VPC, no DB, calls Anthropic API
@@ -229,16 +232,14 @@ def configure_zappa_settings(
                 "SubnetIds": [],
                 "SecurityGroupIds": [],
             },
-            "environment_variables": {
-                **env_vars,
+            "environment_variables": env_vars,
+            "aws_environment_variables": {
+                "SECRET_KEY": django_secret_arn,
                 **(
                     {"EVALUATION_RESULTS_QUEUE_URL": eval_results_queue_url}
                     if eval_results_queue_url
                     else {}
                 ),
-            },
-            "aws_environment_variables": {
-                "SECRET_KEY": django_secret_arn,
                 **(
                     {"ANTHROPIC_API_KEY": anthropic_secret_arn}
                     if anthropic_secret_arn
