@@ -84,6 +84,8 @@ jobs:
           DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
           ACM_CERTIFICATE_ARN: ${{ vars.ACM_CERTIFICATE_ARN }}
           ANTHROPIC_SECRET_ARN: ${{ secrets.ANTHROPIC_SECRET_ARN }}
+          EVALUATION_REQUESTS_QUEUE_URL: ${{ vars.EVALUATION_REQUESTS_QUEUE_URL }}
+          EVALUATION_RESULTS_QUEUE_URL: ${{ vars.EVALUATION_RESULTS_QUEUE_URL }}
         run: |
           poetry run python scripts/configure_zappa.py
           poetry run zappa save-python-settings-file ${{ env.DEPLOY_ENV }}
@@ -133,23 +135,25 @@ jobs:
             poetry run zappa deploy ${{ env.DEPLOY_ENV }} --docker-image-uri "$IMAGE_URI"
           fi
 
-      - name: Deploy worker Lambda
+      - name: Deploy worker and evaluator Lambdas
         working-directory: ./backend
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          WORKER_STAGE="${{ env.DEPLOY_ENV }}-worker"
           IMAGE_URI="${ECR_REGISTRY}/terramedic-${{ env.DEPLOY_ENV }}:latest"
-          FUNCTION_NAME="terramedic-${WORKER_STAGE}"
+          for ROLE in worker evaluator; do
+            STAGE="${{ env.DEPLOY_ENV }}-${ROLE}"
+            FUNCTION_NAME="terramedic-${STAGE}"
 
-          if aws lambda get-function --function-name "$FUNCTION_NAME" 2>/dev/null; then
-            echo "Updating worker Lambda..."
-            aws lambda wait function-updated --function-name "$FUNCTION_NAME"
-            poetry run zappa update "$WORKER_STAGE" --docker-image-uri "$IMAGE_URI"
-          else
-            echo "Creating worker Lambda..."
-            poetry run zappa deploy "$WORKER_STAGE" --docker-image-uri "$IMAGE_URI"
-          fi
+            if aws lambda get-function --function-name "$FUNCTION_NAME" 2>/dev/null; then
+              echo "Updating ${ROLE} Lambda..."
+              aws lambda wait function-updated --function-name "$FUNCTION_NAME"
+              poetry run zappa update "$STAGE" --docker-image-uri "$IMAGE_URI"
+            else
+              echo "Creating ${ROLE} Lambda..."
+              poetry run zappa deploy "$STAGE" --docker-image-uri "$IMAGE_URI"
+            fi
+          done
 
       - name: Run database migrations
         working-directory: ./backend

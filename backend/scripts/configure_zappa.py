@@ -42,6 +42,8 @@ def configure_zappa_settings(
     domain_name = get_env("DOMAIN_NAME", "")
     certificate_arn = get_env("ACM_CERTIFICATE_ARN", "")
     anthropic_secret_arn = get_env("ANTHROPIC_SECRET_ARN", "")
+    eval_requests_queue_url = get_env("EVALUATION_REQUESTS_QUEUE_URL", "")
+    eval_results_queue_url = get_env("EVALUATION_RESULTS_QUEUE_URL", "")
 
     use_custom_docker = (
         get_env("USE_CUSTOM_DOCKER", "false").lower() == "true"
@@ -181,41 +183,69 @@ def configure_zappa_settings(
                 else {}
             ),
         },
-        "dev-worker": {
-            "extends": "dev",
-            "stage": "dev-worker",
-            "timeout_seconds": 300,
-            "memory_size": 512,
-            "keep_warm": False,
-            "apigateway_enabled": False,
-            "aws_environment_variables": {
-                "DATABASE_URL": db_secret_arn,
-                "SECRET_KEY": django_secret_arn,
-                **(
-                    {"ANTHROPIC_API_KEY": anthropic_secret_arn}
-                    if anthropic_secret_arn
-                    else {}
-                ),
-            },
-        },
-        "prod-worker": {
-            "extends": "prod",
-            "stage": "prod-worker",
-            "timeout_seconds": 300,
-            "memory_size": 512,
-            "keep_warm": False,
-            "apigateway_enabled": False,
-            "aws_environment_variables": {
-                "DATABASE_URL": db_secret_arn,
-                "SECRET_KEY": django_secret_arn,
-                **(
-                    {"ANTHROPIC_API_KEY": anthropic_secret_arn}
-                    if anthropic_secret_arn
-                    else {}
-                ),
-            },
-        },
     }
+
+    # Build worker and evaluator stages for each environment
+    envs = {
+        "dev": {"extends": "dev", "env_name": "development"},
+        "prod": {"extends": "prod", "env_name": "production"},
+    }
+    lambda_base: dict[str, Any] = {
+        "timeout_seconds": 300,
+        "memory_size": 512,
+        "keep_warm": False,
+        "apigateway_enabled": False,
+    }
+    for env_key, env_cfg in envs.items():
+        env_vars = {
+            **base_env_vars,
+            "ENVIRONMENT": env_cfg["env_name"],
+            "DEBUG": "false",
+        }
+        # Worker: in VPC, has DB access, dispatches to requests queue
+        settings[f"{env_key}-worker"] = {
+            **lambda_base,
+            "extends": env_cfg["extends"],
+            "stage": f"{env_key}-worker",
+            "environment_variables": {
+                **env_vars,
+                **(
+                    {"EVALUATION_REQUESTS_QUEUE_URL": eval_requests_queue_url}
+                    if eval_requests_queue_url
+                    else {}
+                ),
+            },
+            "aws_environment_variables": {
+                "DATABASE_URL": db_secret_arn,
+                "SECRET_KEY": django_secret_arn,
+            },
+        }
+        # Evaluator: outside VPC, no DB, calls Anthropic API
+        settings[f"{env_key}-evaluator"] = {
+            **lambda_base,
+            "extends": env_cfg["extends"],
+            "stage": f"{env_key}-evaluator",
+            "vpc_config": {
+                "SubnetIds": [],
+                "SecurityGroupIds": [],
+            },
+            "environment_variables": {
+                **env_vars,
+                **(
+                    {"EVALUATION_RESULTS_QUEUE_URL": eval_results_queue_url}
+                    if eval_results_queue_url
+                    else {}
+                ),
+            },
+            "aws_environment_variables": {
+                "SECRET_KEY": django_secret_arn,
+                **(
+                    {"ANTHROPIC_API_KEY": anthropic_secret_arn}
+                    if anthropic_secret_arn
+                    else {}
+                ),
+            },
+        }
 
     config_path = (
         output_path
