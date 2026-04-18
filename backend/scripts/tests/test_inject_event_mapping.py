@@ -2,11 +2,14 @@
 
 from pathlib import Path
 
+import pytest
+
 from scripts.inject_event_mapping import (
     EVALUATOR_HANDLER,
     WORKER_HANDLER,
     append_event_mapping,
     build_event_mapping,
+    require_mapping_in_ci,
     sqs_url_to_arn,
 )
 
@@ -95,3 +98,31 @@ class TestAppendEventMapping:
         append_event_mapping(settings, {})
 
         assert settings.read_text() == original
+
+
+class TestRequireMappingInCi:
+    def test_ci_with_nonempty_mapping_passes(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setenv("CI", "true")
+        require_mapping_in_ci({"arn:aws:sqs:us-east-1:1:q": "fn"})
+
+    def test_no_ci_with_empty_mapping_passes(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("CI", raising=False)
+        require_mapping_in_ci({})
+
+    def test_ci_with_empty_mapping_exits_nonzero(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        monkeypatch.setenv("CI", "true")
+        with pytest.raises(SystemExit) as exc:
+            require_mapping_in_ci({})
+        assert exc.value.code == 1
+        err = capsys.readouterr().err
+        assert "EVALUATION_REQUESTS_QUEUE_URL" in err
