@@ -1,9 +1,11 @@
 """Tests for scripts/inject_event_mapping.py."""
 
+import importlib.util
 from pathlib import Path
 
 import pytest
 
+from scripts.configure_zappa import configure_zappa_settings
 from scripts.inject_event_mapping import (
     EVALUATOR_HANDLER,
     WORKER_HANDLER,
@@ -151,3 +153,66 @@ class TestRequireMappingInCi:
         assert exc.value.code == 1
         err = capsys.readouterr().err
         assert "EVALUATION_REQUESTS_QUEUE_URL" in err
+
+
+class TestPipelineIntegration:
+    """End-to-end: simulate the deploy pipeline and import the result.
+
+    Verifies that configure_zappa.py + (a stub of `zappa
+    save-python-settings-file`) + inject_event_mapping.py produce a
+    Python module that, when imported, exposes ``AWS_EVENT_MAPPING``
+    with the ARNs Zappa's handler will look up at runtime.
+    """
+
+    def test_produces_importable_settings_with_event_mapping(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setenv("CI", "true")
+        monkeypatch.setenv(
+            "DATABASE_SECRET_ARN",
+            "arn:aws:secretsmanager:us-east-1:1:secret:db",
+        )
+        monkeypatch.setenv(
+            "DJANGO_SECRET_ARN",
+            "arn:aws:secretsmanager:us-east-1:1:secret:key",
+        )
+        monkeypatch.setenv("ZAPPA_ROLE_NAME", "my-role")
+        requests_url = "https://sqs.us-east-1.amazonaws.com/1/req"
+        results_url = "https://sqs.us-east-1.amazonaws.com/1/res"
+        monkeypatch.setenv(
+            "EVALUATION_REQUESTS_QUEUE_URL", requests_url,
+        )
+        monkeypatch.setenv(
+            "EVALUATION_RESULTS_QUEUE_URL", results_url,
+        )
+
+        json_path = tmp_path / "zappa_settings.json"
+        configure_zappa_settings(output_path=json_path)
+        assert json_path.exists()
+
+        # Stub what `zappa save-python-settings-file` would produce.
+        # Zappa's own generator isn't invoked here — we just need a
+        # valid Python file for the inject step to append to.
+        settings_py = tmp_path / "zappa_settings.py"
+        settings_py.write_text(
+            "API_STAGE = 'dev'\nENVIRONMENT_VARIABLES = {}\n",
+        )
+
+        mapping = build_event_mapping(requests_url, results_url)
+        append_event_mapping(settings_py, mapping)
+
+        spec = importlib.util.spec_from_file_location(
+            "pipeline_test_zappa_settings", settings_py,
+        )
+        assert spec is not None
+        assert spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        assert module.API_STAGE == "dev"
+        assert module.AWS_EVENT_MAPPING == {
+            "arn:aws:sqs:us-east-1:1:req": EVALUATOR_HANDLER,
+            "arn:aws:sqs:us-east-1:1:res": WORKER_HANDLER,
+        }
