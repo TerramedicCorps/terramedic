@@ -514,6 +514,9 @@ def _invoke_claude_cli(
         raise ValueError(msg)
 
     tool_use = envelope.get("usage", {}).get("server_tool_use", {})
+    # total_cost_usd is 0 on Max subscriptions (no per-token billing);
+    # kept for parity with the API-path usage log so the two sources
+    # can be grepped the same way.
     logger.info(
         "eval via claude-code url=%s cost_usd=%s "
         "searches=%s fetches=%s",
