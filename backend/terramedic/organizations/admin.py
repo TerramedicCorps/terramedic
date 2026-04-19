@@ -114,43 +114,43 @@ class OrganizationAdmin(TranslatableAdmin):
         return ", ".join(slugs) if slugs else "—"
 
 
-def _create_org_from_evaluation(
-    evaluation: OrganizationEvaluation,
-) -> Organization:
-    """Create an Organization from evaluation data.
-
-    Assigns every valid category from the evaluation's
-    ``accessibility.categories`` array. If none are valid
-    (for example, all entries are ``"other"``), the
-    organization is filed under ``resource`` as a fallback
-    so it still shows up somewhere.
-    """
-    data = evaluation.evaluation_data
-    meta = data.get("org_metadata", {})
-    accessibility = data.get("accessibility", {})
-
-    requested = accessibility.get("categories", [])
-    valid_categories = list(Category.objects.filter(slug__in=requested))
-    if not valid_categories:
-        valid_categories = list(Category.objects.filter(slug="resource"))
-
-    org = Organization(
-        name=meta.get("name", ""),
-        website_url=meta.get("website_url", ""),
-        image_url=meta.get("image_url", ""),
-        is_active=True,
-    )
-    org.set_current_language("en")
-    org.description = meta.get("description", "")
-    action_text = f"Support {meta.get('name', 'this organization')}"
-    org.action_text = action_text[:100]
-    org.save()
-    org.categories.set(valid_categories)
-    return org
+# Scoped CSS for the Evaluation Detail readonly field. Visually hides
+# the redundant field label (the fieldset header already says
+# "Evaluation Detail") while keeping it in the accessibility tree for
+# screen readers via the standard "visually hidden" pattern. Flattens
+# list nesting so sources sit one indent-level under their parent item
+# instead of stacking three deep, and lets long URLs wrap inside the
+# content column.
+_EV_DETAIL_STYLE = """<style>
+.field-evaluation_detail label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.ev-detail { font-size: 13px; line-height: 1.45; }
+.ev-detail h3 { margin: 1em 0 0.3em; font-size: 14px; font-weight: 600; }
+.ev-detail h3:first-of-type { margin-top: 0.25em; }
+.ev-detail p { margin: 0.25em 0; }
+.ev-detail .ev-meta { margin-bottom: 0.75em; }
+.ev-detail .ev-item { margin: 0.4em 0 0.6em; }
+.ev-detail .ev-sources { margin: 0.2em 0 0 1.25em; padding: 0; font-size: 0.92em; }
+.ev-detail .ev-sources li {
+  list-style: disc inside; margin: 0.1em 0;
+  word-break: break-word; overflow-wrap: anywhere;
+}
+.ev-detail .ev-history { margin: 0.2em 0 0 1.25em; padding: 0; }
+.ev-detail .ev-history li { list-style: disc inside; margin: 0.1em 0; }
+</style>"""
 
 
 def _render_sources(sources: list[dict[str, str]]) -> str:
-    """Render a sources array as a small HTML list."""
+    """Render a sources array as a small flat bulleted list."""
     if not sources:
         return ""
     items: list[str] = []
@@ -165,42 +165,44 @@ def _render_sources(sources: list[dict[str, str]]) -> str:
         if excerpt:
             line += f" — <em>{excerpt}</em>"
         items.append(f"<li>{line}</li>")
-    return "<ul>" + "".join(items) + "</ul>"
+    return '<ul class="ev-sources">' + "".join(items) + "</ul>"
 
 
 def _render_sdg_section(data: dict[str, Any]) -> str:
-    """Render SDG alignment as HTML."""
+    """Render SDG alignment as HTML (flat items, no nested lists)."""
     sdgs = data.get("sdg_alignment", [])
     if not sdgs:
         return ""
-    parts = ["<h3>SDG Alignment</h3><ul>"]
+    parts = ["<h3>SDG Alignment</h3>"]
     for item in sdgs:
         sdg = escape(str(item.get("sdg", "?")))
         evidence = escape(str(item.get("evidence", "")))
         sources_html = _render_sources(item.get("sources", []))
         parts.append(
-            f"<li><strong>SDG {sdg}</strong>: "
-            f"{evidence}{sources_html}</li>",
+            '<div class="ev-item">'
+            f"<p><strong>SDG {sdg}</strong>: {evidence}</p>"
+            f"{sources_html}"
+            "</div>",
         )
-    parts.append("</ul>")
     return "\n".join(parts)
 
 
 def _render_evidence_section(data: dict[str, Any]) -> str:
-    """Render evidence of work as HTML."""
+    """Render evidence of work as HTML (flat items, no nested lists)."""
     activities = data.get("evidence_of_work", [])
     if not activities:
         return ""
-    parts = ["<h3>Evidence of Work</h3><ul>"]
+    parts = ["<h3>Evidence of Work</h3>"]
     for item in activities:
         activity = escape(str(item.get("activity", "")))
         act_type = escape(str(item.get("type", "")))
         sources_html = _render_sources(item.get("sources", []))
         parts.append(
-            f"<li><strong>{act_type}</strong>: "
-            f"{activity}{sources_html}</li>",
+            '<div class="ev-item">'
+            f"<p><strong>{act_type}</strong>: {activity}</p>"
+            f"{sources_html}"
+            "</div>",
         )
-    parts.append("</ul>")
     return "\n".join(parts)
 
 
@@ -241,7 +243,7 @@ def _render_eval_history(data: dict[str, Any]) -> str:
     history = data.get("evaluation_history", [])
     if not history:
         return ""
-    parts = ["<h3>Evaluation History</h3><ul>"]
+    parts = ['<h3>Evaluation History</h3><ul class="ev-history">']
     for entry in history:
         ver = escape(str(entry.get("prompt_version", "?")))
         sc = escape(str(entry.get("score", "?")))
@@ -346,7 +348,6 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     search_fields = ["status"]
     readonly_fields = [
         "evaluation_data",
-        "status",
         "created_at",
         "reviewed_at",
         "reviewer",
@@ -362,8 +363,9 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
                     "reviewer_reasoning",
                 ),
                 "description": (
-                    "Use bulk actions to approve or reject."
-                    " Status cannot be changed manually."
+                    "Change status to Approved or Rejected and click"
+                    " Save. Reviewer, timestamp, and (on approval) a"
+                    " linked Organization are set automatically."
                 ),
             },
         ),
@@ -484,7 +486,7 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         prompt_ver = data.get("prompt_version")
         if prompt_ver:
             parts.append(
-                "<p><strong>Prompt version:</strong> "
+                '<p class="ev-meta"><strong>Prompt version:</strong> '
                 f"{escape(str(prompt_ver))}</p>",
             )
 
@@ -499,8 +501,46 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
             if section:
                 parts.append(section)
 
-        html = "\n".join(parts) if parts else "<p>No data.</p>"
+        body = "\n".join(parts) if parts else "<p>No data.</p>"
+        html = (
+            f'{_EV_DETAIL_STYLE}<div class="ev-detail">{body}</div>'
+        )
         return mark_safe(html)  # noqa: S308
+
+    def save_model(
+        self,
+        request: HttpRequest,
+        obj: OrganizationEvaluation,
+        form: Any,
+        change: bool,
+    ) -> None:
+        """Stamp reviewer/time and keep linked-org visibility in sync.
+
+        Org creation (or reactivation) on the APPROVED transition is
+        handled by the post_save signal in ``signals.py`` — keeping it
+        there means the same logic applies whether the transition
+        happens via the change form, a bulk action, or any other
+        saver.
+
+        Going *the other way* — transitioning a previously approved
+        evaluation to REJECTED or PENDING — is only reachable through
+        the change form. We deactivate the linked Organization here
+        (keeping the FK intact) so it disappears from the public
+        frontend without losing the audit trail. Re-approving the
+        evaluation later reactivates the same org rather than creating
+        a duplicate.
+        """
+        if change and "status" in form.changed_data:
+            obj.reviewer = request.user  # type: ignore[assignment]
+            obj.reviewed_at = timezone.now()
+            if (
+                obj.status != ReviewStatus.APPROVED
+                and obj.organization is not None
+                and obj.organization.is_active
+            ):
+                obj.organization.is_active = False
+                obj.organization.save(update_fields=["is_active"])
+        super().save_model(request, obj, form, change)
 
     @admin.action(description="Approve selected evaluations")
     def approve_evaluations(
@@ -508,17 +548,14 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         request: HttpRequest,
         queryset: QuerySet[OrganizationEvaluation],
     ) -> None:
+        # Transition status only; post_save signal handles org
+        # creation and nomination-status sync.
+        now = timezone.now()
         approved_count = 0
-        for evaluation in queryset:
-            if evaluation.status == ReviewStatus.APPROVED:
-                continue
-            org = evaluation.organization
-            if org is None:
-                org = _create_org_from_evaluation(evaluation)
-            evaluation.organization = org
+        for evaluation in queryset.exclude(status=ReviewStatus.APPROVED):
             evaluation.status = ReviewStatus.APPROVED
             evaluation.reviewer = request.user  # type: ignore[assignment]
-            evaluation.reviewed_at = timezone.now()
+            evaluation.reviewed_at = now
             evaluation.save()
             approved_count += 1
         self.message_user(
@@ -535,9 +572,7 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     ) -> None:
         now = timezone.now()
         rejected_count = 0
-        for evaluation in queryset:
-            if evaluation.status != ReviewStatus.PENDING:
-                continue
+        for evaluation in queryset.filter(status=ReviewStatus.PENDING):
             evaluation.status = ReviewStatus.REJECTED
             evaluation.reviewer = request.user  # type: ignore[assignment]
             evaluation.reviewed_at = now

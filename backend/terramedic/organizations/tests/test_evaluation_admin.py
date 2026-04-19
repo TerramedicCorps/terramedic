@@ -396,15 +396,356 @@ class TestEvaluationAdminReadonlyPresentation:
         admin = OrganizationEvaluationAdmin(OrganizationEvaluation, site)
         assert "evaluation_data" in admin.readonly_fields
 
-    def test_status_is_readonly(self) -> None:
-        site = AdminSite()
-        admin = OrganizationEvaluationAdmin(OrganizationEvaluation, site)
-        assert "status" in admin.readonly_fields
-
     def test_status_choices(self) -> None:
         assert ReviewStatus.PENDING == "pending"
         assert ReviewStatus.APPROVED == "approved"
         assert ReviewStatus.REJECTED == "rejected"
+
+
+@pytest.mark.django_db
+class TestApproveFromDetailPage:
+    """Curator flips status to Approved on the change form and saves.
+
+    save_model stamps reviewer + reviewed_at; the post_save signal
+    creates and links an Organization.
+    """
+
+    def _post_change(
+        self,
+        client: Client,
+        evaluation: OrganizationEvaluation,
+        status: str,
+        reasoning: str = "",
+    ) -> Any:
+        url = (
+            "/admin/organizations/organizationevaluation/"
+            f"{evaluation.pk}/change/"
+        )
+        response = client.post(
+            url,
+            {
+                "status": status,
+                "reviewer_reasoning": reasoning,
+                "_save": "Save",
+            },
+        )
+        # Django admin redirects to the changelist on successful
+        # save; form errors would return 200 and let the caller's
+        # state-unchanged assertions pass vacuously.
+        assert response.status_code == 302, (
+            f"Admin save returned {response.status_code}; "
+            "expected 302 redirect"
+        )
+        return response
+
+    def test_approve_via_detail_creates_organization(
+        self,
+        admin_client: Client,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.APPROVED,
+        )
+        pending_evaluation.refresh_from_db()
+        assert pending_evaluation.status == ReviewStatus.APPROVED
+        assert pending_evaluation.organization is not None
+        assert pending_evaluation.organization.name == "Test Organization"
+
+    def test_approve_via_detail_stamps_reviewer_and_time(
+        self,
+        admin_client: Client,
+        admin_user: User,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        before = timezone.now()
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.APPROVED,
+        )
+        pending_evaluation.refresh_from_db()
+        assert pending_evaluation.reviewer == admin_user
+        assert pending_evaluation.reviewed_at is not None
+        # Fresh timestamp, not a frozen/stale value from elsewhere.
+        assert pending_evaluation.reviewed_at >= before
+
+    def test_reject_via_detail_sets_status_without_creating_org(
+        self,
+        admin_client: Client,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.REJECTED,
+        )
+        pending_evaluation.refresh_from_db()
+        assert pending_evaluation.status == ReviewStatus.REJECTED
+        assert pending_evaluation.organization is None
+        assert Organization.objects.count() == 0
+
+    def test_save_without_status_change_does_not_restamp_reviewer(
+        self,
+        admin_client: Client,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        # First save: approves and stamps reviewer/time.
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.APPROVED,
+        )
+        pending_evaluation.refresh_from_db()
+        original_time = pending_evaluation.reviewed_at
+        assert original_time is not None
+
+        # Second save: status unchanged, only reasoning edited.
+        self._post_change(
+            admin_client,
+            pending_evaluation,
+            ReviewStatus.APPROVED,
+            reasoning="Updated notes",
+        )
+        pending_evaluation.refresh_from_db()
+        # reviewed_at preserved because status didn't change.
+        assert pending_evaluation.reviewed_at == original_time
+
+    def test_repeat_approve_does_not_create_second_org(
+        self,
+        admin_client: Client,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        # First approval creates the org.
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.APPROVED,
+        )
+        pending_evaluation.refresh_from_db()
+        first_org = pending_evaluation.organization
+        assert first_org is not None
+
+        # Saving again should not create a second Organization.
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.APPROVED,
+        )
+        pending_evaluation.refresh_from_db()
+        assert Organization.objects.count() == 1
+        assert pending_evaluation.organization == first_org
+
+    def test_reject_after_approve_deactivates_but_preserves_fk(
+        self,
+        admin_client: Client,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        """Transitioning APPROVED → REJECTED keeps the FK (audit trail)
+        but deactivates the linked Organization so it disappears from
+        the public frontend."""
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.APPROVED,
+        )
+        pending_evaluation.refresh_from_db()
+        org = pending_evaluation.organization
+        assert org is not None
+        assert org.is_active is True
+
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.REJECTED,
+        )
+        pending_evaluation.refresh_from_db()
+        org.refresh_from_db()
+        assert pending_evaluation.status == ReviewStatus.REJECTED
+        assert pending_evaluation.organization == org  # FK preserved
+        assert org.is_active is False
+
+    def test_approve_reject_reapprove_does_not_duplicate_org(
+        self,
+        admin_client: Client,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        """A full APPROVE → REJECT → APPROVE cycle ends with exactly
+        one Organization, reactivated, linked to the evaluation."""
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.APPROVED,
+        )
+        pending_evaluation.refresh_from_db()
+        original_org = pending_evaluation.organization
+        assert original_org is not None
+
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.REJECTED,
+        )
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.APPROVED,
+        )
+
+        pending_evaluation.refresh_from_db()
+        original_org.refresh_from_db()
+        assert Organization.objects.count() == 1
+        assert pending_evaluation.organization == original_org
+        assert original_org.is_active is True
+        assert pending_evaluation.status == ReviewStatus.APPROVED
+
+
+@pytest.mark.django_db
+class TestCreateOrgOnApprovalSignal:
+    """The post_save signal enforces org creation regardless of the
+    code path that flipped status to APPROVED."""
+
+    def test_signal_fires_for_direct_save(
+        self,
+        admin_user: User,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        # Simulate any non-admin code path (shell, migration, etc.)
+        # that transitions status directly.
+        pending_evaluation.status = ReviewStatus.APPROVED
+        pending_evaluation.reviewer = admin_user
+        pending_evaluation.reviewed_at = timezone.now()
+        pending_evaluation.save()
+
+        pending_evaluation.refresh_from_db()
+        assert pending_evaluation.organization is not None
+
+    def test_signal_skips_when_org_already_linked(
+        self,
+        admin_user: User,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        existing = Organization.objects.create(
+            name="Pre-linked Org", website_url="https://pre.example",
+        )
+        pending_evaluation.organization = existing
+        pending_evaluation.status = ReviewStatus.APPROVED
+        pending_evaluation.reviewer = admin_user
+        pending_evaluation.reviewed_at = timezone.now()
+        pending_evaluation.save()
+
+        pending_evaluation.refresh_from_db()
+        # No new org created; existing link preserved.
+        assert Organization.objects.count() == 1
+        assert pending_evaluation.organization == existing
+
+    def test_signal_skips_on_rejection(
+        self,
+        admin_user: User,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        pending_evaluation.status = ReviewStatus.REJECTED
+        pending_evaluation.reviewer = admin_user
+        pending_evaluation.reviewed_at = timezone.now()
+        pending_evaluation.save()
+
+        assert Organization.objects.count() == 0
+
+    def test_signal_reactivates_deactivated_org_on_reapproval(
+        self,
+        admin_user: User,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        """Re-approving an evaluation whose Organization was
+        deactivated (by a prior REJECT transition) flips the org back
+        to is_active=True instead of creating a new one."""
+        existing = Organization.objects.create(
+            name="Previously Approved Org",
+            website_url="https://prev.example",
+            is_active=False,
+        )
+        pending_evaluation.organization = existing
+        pending_evaluation.status = ReviewStatus.APPROVED
+        pending_evaluation.reviewer = admin_user
+        pending_evaluation.reviewed_at = timezone.now()
+        pending_evaluation.save()
+
+        pending_evaluation.refresh_from_db()
+        existing.refresh_from_db()
+        assert pending_evaluation.organization == existing
+        assert existing.is_active is True
+        assert Organization.objects.count() == 1
+
+    def test_signal_cleans_up_orphan_on_race(
+        self,
+        admin_user: User,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        """If a concurrent saver links an org between this receiver's
+        check and its conditional UPDATE, the newly-created Org is
+        deleted so we don't leak rows."""
+        from terramedic.organizations import signals as sig
+        from terramedic.organizations.evaluation_actions import (
+            create_org_from_evaluation as real_create,
+        )
+
+        winning_org = Organization.objects.create(
+            name="Winning Org", website_url="https://winner.example",
+        )
+
+        def create_with_race(evaluation: OrganizationEvaluation) -> Organization:
+            # Simulate a concurrent saver linking a different org
+            # right after we've started creating ours but before the
+            # conditional UPDATE runs. The UPDATE's filter requires
+            # organization__isnull=True, so it will return 0.
+            OrganizationEvaluation.objects.filter(
+                pk=evaluation.pk,
+            ).update(organization=winning_org)
+            return real_create(evaluation)
+
+        pending_evaluation.status = ReviewStatus.APPROVED
+        pending_evaluation.reviewer = admin_user
+        pending_evaluation.reviewed_at = timezone.now()
+
+        with patch.object(
+            sig, "create_org_from_evaluation", side_effect=create_with_race,
+        ):
+            pending_evaluation.save()
+
+        pending_evaluation.refresh_from_db()
+        # Orphan was cleaned up; only the winning org remains.
+        assert Organization.objects.count() == 1
+        assert pending_evaluation.organization == winning_org
+
+    def test_signal_skips_reactivation_on_concurrent_flip(
+        self,
+        admin_user: User,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        """If another request flips status away from APPROVED right
+        after this save, the reactivation branch's conditional UPDATE
+        must not flip is_active back to True."""
+        existing = Organization.objects.create(
+            name="Previously Approved Org",
+            website_url="https://prev.example",
+            is_active=False,
+        )
+        pending_evaluation.organization = existing
+        pending_evaluation.status = ReviewStatus.APPROVED
+        pending_evaluation.reviewer = admin_user
+        pending_evaluation.reviewed_at = timezone.now()
+        # Simulate the concurrent flip by scheduling a pre-save signal
+        # on this save that flips the DB back to REJECTED after our
+        # own save has committed but before downstream receivers run.
+        # Simpler: directly flip the DB right before invoking the
+        # receiver, by mocking the signal branch's filter call site.
+        pending_evaluation.save()
+        # After save, signal fires; conditional UPDATE sees APPROVED
+        # and reactivates. Then simulate a race where another request
+        # flips status away, and assert a subsequent spurious signal
+        # invocation does NOT re-reactivate because status is no
+        # longer APPROVED.
+        existing.refresh_from_db()
+        assert existing.is_active is True  # initial reactivation worked
+
+        # Now simulate the race: flip status to REJECTED via direct
+        # update, then run the signal manually with a stale instance
+        # whose in-memory state still says APPROVED + deactivated org.
+        OrganizationEvaluation.objects.filter(
+            pk=pending_evaluation.pk,
+        ).update(status=ReviewStatus.REJECTED)
+        existing.is_active = False  # simulate prior deactivation
+        existing.save(update_fields=["is_active"])
+        # Call the receiver directly with stale in-memory state.
+        from terramedic.organizations.signals import create_org_on_approval
+        stale = OrganizationEvaluation.objects.get(pk=pending_evaluation.pk)
+        stale.status = ReviewStatus.APPROVED  # in-memory only
+        create_org_on_approval(
+            sender=OrganizationEvaluation, instance=stale, created=False,
+        )
+        existing.refresh_from_db()
+        # Because DB still shows status=REJECTED, the conditional
+        # update finds 0 matching rows and leaves is_active=False.
+        assert existing.is_active is False
 
 
 @pytest.mark.django_db
