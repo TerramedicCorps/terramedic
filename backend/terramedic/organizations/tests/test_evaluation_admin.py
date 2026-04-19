@@ -573,6 +573,71 @@ class TestCreateOrgOnApprovalSignal:
 
         assert Organization.objects.count() == 0
 
+    def test_signal_reactivates_deactivated_org_on_reapproval(
+        self,
+        admin_user: User,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        """Re-approving an evaluation whose Organization was
+        deactivated (by a prior REJECT transition) flips the org back
+        to is_active=True instead of creating a new one."""
+        existing = Organization.objects.create(
+            name="Previously Approved Org",
+            website_url="https://prev.example",
+            is_active=False,
+        )
+        pending_evaluation.organization = existing
+        pending_evaluation.status = ReviewStatus.APPROVED
+        pending_evaluation.reviewer = admin_user
+        pending_evaluation.reviewed_at = timezone.now()
+        pending_evaluation.save()
+
+        pending_evaluation.refresh_from_db()
+        existing.refresh_from_db()
+        assert pending_evaluation.organization == existing
+        assert existing.is_active is True
+        assert Organization.objects.count() == 1
+
+    def test_signal_cleans_up_orphan_on_race(
+        self,
+        admin_user: User,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        """If a concurrent saver links an org between this receiver's
+        check and its conditional UPDATE, the newly-created Org is
+        deleted so we don't leak rows."""
+        from terramedic.organizations import signals as sig
+
+        winning_org = Organization.objects.create(
+            name="Winning Org", website_url="https://winner.example",
+        )
+
+        real_create = sig.create_org_from_evaluation
+
+        def create_with_race(evaluation: OrganizationEvaluation) -> Organization:
+            # Simulate a concurrent saver linking a different org
+            # right after we've started creating ours but before the
+            # conditional UPDATE runs. The UPDATE's filter requires
+            # organization__isnull=True, so it will return 0.
+            OrganizationEvaluation.objects.filter(
+                pk=evaluation.pk,
+            ).update(organization=winning_org)
+            return real_create(evaluation)
+
+        pending_evaluation.status = ReviewStatus.APPROVED
+        pending_evaluation.reviewer = admin_user
+        pending_evaluation.reviewed_at = timezone.now()
+
+        with patch.object(
+            sig, "create_org_from_evaluation", side_effect=create_with_race,
+        ):
+            pending_evaluation.save()
+
+        pending_evaluation.refresh_from_db()
+        # Orphan was cleaned up; only the winning org remains.
+        assert Organization.objects.count() == 1
+        assert pending_evaluation.organization == winning_org
+
 
 @pytest.mark.django_db
 class TestApproveWithOtherCategory:

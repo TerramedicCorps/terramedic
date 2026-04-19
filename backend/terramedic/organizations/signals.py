@@ -26,24 +26,47 @@ def create_org_on_approval(
     created: bool,
     **kwargs: Any,
 ) -> None:
-    """Create and link an Organization when an evaluation is APPROVED.
+    """Reconcile the linked Organization on APPROVED transitions.
 
-    This fires on any save — from the admin change form, the bulk
-    approve action, a management command, or a test — so the
-    org-creation side-effect of approval is enforced in one place.
-    Skipped on creation (the initial save by the worker) and when an
-    organization is already linked.
+    Three cases, chosen to keep the APPROVE → REJECT → APPROVE cycle
+    producing exactly one Organization row:
+
+    * **Already linked and active** — no-op (prevents duplicate creation
+      on idempotent saves).
+    * **Already linked but deactivated** — reactivate the existing
+      Organization (this is the re-approve path, after ``save_model``
+      deactivated the org on a prior REJECT/PENDING transition).
+    * **No org linked** — create a fresh Organization and link it via
+      a conditional ``UPDATE`` that requires the row still has
+      ``organization IS NULL`` and ``status = APPROVED``. If a
+      concurrent save won the race, delete the orphan we just created
+      so we don't leak rows.
     """
     if created:
         return
     if instance.status != ReviewStatus.APPROVED:
         return
+
     if instance.organization is not None:
+        if not instance.organization.is_active:
+            instance.organization.is_active = True
+            instance.organization.save(update_fields=["is_active"])
         return
+
     org = create_org_from_evaluation(instance)
-    # filter().update() bypasses save() so this receiver doesn't
-    # re-fire on itself (and reviewer/reviewed_at stay intact).
-    type(instance).objects.filter(pk=instance.pk).update(organization=org)
+    # Conditional update: only link if the row still has no org and
+    # is still APPROVED. filter().update() bypasses save() so this
+    # receiver doesn't re-fire on itself.
+    linked = sender.objects.filter(
+        pk=instance.pk,
+        organization__isnull=True,
+        status=ReviewStatus.APPROVED,
+    ).update(organization=org)
+    if not linked:
+        # Concurrent save linked a different org or flipped status
+        # before we got here. Clean up the orphan we just created.
+        org.delete()
+        return
     instance.organization = org
 
 
