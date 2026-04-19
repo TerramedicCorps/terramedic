@@ -49,9 +49,13 @@ export function loadOrganizations(
     organizations: fetchOrganizations(category, acceptLanguage).catch((error) => {
       // Structured log so aggregators can pivot on category; rethrow
       // so the client's {:catch} branch renders the error message.
+      // Stack is useful in Sentry/CloudWatch for debugging production
+      // failures — drop the guard on error instanceof Error once we
+      // know fetch always throws Error subclasses.
       console.error('fetchOrganizations failed', {
         category,
-        message: error instanceof Error ? error.message : String(error)
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
       });
       throw error;
     })
