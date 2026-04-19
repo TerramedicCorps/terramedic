@@ -47,7 +47,12 @@ export function loadOrganizations(
   const acceptLanguage = request.headers.get('accept-language') ?? undefined;
   return {
     organizations: fetchOrganizations(category, acceptLanguage).catch((error) => {
-      console.error(`Failed to load ${category} organizations:`, error);
+      // Structured log so aggregators can pivot on category; rethrow
+      // so the client's {:catch} branch renders the error message.
+      console.error('fetchOrganizations failed', {
+        category,
+        message: error instanceof Error ? error.message : String(error)
+      });
       throw error;
     })
   };
