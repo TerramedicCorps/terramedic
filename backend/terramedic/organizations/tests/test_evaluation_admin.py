@@ -521,6 +521,59 @@ class TestApproveFromDetailPage:
         assert Organization.objects.count() == 1
         assert pending_evaluation.organization == first_org
 
+    def test_reject_after_approve_deactivates_but_preserves_fk(
+        self,
+        admin_client: Client,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        """Transitioning APPROVED → REJECTED keeps the FK (audit trail)
+        but deactivates the linked Organization so it disappears from
+        the public frontend."""
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.APPROVED,
+        )
+        pending_evaluation.refresh_from_db()
+        org = pending_evaluation.organization
+        assert org is not None
+        assert org.is_active is True
+
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.REJECTED,
+        )
+        pending_evaluation.refresh_from_db()
+        org.refresh_from_db()
+        assert pending_evaluation.status == ReviewStatus.REJECTED
+        assert pending_evaluation.organization == org  # FK preserved
+        assert org.is_active is False
+
+    def test_approve_reject_reapprove_does_not_duplicate_org(
+        self,
+        admin_client: Client,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        """A full APPROVE → REJECT → APPROVE cycle ends with exactly
+        one Organization, reactivated, linked to the evaluation."""
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.APPROVED,
+        )
+        pending_evaluation.refresh_from_db()
+        original_org = pending_evaluation.organization
+        assert original_org is not None
+
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.REJECTED,
+        )
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.APPROVED,
+        )
+
+        pending_evaluation.refresh_from_db()
+        original_org.refresh_from_db()
+        assert Organization.objects.count() == 1
+        assert pending_evaluation.organization == original_org
+        assert original_org.is_active is True
+        assert pending_evaluation.status == ReviewStatus.APPROVED
+
 
 @pytest.mark.django_db
 class TestCreateOrgOnApprovalSignal:

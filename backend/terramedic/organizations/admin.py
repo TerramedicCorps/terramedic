@@ -502,16 +502,32 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         form: Any,
         change: bool,
     ) -> None:
-        """Stamp reviewer and timestamp when status is changed.
+        """Stamp reviewer/time and keep linked-org visibility in sync.
 
-        Org creation for the APPROVED transition is handled by the
-        post_save signal in ``signals.py`` — keeping it there means
-        the same logic applies whether the transition happens via
-        the change form, a bulk action, or any other saver.
+        Org creation (or reactivation) on the APPROVED transition is
+        handled by the post_save signal in ``signals.py`` — keeping it
+        there means the same logic applies whether the transition
+        happens via the change form, a bulk action, or any other
+        saver.
+
+        Going *the other way* — transitioning a previously approved
+        evaluation to REJECTED or PENDING — is only reachable through
+        the change form. We deactivate the linked Organization here
+        (keeping the FK intact) so it disappears from the public
+        frontend without losing the audit trail. Re-approving the
+        evaluation later reactivates the same org rather than creating
+        a duplicate.
         """
         if change and form and "status" in form.changed_data:
             obj.reviewer = request.user  # type: ignore[assignment]
             obj.reviewed_at = timezone.now()
+            if (
+                obj.status != ReviewStatus.APPROVED
+                and obj.organization is not None
+                and obj.organization.is_active
+            ):
+                obj.organization.is_active = False
+                obj.organization.save(update_fields=["is_active"])
         super().save_model(request, obj, form, change)
 
     @admin.action(description="Approve selected evaluations")
