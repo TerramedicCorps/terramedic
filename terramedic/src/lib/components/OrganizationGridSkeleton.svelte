@@ -12,7 +12,7 @@
 <div class={gridClass} role="status" aria-live="polite" aria-busy="true">
   <span class="sr-only">Loading organizations</span>
   {#each indices as i (i)}
-    <div class="!bg-navy h-full animate-pulse rounded-lg border border-white/10 p-5">
+    <div class="!bg-navy flex h-full animate-pulse flex-col rounded-lg border border-white/10 p-5">
       <div class="mb-3 h-6 w-3/4 rounded bg-white/10"></div>
       <div class="mb-3 flex flex-wrap gap-1.5">
         <span class="inline-block h-5 w-16 rounded-full bg-white/10"></span>
