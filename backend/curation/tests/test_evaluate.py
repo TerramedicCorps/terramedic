@@ -516,6 +516,28 @@ class TestEvaluateOrgViaClaudeCode:
             )
 
 
+class TestValidateAgainstSchema:
+    """Error-path coverage for the shared schema validation helper."""
+
+    def test_raises_runtime_error_on_missing_jsonschema(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Missing jsonschema must raise, not sys.exit.
+
+        sys.exit inside a Django management command mid-batch would
+        bypass the CAS rollback that marks the row FAILED.
+        """
+        import sys as _sys
+
+        from curation.evaluate import _validate_against_schema
+
+        # Force `import jsonschema` inside the helper to raise ImportError.
+        monkeypatch.setitem(_sys.modules, "jsonschema", None)
+
+        with pytest.raises(RuntimeError, match="jsonschema"):
+            _validate_against_schema({}, source="Output")
+
+
 class TestCleanResponse:
     def test_known_activity_type_unchanged(self) -> None:
         data = {"evidence_of_work": [{"activity": "x", "type": "conservation"}]}

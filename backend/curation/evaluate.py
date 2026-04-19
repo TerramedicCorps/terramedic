@@ -372,17 +372,19 @@ def _validate_against_schema(
     """Validate *data* against ``schema.json``.
 
     Raises ``ValueError`` on mismatch with a message prefixed by
-    *source* (e.g. ``"Claude Code output"``).
+    *source* (e.g. ``"Claude Code output"``). Raises ``RuntimeError``
+    if ``jsonschema`` isn't installed — avoids ``sys.exit`` so callers
+    inside a Django management command can catch the failure and roll
+    the row back via CAS instead of hard-exiting mid-batch.
     """
     try:
         import jsonschema
-    except ImportError:
-        print(
-            "Error: jsonschema package not installed.\n"
-            "Install it with: poetry install",
-            file=sys.stderr,
+    except ImportError as exc:
+        msg = (
+            "jsonschema package not installed. "
+            "Install it with: poetry install"
         )
-        sys.exit(1)
+        raise RuntimeError(msg) from exc
 
     validator = jsonschema.Draft202012Validator(
         _load_schema(),
