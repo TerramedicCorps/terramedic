@@ -73,10 +73,11 @@ class TestSchemaSyncWithPrompt:
         end = SYSTEM_PROMPT.find("\n```", start + len("```json\n"))
         assert end != -1, "```json block must be closed"
         schema_block = SYSTEM_PROMPT[start + len("```json\n"):end]
-        # Compact JSON uses no indentation, so no line begins with spaces.
-        assert "\n  " not in schema_block, (
-            "schema block appears pretty-printed; expected compact JSON"
-        )
+        # Round-trip through the canonical compact form — this catches
+        # any unnecessary whitespace (spaces, tabs, newlines) regardless
+        # of how it was introduced.
+        parsed = json.loads(schema_block)
+        assert schema_block == json.dumps(parsed, separators=(",", ":"))
 
 
 def _make_valid_evaluation() -> dict[str, Any]:
