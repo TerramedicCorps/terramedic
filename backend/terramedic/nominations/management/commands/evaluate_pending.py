@@ -140,9 +140,12 @@ class Command(BaseCommand):
         skip_urls = build_skip_urls(set(pending_urls))
         if not skip_urls:
             return
+        # Count nominations, not URLs: Nomination.url is not unique,
+        # so multiple PENDING rows may share a skipworthy URL.
+        skipped_count = sum(url in skip_urls for url in pending_urls)
         self.stdout.write(
             self.style.WARNING(
-                f"Skipping {len(skip_urls)} PENDING nomination(s) "
+                f"Skipping {skipped_count} PENDING nomination(s) "
                 "(already evaluated, already an organization, "
                 "or in 90-day cooldown):",
             ),
