@@ -196,6 +196,35 @@ class TestEvaluateOrg:
         client.messages.create.return_value = message
         return client
 
+    def _mock_client_with_blocks(
+        self,
+        response_text: str,
+        extra_block_types: list[str] | None = None,
+        usage: dict[str, int] | None = None,
+    ) -> MagicMock:
+        """Mock a client whose response has non-text blocks before the text.
+
+        Used for tests that exercise mixed content (web search results,
+        server tool use) or need a specific ``usage`` object.
+        """
+        client = MagicMock()
+        message = MagicMock()
+        blocks: list[MagicMock] = []
+        for block_type in extra_block_types or []:
+            extra = MagicMock()
+            extra.type = block_type
+            extra.text = None
+            blocks.append(extra)
+        text_block = MagicMock()
+        text_block.type = "text"
+        text_block.text = response_text
+        blocks.append(text_block)
+        message.content = blocks
+        if usage is not None:
+            message.usage = MagicMock(**usage)
+        client.messages.create.return_value = message
+        return client
+
     def test_missing_api_key(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
         with pytest.raises(SystemExit):
@@ -286,23 +315,16 @@ class TestEvaluateOrg:
         del evaluation["evaluated_at"]
         del evaluation["evaluated_by"]
 
-        client = MagicMock()
-        message = MagicMock()
-        text_block = MagicMock()
-        text_block.type = "text"
-        text_block.text = json.dumps(evaluation)
-        search_block_1 = MagicMock()
-        search_block_1.type = "server_tool_use"
-        search_block_2 = MagicMock()
-        search_block_2.type = "server_tool_use"
-        message.content = [search_block_1, search_block_2, text_block]
-        message.usage = MagicMock(
-            input_tokens=1234,
-            output_tokens=567,
-            cache_read_input_tokens=890,
-            cache_creation_input_tokens=0,
+        client = self._mock_client_with_blocks(
+            response_text=json.dumps(evaluation),
+            extra_block_types=["server_tool_use", "server_tool_use"],
+            usage={
+                "input_tokens": 1234,
+                "output_tokens": 567,
+                "cache_read_input_tokens": 890,
+                "cache_creation_input_tokens": 0,
+            },
         )
-        client.messages.create.return_value = message
 
         with caplog.at_level(logging.INFO, logger="curation.evaluate"):
             evaluate_org(
@@ -326,16 +348,10 @@ class TestEvaluateOrg:
         del evaluation["evaluated_at"]
         del evaluation["evaluated_by"]
 
-        client = MagicMock()
-        message = MagicMock()
-        search_block = MagicMock()
-        search_block.type = "web_search_tool_result"
-        search_block.text = None
-        text_block = MagicMock()
-        text_block.type = "text"
-        text_block.text = json.dumps(evaluation)
-        message.content = [search_block, text_block]
-        client.messages.create.return_value = message
+        client = self._mock_client_with_blocks(
+            response_text=json.dumps(evaluation),
+            extra_block_types=["web_search_tool_result"],
+        )
 
         result = evaluate_org(
             "https://example.org",
