@@ -114,41 +114,6 @@ class OrganizationAdmin(TranslatableAdmin):
         return ", ".join(slugs) if slugs else "—"
 
 
-def _create_org_from_evaluation(
-    evaluation: OrganizationEvaluation,
-) -> Organization:
-    """Create an Organization from evaluation data.
-
-    Assigns every valid category from the evaluation's
-    ``accessibility.categories`` array. If none are valid
-    (for example, all entries are ``"other"``), the
-    organization is filed under ``resource`` as a fallback
-    so it still shows up somewhere.
-    """
-    data = evaluation.evaluation_data
-    meta = data.get("org_metadata", {})
-    accessibility = data.get("accessibility", {})
-
-    requested = accessibility.get("categories", [])
-    valid_categories = list(Category.objects.filter(slug__in=requested))
-    if not valid_categories:
-        valid_categories = list(Category.objects.filter(slug="resource"))
-
-    org = Organization(
-        name=meta.get("name", ""),
-        website_url=meta.get("website_url", ""),
-        image_url=meta.get("image_url", ""),
-        is_active=True,
-    )
-    org.set_current_language("en")
-    org.description = meta.get("description", "")
-    action_text = f"Support {meta.get('name', 'this organization')}"
-    org.action_text = action_text[:100]
-    org.save()
-    org.categories.set(valid_categories)
-    return org
-
-
 # Scoped CSS for the Evaluation Detail readonly field. Hides the
 # redundant field label (the fieldset header already says "Evaluation
 # Detail"), flattens list nesting so sources sit one indent-level
@@ -371,7 +336,6 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     search_fields = ["status"]
     readonly_fields = [
         "evaluation_data",
-        "status",
         "created_at",
         "reviewed_at",
         "reviewer",
@@ -387,8 +351,9 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
                     "reviewer_reasoning",
                 ),
                 "description": (
-                    "Use bulk actions to approve or reject."
-                    " Status cannot be changed manually."
+                    "Change status to Approved or Rejected and click"
+                    " Save. Reviewer, timestamp, and (on approval) a"
+                    " linked Organization are set automatically."
                 ),
             },
         ),
@@ -530,23 +495,39 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         )
         return mark_safe(html)  # noqa: S308
 
+    def save_model(
+        self,
+        request: HttpRequest,
+        obj: OrganizationEvaluation,
+        form: Any,
+        change: bool,
+    ) -> None:
+        """Stamp reviewer and timestamp when status is changed.
+
+        Org creation for the APPROVED transition is handled by the
+        post_save signal in ``signals.py`` — keeping it there means
+        the same logic applies whether the transition happens via
+        the change form, a bulk action, or any other saver.
+        """
+        if change and form and "status" in form.changed_data:
+            obj.reviewer = request.user  # type: ignore[assignment]
+            obj.reviewed_at = timezone.now()
+        super().save_model(request, obj, form, change)
+
     @admin.action(description="Approve selected evaluations")
     def approve_evaluations(
         self,
         request: HttpRequest,
         queryset: QuerySet[OrganizationEvaluation],
     ) -> None:
+        # Transition status only; post_save signal handles org
+        # creation and nomination-status sync.
+        now = timezone.now()
         approved_count = 0
-        for evaluation in queryset:
-            if evaluation.status == ReviewStatus.APPROVED:
-                continue
-            org = evaluation.organization
-            if org is None:
-                org = _create_org_from_evaluation(evaluation)
-            evaluation.organization = org
+        for evaluation in queryset.exclude(status=ReviewStatus.APPROVED):
             evaluation.status = ReviewStatus.APPROVED
             evaluation.reviewer = request.user  # type: ignore[assignment]
-            evaluation.reviewed_at = timezone.now()
+            evaluation.reviewed_at = now
             evaluation.save()
             approved_count += 1
         self.message_user(
@@ -563,9 +544,7 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     ) -> None:
         now = timezone.now()
         rejected_count = 0
-        for evaluation in queryset:
-            if evaluation.status != ReviewStatus.PENDING:
-                continue
+        for evaluation in queryset.filter(status=ReviewStatus.PENDING):
             evaluation.status = ReviewStatus.REJECTED
             evaluation.reviewer = request.user  # type: ignore[assignment]
             evaluation.reviewed_at = now

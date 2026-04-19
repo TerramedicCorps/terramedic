@@ -396,15 +396,182 @@ class TestEvaluationAdminReadonlyPresentation:
         admin = OrganizationEvaluationAdmin(OrganizationEvaluation, site)
         assert "evaluation_data" in admin.readonly_fields
 
-    def test_status_is_readonly(self) -> None:
+    def test_status_is_editable(self) -> None:
+        """Curators change status directly on the detail page; the
+        post_save signal handles the downstream side effects."""
         site = AdminSite()
         admin = OrganizationEvaluationAdmin(OrganizationEvaluation, site)
-        assert "status" in admin.readonly_fields
+        assert "status" not in admin.readonly_fields
 
     def test_status_choices(self) -> None:
         assert ReviewStatus.PENDING == "pending"
         assert ReviewStatus.APPROVED == "approved"
         assert ReviewStatus.REJECTED == "rejected"
+
+
+@pytest.mark.django_db
+class TestApproveFromDetailPage:
+    """Curator flips status to Approved on the change form and saves.
+
+    save_model stamps reviewer + reviewed_at; the post_save signal
+    creates and links an Organization.
+    """
+
+    def _post_change(
+        self,
+        client: Client,
+        evaluation: OrganizationEvaluation,
+        status: str,
+        reasoning: str = "",
+    ) -> Any:
+        url = (
+            "/admin/organizations/organizationevaluation/"
+            f"{evaluation.pk}/change/"
+        )
+        return client.post(
+            url,
+            {
+                "status": status,
+                "reviewer_reasoning": reasoning,
+                "_save": "Save",
+            },
+        )
+
+    def test_approve_via_detail_creates_organization(
+        self,
+        admin_client: Client,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.APPROVED,
+        )
+        pending_evaluation.refresh_from_db()
+        assert pending_evaluation.status == ReviewStatus.APPROVED
+        assert pending_evaluation.organization is not None
+        assert pending_evaluation.organization.name == "Test Organization"
+
+    def test_approve_via_detail_stamps_reviewer_and_time(
+        self,
+        admin_client: Client,
+        admin_user: User,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.APPROVED,
+        )
+        pending_evaluation.refresh_from_db()
+        assert pending_evaluation.reviewer == admin_user
+        assert pending_evaluation.reviewed_at is not None
+
+    def test_reject_via_detail_sets_status_without_creating_org(
+        self,
+        admin_client: Client,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.REJECTED,
+        )
+        pending_evaluation.refresh_from_db()
+        assert pending_evaluation.status == ReviewStatus.REJECTED
+        assert pending_evaluation.organization is None
+        assert Organization.objects.count() == 0
+
+    def test_save_without_status_change_does_not_restamp_reviewer(
+        self,
+        admin_client: Client,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        # First save: approves and stamps reviewer/time.
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.APPROVED,
+        )
+        pending_evaluation.refresh_from_db()
+        original_time = pending_evaluation.reviewed_at
+        assert original_time is not None
+
+        # Second save: status unchanged, only reasoning edited.
+        self._post_change(
+            admin_client,
+            pending_evaluation,
+            ReviewStatus.APPROVED,
+            reasoning="Updated notes",
+        )
+        pending_evaluation.refresh_from_db()
+        # reviewed_at preserved because status didn't change.
+        assert pending_evaluation.reviewed_at == original_time
+
+    def test_repeat_approve_does_not_create_second_org(
+        self,
+        admin_client: Client,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        # First approval creates the org.
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.APPROVED,
+        )
+        pending_evaluation.refresh_from_db()
+        first_org = pending_evaluation.organization
+        assert first_org is not None
+
+        # Saving again should not create a second Organization.
+        self._post_change(
+            admin_client, pending_evaluation, ReviewStatus.APPROVED,
+        )
+        pending_evaluation.refresh_from_db()
+        assert Organization.objects.count() == 1
+        assert pending_evaluation.organization == first_org
+
+
+@pytest.mark.django_db
+class TestCreateOrgOnApprovalSignal:
+    """The post_save signal enforces org creation regardless of the
+    code path that flipped status to APPROVED."""
+
+    def test_signal_fires_for_direct_save(
+        self,
+        admin_user: User,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        # Simulate any non-admin code path (shell, migration, etc.)
+        # that transitions status directly.
+        pending_evaluation.status = ReviewStatus.APPROVED
+        pending_evaluation.reviewer = admin_user
+        pending_evaluation.reviewed_at = timezone.now()
+        pending_evaluation.save()
+
+        pending_evaluation.refresh_from_db()
+        assert pending_evaluation.organization is not None
+
+    def test_signal_skips_when_org_already_linked(
+        self,
+        admin_user: User,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        existing = Organization.objects.create(
+            name="Pre-linked Org", website_url="https://pre.example",
+        )
+        pending_evaluation.organization = existing
+        pending_evaluation.status = ReviewStatus.APPROVED
+        pending_evaluation.reviewer = admin_user
+        pending_evaluation.reviewed_at = timezone.now()
+        pending_evaluation.save()
+
+        pending_evaluation.refresh_from_db()
+        # No new org created; existing link preserved.
+        assert Organization.objects.count() == 1
+        assert pending_evaluation.organization == existing
+
+    def test_signal_skips_on_rejection(
+        self,
+        admin_user: User,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        pending_evaluation.status = ReviewStatus.REJECTED
+        pending_evaluation.reviewer = admin_user
+        pending_evaluation.reviewed_at = timezone.now()
+        pending_evaluation.save()
+
+        assert Organization.objects.count() == 0
 
 
 @pytest.mark.django_db
