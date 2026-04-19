@@ -62,6 +62,22 @@ class TestSchemaSyncWithPrompt:
             # Should not appear as a JSON property key in the prompt
             assert f'"{field}"' not in SYSTEM_PROMPT
 
+    def test_embedded_schema_is_compact(self) -> None:
+        """The schema JSON embedded in the prompt must be compact, not pretty.
+
+        Pretty-printed JSON wastes ~30% on whitespace tokens sent on every
+        request. The model parses both forms identically.
+        """
+        start = SYSTEM_PROMPT.find("```json\n")
+        assert start != -1, "prompt must contain a ```json block"
+        end = SYSTEM_PROMPT.find("\n```", start + len("```json\n"))
+        assert end != -1, "```json block must be closed"
+        schema_block = SYSTEM_PROMPT[start + len("```json\n"):end]
+        # Compact JSON uses no indentation, so no line begins with spaces.
+        assert "\n  " not in schema_block, (
+            "schema block appears pretty-printed; expected compact JSON"
+        )
+
 
 def _make_valid_evaluation() -> dict[str, Any]:
     """Return a minimal valid evaluation dict."""
@@ -222,6 +238,84 @@ class TestEvaluateOrg:
         assert "tools" in call_kwargs
         tool_types = [t["type"] for t in call_kwargs["tools"]]
         assert "web_search_20250305" in tool_types
+
+    def test_system_prompt_uses_cache_control(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """System prompt must be sent as a cacheable block.
+
+        The SYSTEM_PROMPT is identical across evaluations, so marking it
+        with ``cache_control: ephemeral`` lets the API serve subsequent
+        evals from cache at ~10% of the input-token cost.
+        """
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+        evaluation = _make_valid_evaluation()
+        del evaluation["evaluated_at"]
+        del evaluation["evaluated_by"]
+        client = self._mock_client(json.dumps(evaluation))
+
+        evaluate_org(
+            "https://example.org",
+            model="claude-sonnet-4-20250514",
+            client=client,
+        )
+
+        call_kwargs = client.messages.create.call_args.kwargs
+        system = call_kwargs["system"]
+        assert isinstance(system, list), (
+            "system must be a list of blocks to attach cache_control"
+        )
+        assert system[-1].get("cache_control") == {"type": "ephemeral"}
+        assert system[-1]["type"] == "text"
+        assert system[-1]["text"] == SYSTEM_PROMPT
+
+    def test_logs_usage_and_search_count(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Token usage and web-search count must be logged per eval.
+
+        Needed to monitor whether cache_control is actually landing cache
+        hits and whether the web-search max_uses cap is ever reached.
+        """
+        import logging as _logging
+
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+        evaluation = _make_valid_evaluation()
+        del evaluation["evaluated_at"]
+        del evaluation["evaluated_by"]
+
+        client = MagicMock()
+        message = MagicMock()
+        text_block = MagicMock()
+        text_block.type = "text"
+        text_block.text = json.dumps(evaluation)
+        search_block_1 = MagicMock()
+        search_block_1.type = "server_tool_use"
+        search_block_2 = MagicMock()
+        search_block_2.type = "server_tool_use"
+        message.content = [search_block_1, search_block_2, text_block]
+        message.usage = MagicMock(
+            input_tokens=1234,
+            output_tokens=567,
+            cache_read_input_tokens=890,
+            cache_creation_input_tokens=0,
+        )
+        client.messages.create.return_value = message
+
+        with caplog.at_level(_logging.INFO, logger="curation.evaluate"):
+            evaluate_org(
+                "https://example.org",
+                model="claude-sonnet-4-20250514",
+                client=client,
+            )
+
+        log_text = "\n".join(r.message for r in caplog.records)
+        assert "1234" in log_text  # input_tokens
+        assert "567" in log_text   # output_tokens
+        assert "890" in log_text   # cache_read
+        assert "2" in log_text     # search count
 
     def test_extracts_text_from_mixed_content_blocks(
         self, monkeypatch: pytest.MonkeyPatch,

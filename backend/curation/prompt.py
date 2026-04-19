@@ -7,7 +7,7 @@ from pathlib import Path
 
 # Bump this version whenever SYSTEM_PROMPT is modified.
 # Format: YYYY.MM.N where N resets to 1 each month.
-PROMPT_VERSION: str = "2026.04.9"
+PROMPT_VERSION: str = "2026.04.10"
 
 # Fields injected programmatically by evaluate.py after the model responds.
 # They are stripped from the schema before embedding in the prompt so the
@@ -44,7 +44,9 @@ def _build_output_schema() -> str:
             r for r in required if r not in _PROGRAMMATIC_FIELDS
         ]
 
-    return json.dumps(schema, indent=2)
+    # Compact form (no indent) saves ~30% on tokens. The model parses
+    # indented and compact JSON identically.
+    return json.dumps(schema, separators=(",", ":"))
 
 
 _CRITERIA_AND_GUIDELINES: str = """\

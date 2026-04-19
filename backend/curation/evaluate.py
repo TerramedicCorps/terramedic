@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
+import logging
 import os
 import sys
 from pathlib import Path
@@ -21,6 +22,8 @@ from typing import Any
 from urllib.parse import urlparse
 
 from curation.prompt import PROMPT_VERSION, SYSTEM_PROMPT
+
+logger = logging.getLogger(__name__)
 
 _SCHEMA_PATH = Path(__file__).parent / "schema.json"
 _MAX_PAGE_CHARS = 12000
@@ -394,7 +397,13 @@ def evaluate_org(
     response = client.messages.create(
         model=model,
         max_tokens=4096,
-        system=SYSTEM_PROMPT,
+        system=[
+            {
+                "type": "text",
+                "text": SYSTEM_PROMPT,
+                "cache_control": {"type": "ephemeral"},
+            },
+        ],
         messages=[
             {
                 "role": "user",
@@ -413,9 +422,26 @@ def evaluate_org(
     # With web search, response may contain non-text blocks.
     # Find the last text block which contains the JSON output.
     text_block = None
+    search_count = 0
     for block in response.content:
-        if getattr(block, "type", None) == "text":
+        block_type = getattr(block, "type", None)
+        if block_type == "text":
             text_block = block
+        elif block_type == "server_tool_use":
+            search_count += 1
+
+    usage = getattr(response, "usage", None)
+    logger.info(
+        "eval usage url=%s input=%s output=%s "
+        "cache_read=%s cache_creation=%s searches=%s",
+        url,
+        getattr(usage, "input_tokens", None),
+        getattr(usage, "output_tokens", None),
+        getattr(usage, "cache_read_input_tokens", None),
+        getattr(usage, "cache_creation_input_tokens", None),
+        search_count,
+    )
+
     if text_block is None:
         msg = "No text block found in model response"
         raise ValueError(msg)
