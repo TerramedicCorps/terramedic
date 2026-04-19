@@ -114,13 +114,25 @@ class OrganizationAdmin(TranslatableAdmin):
         return ", ".join(slugs) if slugs else "—"
 
 
-# Scoped CSS for the Evaluation Detail readonly field. Hides the
-# redundant field label (the fieldset header already says "Evaluation
-# Detail"), flattens list nesting so sources sit one indent-level
-# under their parent item instead of stacking three deep, and lets
-# long URLs wrap inside the content column.
+# Scoped CSS for the Evaluation Detail readonly field. Visually hides
+# the redundant field label (the fieldset header already says
+# "Evaluation Detail") while keeping it in the accessibility tree for
+# screen readers via the standard "visually hidden" pattern. Flattens
+# list nesting so sources sit one indent-level under their parent item
+# instead of stacking three deep, and lets long URLs wrap inside the
+# content column.
 _EV_DETAIL_STYLE = """<style>
-.field-evaluation_detail label { display: none; }
+.field-evaluation_detail label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 .ev-detail { font-size: 13px; line-height: 1.45; }
 .ev-detail h3 { margin: 1em 0 0.3em; font-size: 14px; font-weight: 600; }
 .ev-detail h3:first-of-type { margin-top: 0.25em; }
