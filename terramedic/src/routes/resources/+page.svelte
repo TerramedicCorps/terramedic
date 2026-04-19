@@ -1,9 +1,7 @@
 <script>
   import NavBar from '$lib/components/NavBar.svelte';
   import Footer from '$lib/components/Footer.svelte';
-  import OrganizationCard from '$lib/components/OrganizationCard.svelte';
-  import OrganizationGridSkeleton from '$lib/components/OrganizationGridSkeleton.svelte';
-  import { trackSectionView } from '$lib/utils/analytics';
+  import OrganizationGrid from '$lib/components/OrganizationGrid.svelte';
 
   export let data;
   export let form;
@@ -41,36 +39,16 @@
         Tools, research, and support for those already engaged in advocacy work.
       </p>
 
-      <div
-        class="mx-auto mb-12 max-w-4xl px-4 sm:px-6"
-        use:trackSectionView={{ section: 'organizations', page: 'resources' }}
-      >
-        {#await data.organizations}
-          <OrganizationGridSkeleton gridClass="grid gap-8 md:grid-cols-2" />
-        {:then organizations}
-          {#if organizations.length === 0}
-            <p class="text-center text-gray-400">No advocate resources yet — check back soon.</p>
-          {:else}
-            <div class="grid gap-8 md:grid-cols-2">
-              {#each organizations as org (org.id)}
-                <OrganizationCard
-                  name={org.name}
-                  description={org.description}
-                  websiteUrl={org.website_url}
-                  imageUrl={org.image_url}
-                  actionText={org.action_text}
-                  tags={org.tags}
-                  tagColor="blue"
-                  buttonColor="blue"
-                />
-              {/each}
-            </div>
-          {/if}
-        {:catch}
-          <p class="text-center text-red-400">
-            Couldn't load organizations. Please refresh to try again.
-          </p>
-        {/await}
+      <div class="mx-auto mb-12 max-w-4xl px-4 sm:px-6">
+        <OrganizationGrid
+          promise={data.organizations}
+          gridClass="grid gap-8 md:grid-cols-2"
+          tagColor="blue"
+          buttonColor="blue"
+          emptyText="No advocate resources yet — check back soon."
+          analyticsSection="organizations"
+          analyticsPage="resources"
+        />
       </div>
     </div>
   </main>

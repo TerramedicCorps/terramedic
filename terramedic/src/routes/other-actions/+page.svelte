@@ -1,6 +1,5 @@
 <script>
-  import OrganizationCard from '$lib/components/OrganizationCard.svelte';
-  import OrganizationGridSkeleton from '$lib/components/OrganizationGridSkeleton.svelte';
+  import OrganizationGrid from '$lib/components/OrganizationGrid.svelte';
   import IconCard from '$lib/components/IconCard.svelte';
   import ActionButton from '$lib/components/ActionButton.svelte';
   import NavBar from '$lib/components/NavBar.svelte';
@@ -51,39 +50,16 @@
         can contribute to healing the planet.
       </p>
 
-      <div
-        class="mb-16"
-        data-testid="org-card-grid"
-        use:trackSectionView={{ section: 'organizations', page: 'other-actions' }}
-      >
-        {#await data.organizations}
-          <OrganizationGridSkeleton gridClass="grid gap-6 md:grid-cols-2" />
-        {:then organizations}
-          {#if organizations.length === 0}
-            <p class="text-center text-gray-400">
-              No everyday-action organizations yet — check back soon.
-            </p>
-          {:else}
-            <div class="grid gap-6 md:grid-cols-2">
-              {#each organizations as org (org.id)}
-                <OrganizationCard
-                  name={org.name}
-                  description={org.description}
-                  websiteUrl={org.website_url}
-                  imageUrl={org.image_url}
-                  tags={org.tags}
-                  tagColor="purple"
-                  buttonColor="purple"
-                  actionText={org.action_text}
-                />
-              {/each}
-            </div>
-          {/if}
-        {:catch}
-          <p class="text-center text-red-400">
-            Couldn't load organizations. Please refresh to try again.
-          </p>
-        {/await}
+      <div class="mb-16" data-testid="org-card-grid">
+        <OrganizationGrid
+          promise={data.organizations}
+          gridClass="grid gap-6 md:grid-cols-2"
+          tagColor="purple"
+          buttonColor="purple"
+          emptyText="No everyday-action organizations yet — check back soon."
+          analyticsSection="organizations"
+          analyticsPage="other-actions"
+        />
       </div>
 
       <div class="mb-6 text-center">
