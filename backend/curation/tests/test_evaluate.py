@@ -312,10 +312,10 @@ class TestEvaluateOrg:
             )
 
         log_text = "\n".join(r.message for r in caplog.records)
-        assert "1234" in log_text  # input_tokens
-        assert "567" in log_text   # output_tokens
-        assert "890" in log_text   # cache_read
-        assert "2" in log_text     # search count
+        assert "input=1234" in log_text
+        assert "output=567" in log_text
+        assert "cache_read=890" in log_text
+        assert "searches=2" in log_text
 
     def test_extracts_text_from_mixed_content_blocks(
         self, monkeypatch: pytest.MonkeyPatch,
