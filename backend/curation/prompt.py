@@ -7,7 +7,7 @@ from pathlib import Path
 
 # Bump this version whenever SYSTEM_PROMPT is modified.
 # Format: YYYY.MM.N where N resets to 1 each month.
-PROMPT_VERSION: str = "2026.04.10"
+PROMPT_VERSION: str = "2026.04.9"
 
 # Fields injected programmatically by evaluate.py after the model responds.
 # They are stripped from the schema before embedding in the prompt so the
