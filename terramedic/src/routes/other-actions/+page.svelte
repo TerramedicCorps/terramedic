@@ -1,5 +1,5 @@
 <script>
-  import OrganizationCard from '$lib/components/OrganizationCard.svelte';
+  import OrganizationGrid from '$lib/components/OrganizationGrid.svelte';
   import IconCard from '$lib/components/IconCard.svelte';
   import ActionButton from '$lib/components/ActionButton.svelte';
   import NavBar from '$lib/components/NavBar.svelte';
@@ -50,23 +50,16 @@
         can contribute to healing the planet.
       </p>
 
-      <div
-        data-testid="org-card-grid"
-        class="mb-16 grid gap-6 md:grid-cols-2"
-        use:trackSectionView={{ section: 'organizations', page: 'other-actions' }}
-      >
-        {#each data.organizations as org (org.id)}
-          <OrganizationCard
-            name={org.name}
-            description={org.description}
-            websiteUrl={org.website_url}
-            imageUrl={org.image_url}
-            tags={org.tags}
-            tagColor="purple"
-            buttonColor="purple"
-            actionText={org.action_text}
-          />
-        {/each}
+      <div class="mb-16" data-testid="org-card-grid">
+        <OrganizationGrid
+          promise={data.organizations}
+          gridClass="grid gap-6 md:grid-cols-2"
+          tagColor="purple"
+          buttonColor="purple"
+          emptyText="No everyday-action organizations yet — check back soon."
+          analyticsSection="organizations"
+          analyticsPage="other-actions"
+        />
       </div>
 
       <div class="mb-6 text-center">

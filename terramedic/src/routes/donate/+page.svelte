@@ -1,5 +1,5 @@
 <script>
-  import OrganizationCard from '$lib/components/OrganizationCard.svelte';
+  import OrganizationGrid from '$lib/components/OrganizationGrid.svelte';
   import IconCard from '$lib/components/IconCard.svelte';
   import NavBar from '$lib/components/NavBar.svelte';
   import Footer from '$lib/components/Footer.svelte';
@@ -49,23 +49,15 @@
         can help.
       </p>
 
-      <div
-        class="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
-        use:trackSectionView={{ section: 'organizations', page: 'donate' }}
-      >
-        {#each data.organizations as org (org.id)}
-          <OrganizationCard
-            name={org.name}
-            description={org.description}
-            websiteUrl={org.website_url}
-            imageUrl={org.image_url}
-            tags={org.tags}
-            tagColor="green"
-            buttonColor="green"
-            actionText={org.action_text}
-          />
-        {/each}
-      </div>
+      <OrganizationGrid
+        promise={data.organizations}
+        gridClass="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+        tagColor="green"
+        buttonColor="green"
+        emptyText="No donation opportunities yet — check back soon."
+        analyticsSection="organizations"
+        analyticsPage="donate"
+      />
 
       <div class="mt-16 mb-6 text-center">
         <h2 class="mb-2 text-xl font-bold text-white md:text-2xl">Maximizing Your Impact</h2>

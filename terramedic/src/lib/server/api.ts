@@ -33,3 +33,31 @@ export async function fetchOrganizations(
 
   return await response.json();
 }
+
+/**
+ * Build a streaming SSR `load` result that fetches organizations for
+ * the given category. The returned object contains an unresolved
+ * Promise so SvelteKit streams the list to the client while the
+ * page shell renders immediately.
+ */
+export function loadOrganizations(
+  category: string,
+  request: Request
+): { organizations: Promise<Organization[]> } {
+  const acceptLanguage = request.headers.get('accept-language') ?? undefined;
+  return {
+    organizations: fetchOrganizations(category, acceptLanguage).catch((error) => {
+      // Structured log so aggregators can pivot on category; rethrow
+      // so the client's {:catch} branch renders the error message.
+      // Stack is useful in Sentry/CloudWatch for debugging production
+      // failures — drop the guard on error instanceof Error once we
+      // know fetch always throws Error subclasses.
+      console.error('fetchOrganizations failed', {
+        category,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      throw error;
+    })
+  };
+}
