@@ -68,96 +68,116 @@ class Command(BaseCommand):
             limit, from_status=NominationStatus.PENDING,
         ):
             self.stdout.write(f"Evaluating {nomination.url} ...")
-            try:
-                data = evaluate_org_via_claude_code(
-                    url=nomination.url,
-                    model=model,
-                    categories=nomination.categories or None,
-                )
-            except subprocess.TimeoutExpired:
-                # Timeouts are likely transient — revert to PENDING so
-                # the curator can re-run. CAS mirrors the FAILED path
-                # below. Claim incremented evaluation_attempts; decrement
-                # back so a re-run starts from the same attempt count.
-                logger.warning(
-                    "claude CLI timed out for %s; reverting to PENDING",
-                    nomination.url,
-                )
-                reverted = Nomination.objects.filter(
-                    pk=nomination.pk,
-                    status=NominationStatus.EVALUATING,
-                    evaluation_attempts=nomination.evaluation_attempts,
-                ).update(
-                    status=NominationStatus.PENDING,
-                    evaluation_attempts=F("evaluation_attempts") - 1,
-                )
-                if reverted == 0:
-                    self.stdout.write(
-                        self.style.WARNING(
-                            f"  timeout revert skipped for {nomination.url}: "
-                            "row changed concurrently",
-                        ),
-                    )
-                    continue
-                self.stdout.write(
-                    self.style.WARNING(
-                        f"  TIMED OUT (reverted to PENDING): {nomination.url}",
-                    ),
-                )
-                continue
-            except Exception as exc:  # noqa: BLE001
-                logger.exception(
-                    "evaluate_org_via_claude_code failed for %s",
-                    nomination.url,
-                )
-                # Conditional CAS on (status, evaluation_attempts) so a
-                # concurrent change — sweep_stuck_claims retiring the
-                # row, a manual admin edit, or a parallel run — isn't
-                # stomped. Mirrors worker._handle_results.
-                updated = Nomination.objects.filter(
-                    pk=nomination.pk,
-                    status=NominationStatus.EVALUATING,
-                    evaluation_attempts=nomination.evaluation_attempts,
-                ).update(status=NominationStatus.FAILED)
-                if updated == 0:
-                    logger.warning(
-                        "Skipping FAILED update for nomination %s; "
-                        "row changed concurrently",
-                        nomination.pk,
-                    )
-                    self.stdout.write(
-                        self.style.WARNING(
-                            f"  skipped FAILED update for {nomination.url}: "
-                            "row changed concurrently",
-                        ),
-                    )
-                    continue
-                self.stdout.write(
-                    self.style.ERROR(f"  FAILED: {exc}"),
-                )
+            outcome = self._process_one(nomination, model)
+            if outcome == "ok":
+                processed += 1
+            elif outcome == "failed":
                 failed += 1
-                continue
-
-            curator_notes = data.get("curator_notes", {})
-            OrganizationEvaluation.objects.create(
-                evaluation_data=data,
-                ai_model=data.get("evaluated_by", ""),
-                ai_recommendation=curator_notes.get(
-                    "recommendation", "",
-                ),
-                ai_confidence=curator_notes.get("confidence"),
-                nomination=nomination,
-            )
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f"  saved evaluation for {nomination.url}",
-                ),
-            )
-            processed += 1
+            # "timeout" and "raced" don't count toward failed — the row
+            # is back in PENDING or otherwise untouched.
 
         self.stdout.write(
             f"Done. Evaluated {processed}, failed {failed}.",
         )
+
+    def _process_one(
+        self, nomination: Nomination, model: str,
+    ) -> str:
+        """Evaluate one claimed nomination. Returns outcome label.
+
+        Returns ``"ok"`` on success, ``"failed"`` if marked FAILED,
+        ``"timeout"`` if reverted to PENDING on CLI timeout, or
+        ``"raced"`` if a CAS found the row was changed concurrently.
+        """
+        try:
+            data = evaluate_org_via_claude_code(
+                url=nomination.url,
+                model=model,
+                categories=nomination.categories or None,
+            )
+        except subprocess.TimeoutExpired:
+            return self._handle_timeout(nomination)
+        except Exception as exc:  # noqa: BLE001
+            return self._handle_failure(nomination, exc)
+
+        curator_notes = data.get("curator_notes", {})
+        OrganizationEvaluation.objects.create(
+            evaluation_data=data,
+            ai_model=data.get("evaluated_by", ""),
+            ai_recommendation=curator_notes.get("recommendation", ""),
+            ai_confidence=curator_notes.get("confidence"),
+            nomination=nomination,
+        )
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"  saved evaluation for {nomination.url}",
+            ),
+        )
+        return "ok"
+
+    def _handle_timeout(self, nomination: Nomination) -> str:
+        """Revert EVALUATING → PENDING on CLI timeout via CAS."""
+        logger.warning(
+            "claude CLI timed out for %s; reverting to PENDING",
+            nomination.url,
+        )
+        reverted = Nomination.objects.filter(
+            pk=nomination.pk,
+            status=NominationStatus.EVALUATING,
+            evaluation_attempts=nomination.evaluation_attempts,
+        ).update(
+            status=NominationStatus.PENDING,
+            evaluation_attempts=F("evaluation_attempts") - 1,
+        )
+        if reverted == 0:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"  timeout revert skipped for {nomination.url}: "
+                    "row changed concurrently",
+                ),
+            )
+            return "raced"
+        self.stdout.write(
+            self.style.WARNING(
+                f"  TIMED OUT (reverted to PENDING): {nomination.url}",
+            ),
+        )
+        return "timeout"
+
+    def _handle_failure(
+        self, nomination: Nomination, exc: Exception,
+    ) -> str:
+        """Mark EVALUATING → FAILED on any other exception via CAS.
+
+        Conditional on (status, evaluation_attempts) so a concurrent
+        change — sweep_stuck_claims retiring the row, a manual admin
+        edit, or a parallel run — isn't stomped. Mirrors
+        worker._handle_results.
+        """
+        logger.exception(
+            "evaluate_org_via_claude_code failed for %s",
+            nomination.url,
+        )
+        updated = Nomination.objects.filter(
+            pk=nomination.pk,
+            status=NominationStatus.EVALUATING,
+            evaluation_attempts=nomination.evaluation_attempts,
+        ).update(status=NominationStatus.FAILED)
+        if updated == 0:
+            logger.warning(
+                "Skipping FAILED update for nomination %s; "
+                "row changed concurrently",
+                nomination.pk,
+            )
+            self.stdout.write(
+                self.style.WARNING(
+                    f"  skipped FAILED update for {nomination.url}: "
+                    "row changed concurrently",
+                ),
+            )
+            return "raced"
+        self.stdout.write(self.style.ERROR(f"  FAILED: {exc}"))
+        return "failed"
 
     def _report_skips(self, limit: int) -> None:
         """Report PENDING URLs that are duplicates and will be skipped.
