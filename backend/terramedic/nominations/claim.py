@@ -74,7 +74,10 @@ def claim_nominations(
 
     For each nomination in ``from_status`` (up to *limit*):
     1. Atomically set status to EVALUATING and increment attempts.
-    2. Revert to ``from_status`` if the URL should be skipped.
+    2. Revert to ``PENDING`` if the URL should be skipped — always
+       PENDING, regardless of ``from_status``, so skipworthy rows
+       exit the active ``QUEUED`` pool (prevents the worker's
+       claim-skip-revert loop).
     3. Yield the nomination if it passed both checks.
     """
     nominations = list(
