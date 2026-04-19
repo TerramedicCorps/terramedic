@@ -2,6 +2,7 @@
   import NavBar from '$lib/components/NavBar.svelte';
   import Footer from '$lib/components/Footer.svelte';
   import OrganizationCard from '$lib/components/OrganizationCard.svelte';
+  import OrganizationGridSkeleton from '$lib/components/OrganizationGridSkeleton.svelte';
   import { trackSectionView } from '$lib/utils/analytics';
 
   export let data;
@@ -40,22 +41,36 @@
         Tools, research, and support for those already engaged in advocacy work.
       </p>
 
-      <div
-        class="mx-auto mb-12 grid max-w-4xl gap-8 px-4 sm:px-6 md:grid-cols-2"
-        use:trackSectionView={{ section: 'organizations', page: 'resources' }}
-      >
-        {#each data.organizations as org (org.id)}
-          <OrganizationCard
-            name={org.name}
-            description={org.description}
-            websiteUrl={org.website_url}
-            imageUrl={org.image_url}
-            actionText={org.action_text}
-            tags={org.tags}
-            tagColor="blue"
-            buttonColor="blue"
-          />
-        {/each}
+      <div class="mx-auto mb-12 max-w-4xl px-4 sm:px-6">
+        {#await data.organizations}
+          <OrganizationGridSkeleton />
+        {:then organizations}
+          {#if organizations.length === 0}
+            <p class="text-center text-gray-400">No advocate resources yet — check back soon.</p>
+          {:else}
+            <div
+              class="grid gap-8 md:grid-cols-2"
+              use:trackSectionView={{ section: 'organizations', page: 'resources' }}
+            >
+              {#each organizations as org (org.id)}
+                <OrganizationCard
+                  name={org.name}
+                  description={org.description}
+                  websiteUrl={org.website_url}
+                  imageUrl={org.image_url}
+                  actionText={org.action_text}
+                  tags={org.tags}
+                  tagColor="blue"
+                  buttonColor="blue"
+                />
+              {/each}
+            </div>
+          {/if}
+        {:catch}
+          <p class="text-center text-red-400">
+            Couldn't load organizations. Please refresh to try again.
+          </p>
+        {/await}
       </div>
     </div>
   </main>

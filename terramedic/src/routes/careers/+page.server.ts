@@ -1,17 +1,16 @@
 import type { PageServerLoad } from './$types';
 import { fetchOrganizations } from '$lib/server/api';
 
-export const prerender = true;
-
-export const load: PageServerLoad = async ({ request }) => {
-  // NOTE: accept-language is empty at prerender time. This is fine while
-  // content is English-only but will need revisiting when translations are added.
+export const load: PageServerLoad = ({ request }) => {
   const acceptLanguage = request.headers.get('accept-language') ?? undefined;
-  try {
-    const organizations = await fetchOrganizations('career', acceptLanguage);
-    return { organizations };
-  } catch (error) {
-    console.error('Failed to load organizations:', error);
-    return { organizations: [] };
-  }
+  // Streaming SSR: return the promise rather than awaiting so SvelteKit
+  // sends the page shell immediately and streams the org list when the
+  // API responds. The component uses {#await} to show a skeleton until
+  // the promise resolves.
+  return {
+    organizations: fetchOrganizations('career', acceptLanguage).catch((error) => {
+      console.error('Failed to load career organizations:', error);
+      throw error;
+    })
+  };
 };

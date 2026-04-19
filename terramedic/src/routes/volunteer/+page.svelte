@@ -1,5 +1,6 @@
 <script>
   import OrganizationCard from '$lib/components/OrganizationCard.svelte';
+  import OrganizationGridSkeleton from '$lib/components/OrganizationGridSkeleton.svelte';
   import IconCard from '$lib/components/IconCard.svelte';
   import NavBar from '$lib/components/NavBar.svelte';
   import Footer from '$lib/components/Footer.svelte';
@@ -48,23 +49,35 @@
         can help build a healthier planet.
       </p>
 
-      <div
-        class="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
-        use:trackSectionView={{ section: 'organizations', page: 'volunteer' }}
-      >
-        {#each data.organizations as org (org.id)}
-          <OrganizationCard
-            name={org.name}
-            description={org.description}
-            websiteUrl={org.website_url}
-            imageUrl={org.image_url}
-            tags={org.tags}
-            tagColor="blue"
-            buttonColor="blue"
-            actionText={org.action_text}
-          />
-        {/each}
-      </div>
+      {#await data.organizations}
+        <OrganizationGridSkeleton />
+      {:then organizations}
+        {#if organizations.length === 0}
+          <p class="text-center text-gray-400">No volunteer organizations yet — check back soon.</p>
+        {:else}
+          <div
+            class="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+            use:trackSectionView={{ section: 'organizations', page: 'volunteer' }}
+          >
+            {#each organizations as org (org.id)}
+              <OrganizationCard
+                name={org.name}
+                description={org.description}
+                websiteUrl={org.website_url}
+                imageUrl={org.image_url}
+                tags={org.tags}
+                tagColor="blue"
+                buttonColor="blue"
+                actionText={org.action_text}
+              />
+            {/each}
+          </div>
+        {/if}
+      {:catch}
+        <p class="text-center text-red-400">
+          Couldn't load organizations. Please refresh to try again.
+        </p>
+      {/await}
 
       <div class="mt-16 mb-6 text-center">
         <h2 class="mb-2 text-xl font-bold text-white md:text-2xl">Why Volunteer?</h2>
