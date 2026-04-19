@@ -77,9 +77,28 @@ class Command(BaseCommand):
                     "evaluate_org_via_claude_code failed for %s",
                     nomination.url,
                 )
-                Nomination.objects.filter(pk=nomination.pk).update(
-                    status=NominationStatus.FAILED,
-                )
+                # Conditional CAS on (status, evaluation_attempts) so a
+                # concurrent change — sweep_stuck_claims retiring the
+                # row, a manual admin edit, or a parallel run — isn't
+                # stomped. Mirrors worker._handle_results.
+                updated = Nomination.objects.filter(
+                    pk=nomination.pk,
+                    status=NominationStatus.EVALUATING,
+                    evaluation_attempts=nomination.evaluation_attempts,
+                ).update(status=NominationStatus.FAILED)
+                if updated == 0:
+                    logger.warning(
+                        "Skipping FAILED update for nomination %s; "
+                        "row changed concurrently",
+                        nomination.pk,
+                    )
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f"  skipped FAILED update for {nomination.url}: "
+                            "row changed concurrently",
+                        ),
+                    )
+                    continue
                 self.stdout.write(
                     self.style.ERROR(f"  FAILED: {exc}"),
                 )

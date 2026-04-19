@@ -70,6 +70,29 @@ class TestEvaluatePending:
         nom.refresh_from_db()
         assert nom.status == NominationStatus.FAILED
 
+    def test_failure_skips_cas_when_row_changed(self) -> None:
+        """Concurrent change between claim and FAILED update → no-op."""
+        from terramedic.nominations.models import Nomination
+
+        nom = make_pending_nomination()
+
+        def mid_eval_stomp(*_a: Any, **_kw: Any) -> None:
+            # Simulate sweep_stuck_claims or admin edit stomping the row
+            # while Claude Code is mid-evaluation.
+            Nomination.objects.filter(pk=nom.pk).update(
+                status=NominationStatus.FAILED,
+            )
+            msg = "boom"
+            raise RuntimeError(msg)
+
+        with patch(_EVAL_VIA_CC_PATH, side_effect=mid_eval_stomp):
+            call_command(_COMMAND)
+
+        # Status already FAILED from the stomp — CAS saw no EVALUATING
+        # row to transition, so no additional update happened.
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.FAILED
+
     @patch(_EVAL_VIA_CC_PATH, return_value=EVAL_RESULT)
     def test_passes_categories_to_claude_code(
         self, mock_eval: Any,
