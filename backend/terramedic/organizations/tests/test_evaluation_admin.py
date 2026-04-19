@@ -422,7 +422,7 @@ class TestApproveFromDetailPage:
             "/admin/organizations/organizationevaluation/"
             f"{evaluation.pk}/change/"
         )
-        return client.post(
+        response = client.post(
             url,
             {
                 "status": status,
@@ -430,6 +430,14 @@ class TestApproveFromDetailPage:
                 "_save": "Save",
             },
         )
+        # Django admin redirects to the changelist on successful
+        # save; form errors would return 200 and let the caller's
+        # state-unchanged assertions pass vacuously.
+        assert response.status_code == 302, (
+            f"Admin save returned {response.status_code}; "
+            "expected 302 redirect"
+        )
+        return response
 
     def test_approve_via_detail_creates_organization(
         self,
