@@ -98,6 +98,9 @@ class Command(BaseCommand):
         except subprocess.TimeoutExpired:
             return self._handle_timeout(nomination)
         except Exception as exc:  # noqa: BLE001
+            # Broad catch is intentional — any Claude Code failure
+            # (schema, network, CLI crash, JSON parse) should mark this
+            # row FAILED and let the rest of the batch continue.
             return self._handle_failure(nomination, exc)
 
         curator_notes = data.get("curator_notes", {})
