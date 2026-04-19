@@ -61,26 +61,34 @@ def evaluate_org(
     return _evaluate_org(url=url, model=model, client=client, categories=categories)
 
 
-def claim_nominations(limit: int) -> Generator[Nomination]:
-    """Claim queued nominations atomically and yield non-skipped ones.
+def claim_nominations(
+    limit: int,
+    from_status: str = NominationStatus.QUEUED,
+) -> Generator[Nomination]:
+    """Claim nominations atomically and yield non-skipped ones.
 
-    For each queued nomination (up to *limit*):
+    The AWS worker claims from ``QUEUED`` (the default). A local
+    curator-run command can claim from ``PENDING`` to bypass the SQS
+    pipeline — the two pools are disjoint so the worker and a local
+    run can't race for the same row.
+
+    For each nomination in ``from_status`` (up to *limit*):
     1. Atomically set status to EVALUATING and increment attempts.
-    2. Revert to PENDING if the URL should be skipped.
+    2. Revert to ``from_status`` if the URL should be skipped.
     3. Yield the nomination if it passed both checks.
     """
     nominations = list(
         Nomination.objects.filter(
-            status=NominationStatus.QUEUED,
+            status=from_status,
         ).order_by("submitted_at")[:limit],
     )
 
     for nomination in nominations:
-        # Atomic claim: only proceed if still queued (prevents
-        # duplicate processing by concurrent workers).
+        # Atomic claim: only proceed if still in the source status
+        # (prevents duplicate processing by concurrent workers).
         claimed = Nomination.objects.filter(
             pk=nomination.pk,
-            status=NominationStatus.QUEUED,
+            status=from_status,
         ).update(
             status=NominationStatus.EVALUATING,
             evaluation_attempts=F("evaluation_attempts") + 1,
@@ -91,6 +99,12 @@ def claim_nominations(limit: int) -> Generator[Nomination]:
         nomination.refresh_from_db()
 
         if should_skip_url(nomination.url):
+            # Always revert to PENDING so skipworthy rows exit the
+            # active queue. For QUEUED → this breaks the worker's
+            # claim-skip-revert loop. For PENDING → the local command
+            # pre-filters via build_skip_urls so this path is a rare
+            # race fallback; staying in PENDING is fine because the
+            # pre-filter will exclude it again on the next run.
             nomination.status = NominationStatus.PENDING
             nomination.evaluation_attempts -= 1
             nomination.save(
