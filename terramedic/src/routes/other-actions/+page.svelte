@@ -51,7 +51,7 @@
         can contribute to healing the planet.
       </p>
 
-      <div class="mb-16">
+      <div class="mb-16" data-testid="org-card-grid">
         {#await data.organizations}
           <OrganizationGridSkeleton />
         {:then organizations}
@@ -61,7 +61,6 @@
             </p>
           {:else}
             <div
-              data-testid="org-card-grid"
               class="grid gap-6 md:grid-cols-2"
               use:trackSectionView={{ section: 'organizations', page: 'other-actions' }}
             >
