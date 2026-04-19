@@ -42,3 +42,17 @@ def make_queued_nomination(
         ip_hash=None,
         status=NominationStatus.QUEUED,
     )
+
+
+def make_pending_nomination(
+    url: str = "https://example.org",
+) -> Any:
+    """Create a Nomination in PENDING status for testing."""
+    from terramedic.nominations.models import Nomination, NominationStatus
+
+    return Nomination.objects.create(
+        url=url,
+        categories=["volunteer"],
+        ip_hash=None,
+        status=NominationStatus.PENDING,
+    )

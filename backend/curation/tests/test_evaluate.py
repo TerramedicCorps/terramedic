@@ -458,6 +458,288 @@ class TestEvaluateOrg:
             )
 
 
+class TestEvaluateOrgViaClaudeCode:
+    """Local Claude Code path — uses Max billing, shells out to `claude -p`."""
+
+    def _fake_subprocess_result(
+        self,
+        payload: dict[str, Any],
+        returncode: int = 0,
+        is_error: bool = False,
+    ) -> MagicMock:
+        envelope = {
+            "type": "result",
+            "subtype": "success",
+            "is_error": is_error,
+            "result": json.dumps(payload),
+            "total_cost_usd": 0.001,
+            "usage": {
+                "input_tokens": 100,
+                "output_tokens": 50,
+                "server_tool_use": {
+                    "web_search_requests": 2,
+                    "web_fetch_requests": 1,
+                },
+            },
+        }
+        result = MagicMock()
+        result.returncode = returncode
+        result.stdout = json.dumps(envelope)
+        result.stderr = ""
+        return result
+
+    def _patch_build_user_message(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(
+            "curation.evaluate._build_user_message",
+            lambda *_a, **_kw: "fake user message",
+        )
+
+    def test_invokes_claude_cli_with_expected_flags(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        eval_payload = _make_valid_evaluation()
+        del eval_payload["evaluated_at"]
+        del eval_payload["evaluated_by"]
+
+        captured_cmd: list[str] = []
+
+        def fake_run(cmd: list[str], **_kw: Any) -> MagicMock:
+            captured_cmd.extend(cmd)
+            return self._fake_subprocess_result(eval_payload)
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        evaluate_org_via_claude_code(
+            "https://example.org",
+            model="sonnet",
+        )
+
+        # Must shell out to the claude CLI in print mode.
+        assert captured_cmd[0] == "claude"
+        assert "-p" in captured_cmd
+        # Must restrict tools to web access only.
+        tools_idx = captured_cmd.index("--tools")
+        assert captured_cmd[tools_idx + 1] == "WebSearch,WebFetch"
+        # Must use JSON envelope.
+        fmt_idx = captured_cmd.index("--output-format")
+        assert captured_cmd[fmt_idx + 1] == "json"
+        # Must pass the system prompt.
+        assert "--append-system-prompt" in captured_cmd
+        sys_idx = captured_cmd.index("--append-system-prompt")
+        assert captured_cmd[sys_idx + 1] == SYSTEM_PROMPT
+        # Must pass the model.
+        model_idx = captured_cmd.index("--model")
+        assert captured_cmd[model_idx + 1] == "sonnet"
+
+    def test_extracts_evaluation_from_envelope(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        eval_payload = _make_valid_evaluation()
+        del eval_payload["evaluated_at"]
+        del eval_payload["evaluated_by"]
+
+        monkeypatch.setattr(
+            "subprocess.run",
+            lambda *_a, **_kw: self._fake_subprocess_result(eval_payload),
+        )
+
+        result = evaluate_org_via_claude_code(
+            "https://example.org",
+            model="sonnet",
+        )
+
+        assert result["org_metadata"]["name"] == "Test Org"
+
+    def test_stamps_evaluated_by_with_claude_code_prefix(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """`evaluated_by` must be distinguishable from the API path."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        eval_payload = _make_valid_evaluation()
+        del eval_payload["evaluated_at"]
+        del eval_payload["evaluated_by"]
+
+        monkeypatch.setattr(
+            "subprocess.run",
+            lambda *_a, **_kw: self._fake_subprocess_result(eval_payload),
+        )
+
+        result = evaluate_org_via_claude_code(
+            "https://example.org",
+            model="sonnet",
+        )
+
+        assert result["evaluated_by"].startswith("claude-code:")
+        assert "sonnet" in result["evaluated_by"]
+
+    def test_raises_on_envelope_error(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        eval_payload = _make_valid_evaluation()
+
+        monkeypatch.setattr(
+            "subprocess.run",
+            lambda *_a, **_kw: self._fake_subprocess_result(
+                eval_payload, is_error=True,
+            ),
+        )
+
+        with pytest.raises(RuntimeError, match="CLI reported error"):
+            evaluate_org_via_claude_code(
+                "https://example.org",
+                model="sonnet",
+            )
+
+    def test_raises_on_nonzero_exit(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+
+        def fake_run(*_a: Any, **_kw: Any) -> MagicMock:
+            result = MagicMock()
+            result.returncode = 2
+            result.stdout = ""
+            result.stderr = "auth failed"
+            return result
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        with pytest.raises(RuntimeError, match="exited with code"):
+            evaluate_org_via_claude_code(
+                "https://example.org",
+                model="sonnet",
+            )
+
+    def test_raises_on_malformed_stdout(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Non-JSON stdout must raise ValueError, not propagate JSONDecodeError."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+
+        def fake_run(*_a: Any, **_kw: Any) -> MagicMock:
+            result = MagicMock()
+            result.returncode = 0
+            result.stdout = "this is not JSON at all {"
+            result.stderr = ""
+            return result
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        with pytest.raises(ValueError, match="not valid JSON"):
+            evaluate_org_via_claude_code(
+                "https://example.org",
+                model="sonnet",
+            )
+
+    def test_raises_on_empty_result_field(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Envelope with empty 'result' must raise ValueError."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+
+        def fake_run(*_a: Any, **_kw: Any) -> MagicMock:
+            envelope = {"is_error": False, "result": "", "usage": {}}
+            result = MagicMock()
+            result.returncode = 0
+            result.stdout = json.dumps(envelope)
+            result.stderr = ""
+            return result
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        with pytest.raises(ValueError, match="no 'result' field"):
+            evaluate_org_via_claude_code(
+                "https://example.org",
+                model="sonnet",
+            )
+
+    def test_propagates_timeout_expired(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """subprocess.TimeoutExpired must propagate so callers can handle it."""
+        import subprocess as _subprocess
+
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+
+        def fake_run(*_a: Any, **_kw: Any) -> MagicMock:
+            raise _subprocess.TimeoutExpired(cmd="claude", timeout=1)
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        with pytest.raises(_subprocess.TimeoutExpired):
+            evaluate_org_via_claude_code(
+                "https://example.org",
+                model="sonnet",
+            )
+
+    def test_raises_on_schema_validation_failure(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Invalid Claude Code output must raise with a 'Claude Code' prefix.
+
+        Distinguishes this path from the API-based evaluate_org, whose
+        validation failure uses the bare 'Output' prefix.
+        """
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        invalid = {"org_metadata": {"name": "Test"}}  # missing required keys
+
+        monkeypatch.setattr(
+            "subprocess.run",
+            lambda *_a, **_kw: self._fake_subprocess_result(invalid),
+        )
+
+        with pytest.raises(ValueError, match="Claude Code output"):
+            evaluate_org_via_claude_code(
+                "https://example.org",
+                model="sonnet",
+            )
+
+
+class TestValidateAgainstSchema:
+    """Error-path coverage for the shared schema validation helper."""
+
+    def test_raises_runtime_error_on_missing_jsonschema(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Missing jsonschema must raise, not sys.exit.
+
+        sys.exit inside a Django management command mid-batch would
+        bypass the CAS rollback that marks the row FAILED.
+        """
+        import sys as _sys
+
+        from curation.evaluate import _validate_against_schema
+
+        # Force `import jsonschema` inside the helper to raise ImportError.
+        monkeypatch.setitem(_sys.modules, "jsonschema", None)
+
+        with pytest.raises(RuntimeError, match="jsonschema"):
+            _validate_against_schema({}, source="Output")
+
+
 class TestCleanResponse:
     def test_known_activity_type_unchanged(self) -> None:
         data = {"evidence_of_work": [{"activity": "x", "type": "conservation"}]}

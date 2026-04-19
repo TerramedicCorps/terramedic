@@ -16,6 +16,7 @@ import datetime
 import json
 import logging
 import os
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -28,6 +29,7 @@ logger = logging.getLogger(__name__)
 _SCHEMA_PATH = Path(__file__).parent / "schema.json"
 _MAX_PAGE_CHARS = 12000
 _FETCH_TIMEOUT = 15
+_CLAUDE_CLI_TIMEOUT = 600
 
 
 def _build_arg_parser() -> argparse.ArgumentParser:
@@ -364,6 +366,37 @@ def _build_user_message(
     return message
 
 
+def _validate_against_schema(
+    data: dict[str, Any], source: str = "Output",
+) -> None:
+    """Validate *data* against ``schema.json``.
+
+    Raises ``ValueError`` on mismatch with a message prefixed by
+    *source* (e.g. ``"Claude Code output"``). Raises ``RuntimeError``
+    if ``jsonschema`` isn't installed — avoids ``sys.exit`` so callers
+    inside a Django management command can catch the failure and roll
+    the row back via CAS instead of hard-exiting mid-batch.
+    """
+    try:
+        import jsonschema
+    except ImportError as exc:
+        msg = (
+            "jsonschema package not installed. "
+            "Install it with: poetry install"
+        )
+        raise RuntimeError(msg) from exc
+
+    validator = jsonschema.Draft202012Validator(
+        _load_schema(),
+        format_checker=jsonschema.FormatChecker(),
+    )
+    try:
+        validator.validate(data)
+    except jsonschema.ValidationError as exc:
+        msg = f"{source} failed schema validation: {exc.message}"
+        raise ValueError(msg) from exc
+
+
 def evaluate_org(
     url: str,
     model: str,
@@ -456,28 +489,109 @@ def evaluate_org(
     result["evaluated_by"] = model
     result["prompt_version"] = PROMPT_VERSION
 
-    try:
-        import jsonschema
-    except ImportError:
-        print(
-            "Error: jsonschema package not installed.\n"
-            "Install it with: poetry install",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    schema = _load_schema()
-    validator = jsonschema.Draft202012Validator(
-        schema,
-        format_checker=jsonschema.FormatChecker(),
-    )
-    try:
-        validator.validate(result)
-    except jsonschema.ValidationError as exc:
-        msg = f"Output failed schema validation: {exc.message}"
-        raise ValueError(msg) from exc
+    _validate_against_schema(result, source="Output")
 
     return result
+
+
+def _invoke_claude_cli(
+    cmd: list[str], timeout: int, url: str,
+) -> str:
+    """Run the ``claude`` CLI and return the model's text response.
+
+    Handles exit code, JSON envelope parsing, ``is_error`` handling,
+    and per-call usage logging. Raises ``RuntimeError`` on non-zero
+    exit or ``is_error: true``; ``ValueError`` on malformed stdout or
+    missing ``result`` field.
+    """
+    proc = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        check=False,
+    )
+    if proc.returncode != 0:
+        msg = (
+            f"claude CLI exited with code {proc.returncode}: "
+            f"{proc.stderr[:500] or proc.stdout[:500]}"
+        )
+        raise RuntimeError(msg)
+
+    try:
+        envelope = json.loads(proc.stdout)
+    except json.JSONDecodeError as exc:
+        msg = f"claude CLI stdout was not valid JSON: {exc}"
+        raise ValueError(msg) from exc
+
+    if envelope.get("is_error"):
+        msg = (
+            f"claude CLI reported error: "
+            f"{envelope.get('result', 'unknown')}"
+        )
+        raise RuntimeError(msg)
+
+    text = envelope.get("result", "")
+    if not text:
+        msg = "claude CLI envelope had no 'result' field"
+        raise ValueError(msg)
+
+    tool_use = envelope.get("usage", {}).get("server_tool_use", {})
+    # total_cost_usd is 0 on Max subscriptions (no per-token billing);
+    # kept for parity with the API-path usage log so the two sources
+    # can be grepped the same way.
+    logger.info(
+        "eval via claude-code url=%s cost_usd=%s "
+        "searches=%s fetches=%s",
+        url,
+        envelope.get("total_cost_usd"),
+        tool_use.get("web_search_requests"),
+        tool_use.get("web_fetch_requests"),
+    )
+    return text
+
+
+def evaluate_org_via_claude_code(
+    url: str,
+    model: str = "sonnet",
+    categories: list[str] | None = None,
+    timeout: int = _CLAUDE_CLI_TIMEOUT,
+) -> dict[str, Any]:
+    """Evaluate an organization by shelling out to the ``claude`` CLI.
+
+    Uses the caller's Claude Code session, so billing hits the Max
+    subscription rather than the per-token Anthropic API. Requires the
+    shell to be logged into Claude Code (``claude auth``). Not usable
+    from Lambda — Claude Code has no service-account mode.
+
+    Returns a schema-validated evaluation dict, just like ``evaluate_org``.
+    ``evaluated_by`` is stamped with a ``claude-code:`` prefix so the two
+    paths are distinguishable in stored records.
+    """
+    _validate_url(url)
+    user_content = _build_user_message(url, categories=categories)
+
+    cmd = [
+        "claude",
+        "-p", user_content,
+        "--append-system-prompt", SYSTEM_PROMPT,
+        "--tools", "WebSearch,WebFetch",
+        "--output-format", "json",
+        "--permission-mode", "dontAsk",
+        "--model", model,
+    ]
+    text = _invoke_claude_cli(cmd, timeout=timeout, url=url)
+
+    data = _extract_json(text)
+    _clean_response(data)
+    data["evaluated_at"] = (
+        datetime.datetime.now(datetime.UTC).isoformat()
+    )
+    data["evaluated_by"] = f"claude-code:{model}"
+    data["prompt_version"] = PROMPT_VERSION
+
+    _validate_against_schema(data, source="Claude Code output")
+    return data
 
 
 def _save_evaluation(data: dict[str, Any], output_path: str) -> None:

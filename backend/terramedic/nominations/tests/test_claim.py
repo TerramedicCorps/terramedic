@@ -11,7 +11,10 @@ from terramedic.nominations.claim import (
     sweep_stuck_claims,
 )
 from terramedic.nominations.models import Nomination, NominationStatus
-from terramedic.nominations.tests.conftest import make_queued_nomination
+from terramedic.nominations.tests.conftest import (
+    make_pending_nomination,
+    make_queued_nomination,
+)
 
 
 @pytest.mark.django_db
@@ -87,6 +90,66 @@ class TestClaimNominations:
         nom.refresh_from_db()
         assert nom.claimed_at is not None
         assert nom.claimed_at >= before
+
+    def test_default_from_status_is_queued_ignores_pending(self) -> None:
+        """Backward-compat: default claim still ignores PENDING rows."""
+        make_pending_nomination("https://pending.org")
+        make_queued_nomination("https://queued.org")
+
+        result = list(claim_nominations(limit=10))
+
+        urls = {n.url for n in result}
+        assert urls == {"https://queued.org"}
+
+    def test_from_status_pending_claims_pending(self) -> None:
+        """Local command path: claim PENDING, leave QUEUED alone."""
+        make_pending_nomination("https://pending.org")
+        make_queued_nomination("https://queued.org")
+
+        result = list(
+            claim_nominations(
+                limit=10,
+                from_status=NominationStatus.PENDING,
+            ),
+        )
+
+        urls = {n.url for n in result}
+        assert urls == {"https://pending.org"}
+
+    def test_from_status_pending_transitions_to_evaluating(self) -> None:
+        nom = make_pending_nomination()
+
+        list(
+            claim_nominations(
+                limit=10,
+                from_status=NominationStatus.PENDING,
+            ),
+        )
+
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.EVALUATING
+
+    @patch(
+        "terramedic.nominations.claim.should_skip_url",
+        return_value=True,
+    )
+    def test_from_status_pending_reverts_skipworthy_to_pending(
+        self, mock_skip: object,  # noqa: ARG002
+    ) -> None:
+        """On skip, always revert to PENDING regardless of from_status."""
+        nom = make_pending_nomination()
+
+        result = list(
+            claim_nominations(
+                limit=10,
+                from_status=NominationStatus.PENDING,
+            ),
+        )
+
+        assert len(result) == 0
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.PENDING
+        assert nom.evaluation_attempts == 0
 
 
 @pytest.mark.django_db
