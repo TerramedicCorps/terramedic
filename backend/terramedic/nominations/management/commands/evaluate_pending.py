@@ -120,10 +120,6 @@ class Command(BaseCommand):
 
     def _handle_timeout(self, nomination: Nomination) -> str:
         """Revert EVALUATING → PENDING on CLI timeout via CAS."""
-        logger.warning(
-            "claude CLI timed out for %s; reverting to PENDING",
-            nomination.url,
-        )
         reverted = Nomination.objects.filter(
             pk=nomination.pk,
             status=NominationStatus.EVALUATING,
@@ -167,11 +163,6 @@ class Command(BaseCommand):
             evaluation_attempts=nomination.evaluation_attempts,
         ).update(status=NominationStatus.FAILED)
         if updated == 0:
-            logger.warning(
-                "Skipping FAILED update for nomination %s; "
-                "row changed concurrently",
-                nomination.pk,
-            )
             self.stdout.write(
                 self.style.WARNING(
                     f"  skipped FAILED update for {nomination.url}: "
