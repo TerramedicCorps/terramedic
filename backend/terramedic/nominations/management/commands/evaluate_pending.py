@@ -18,9 +18,11 @@ Notes:
 """
 
 import logging
+import subprocess
 from typing import Any
 
 from django.core.management.base import BaseCommand
+from django.db.models import F
 
 from curation.evaluate import evaluate_org_via_claude_code
 from terramedic.nominations.claim import claim_nominations
@@ -72,6 +74,37 @@ class Command(BaseCommand):
                     model=model,
                     categories=nomination.categories or None,
                 )
+            except subprocess.TimeoutExpired:
+                # Timeouts are likely transient — revert to PENDING so
+                # the curator can re-run. CAS mirrors the FAILED path
+                # below. Claim incremented evaluation_attempts; decrement
+                # back so a re-run starts from the same attempt count.
+                logger.warning(
+                    "claude CLI timed out for %s; reverting to PENDING",
+                    nomination.url,
+                )
+                reverted = Nomination.objects.filter(
+                    pk=nomination.pk,
+                    status=NominationStatus.EVALUATING,
+                    evaluation_attempts=nomination.evaluation_attempts,
+                ).update(
+                    status=NominationStatus.PENDING,
+                    evaluation_attempts=F("evaluation_attempts") - 1,
+                )
+                if reverted == 0:
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f"  timeout revert skipped for {nomination.url}: "
+                            "row changed concurrently",
+                        ),
+                    )
+                    continue
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"  TIMED OUT (reverted to PENDING): {nomination.url}",
+                    ),
+                )
+                continue
             except Exception as exc:  # noqa: BLE001
                 logger.exception(
                     "evaluate_org_via_claude_code failed for %s",

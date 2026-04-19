@@ -70,6 +70,27 @@ class TestEvaluatePending:
         nom.refresh_from_db()
         assert nom.status == NominationStatus.FAILED
 
+    def test_timeout_reverts_to_pending(self) -> None:
+        """subprocess.TimeoutExpired reverts the row to PENDING.
+
+        Unlike FAILED (permanent), a timeout is likely transient —
+        curator can re-run the command and the row will be re-claimed.
+        """
+        import subprocess as _subprocess
+
+        nom = make_pending_nomination()
+
+        with patch(
+            _EVAL_VIA_CC_PATH,
+            side_effect=_subprocess.TimeoutExpired(cmd="claude", timeout=1),
+        ):
+            call_command(_COMMAND)
+
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.PENDING
+        # Claim incremented attempts to 1; revert decrements back to 0.
+        assert nom.evaluation_attempts == 0
+
     def test_failure_skips_cas_when_row_changed(self) -> None:
         """Concurrent change between claim and FAILED update → no-op."""
         from terramedic.nominations.models import Nomination
