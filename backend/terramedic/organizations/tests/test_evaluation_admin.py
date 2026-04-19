@@ -653,12 +653,13 @@ class TestCreateOrgOnApprovalSignal:
         check and its conditional UPDATE, the newly-created Org is
         deleted so we don't leak rows."""
         from terramedic.organizations import signals as sig
+        from terramedic.organizations.evaluation_actions import (
+            create_org_from_evaluation as real_create,
+        )
 
         winning_org = Organization.objects.create(
             name="Winning Org", website_url="https://winner.example",
         )
-
-        real_create = sig.create_org_from_evaluation
 
         def create_with_race(evaluation: OrganizationEvaluation) -> Organization:
             # Simulate a concurrent saver linking a different org
