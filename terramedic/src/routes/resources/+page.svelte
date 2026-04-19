@@ -48,6 +48,7 @@
           emptyText="No advocate resources yet — check back soon."
           analyticsSection="organizations"
           analyticsPage="resources"
+          actionText="Explore resources"
         />
       </div>
     </div>

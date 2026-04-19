@@ -56,6 +56,7 @@
         emptyText="No environmental career boards yet — check back soon."
         analyticsSection="organizations"
         analyticsPage="careers"
+        actionText="Browse jobs"
       />
 
       <div class="mt-16 mb-6 text-center">

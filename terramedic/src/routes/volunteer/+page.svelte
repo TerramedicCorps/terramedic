@@ -56,6 +56,7 @@
         emptyText="No volunteer organizations yet — check back soon."
         analyticsSection="organizations"
         analyticsPage="volunteer"
+        actionText="Volunteer"
       />
 
       <div class="mt-16 mb-6 text-center">

@@ -57,6 +57,7 @@
         emptyText="No donation opportunities yet — check back soon."
         analyticsSection="organizations"
         analyticsPage="donate"
+        actionText="Learn more"
       />
 
       <div class="mt-16 mb-6 text-center">
