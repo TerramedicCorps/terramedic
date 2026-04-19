@@ -67,6 +67,8 @@ def create_org_on_approval(
         # before we got here. Clean up the orphan we just created.
         org.delete()
         return
+    # Keep the in-memory instance consistent with the DB UPDATE so any
+    # downstream post_save receiver in this save cycle reads the new link.
     instance.organization = org
 
 
