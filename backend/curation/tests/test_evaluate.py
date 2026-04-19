@@ -515,6 +515,98 @@ class TestEvaluateOrgViaClaudeCode:
                 model="sonnet",
             )
 
+    def test_raises_on_malformed_stdout(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Non-JSON stdout must raise ValueError, not propagate JSONDecodeError."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+
+        def fake_run(*_a: Any, **_kw: Any) -> MagicMock:
+            result = MagicMock()
+            result.returncode = 0
+            result.stdout = "this is not JSON at all {"
+            result.stderr = ""
+            return result
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        with pytest.raises(ValueError, match="not valid JSON"):
+            evaluate_org_via_claude_code(
+                "https://example.org",
+                model="sonnet",
+            )
+
+    def test_raises_on_empty_result_field(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Envelope with empty 'result' must raise ValueError."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+
+        def fake_run(*_a: Any, **_kw: Any) -> MagicMock:
+            envelope = {"is_error": False, "result": "", "usage": {}}
+            result = MagicMock()
+            result.returncode = 0
+            result.stdout = json.dumps(envelope)
+            result.stderr = ""
+            return result
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        with pytest.raises(ValueError, match="no 'result' field"):
+            evaluate_org_via_claude_code(
+                "https://example.org",
+                model="sonnet",
+            )
+
+    def test_propagates_timeout_expired(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """subprocess.TimeoutExpired must propagate so callers can handle it."""
+        import subprocess as _subprocess
+
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+
+        def fake_run(*_a: Any, **_kw: Any) -> MagicMock:
+            raise _subprocess.TimeoutExpired(cmd="claude", timeout=1)
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        with pytest.raises(_subprocess.TimeoutExpired):
+            evaluate_org_via_claude_code(
+                "https://example.org",
+                model="sonnet",
+            )
+
+    def test_raises_on_schema_validation_failure(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Invalid Claude Code output must raise with a 'Claude Code' prefix.
+
+        Distinguishes this path from the API-based evaluate_org, whose
+        validation failure uses the bare 'Output' prefix.
+        """
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        invalid = {"org_metadata": {"name": "Test"}}  # missing required keys
+
+        monkeypatch.setattr(
+            "subprocess.run",
+            lambda *_a, **_kw: self._fake_subprocess_result(invalid),
+        )
+
+        with pytest.raises(ValueError, match="Claude Code output"):
+            evaluate_org_via_claude_code(
+                "https://example.org",
+                model="sonnet",
+            )
+
 
 class TestValidateAgainstSchema:
     """Error-path coverage for the shared schema validation helper."""
