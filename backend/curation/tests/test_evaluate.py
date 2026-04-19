@@ -487,7 +487,7 @@ class TestEvaluateOrgViaClaudeCode:
             ),
         )
 
-        with pytest.raises(RuntimeError, match="error"):
+        with pytest.raises(RuntimeError, match="CLI reported error"):
             evaluate_org_via_claude_code(
                 "https://example.org",
                 model="sonnet",
@@ -509,7 +509,7 @@ class TestEvaluateOrgViaClaudeCode:
 
         monkeypatch.setattr("subprocess.run", fake_run)
 
-        with pytest.raises(RuntimeError, match="claude"):
+        with pytest.raises(RuntimeError, match="exited with code"):
             evaluate_org_via_claude_code(
                 "https://example.org",
                 model="sonnet",
