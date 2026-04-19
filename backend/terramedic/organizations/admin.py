@@ -134,12 +134,17 @@ _EV_DETAIL_STYLE = """<style>
   border: 0;
 }
 .ev-detail { font-size: 13px; line-height: 1.45; }
-.ev-detail h3 { margin: 1em 0 0.3em; font-size: 14px; font-weight: 600; }
+.ev-detail h3 {
+  margin: 1em 0 0.3em 0;
+  padding-left: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
 .ev-detail h3:first-of-type { margin-top: 0.25em; }
 .ev-detail p { margin: 0.25em 0; }
 .ev-detail .ev-meta { margin-bottom: 0.75em; }
 .ev-detail .ev-item { margin: 0.4em 0 0.6em; }
-.ev-detail .ev-sources { margin: 0.2em 0 0 1.25em; padding: 0; font-size: 0.92em; }
+.ev-detail .ev-sources { margin: 0.2em 0 0 1.25em; padding: 0; font-size: 0.88em; }
 .ev-detail .ev-sources li {
   list-style: disc inside; margin: 0.1em 0;
   word-break: break-word; overflow-wrap: anywhere;
