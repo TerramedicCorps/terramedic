@@ -41,17 +41,17 @@
         Tools, research, and support for those already engaged in advocacy work.
       </p>
 
-      <div class="mx-auto mb-12 max-w-4xl px-4 sm:px-6">
+      <div
+        class="mx-auto mb-12 max-w-4xl px-4 sm:px-6"
+        use:trackSectionView={{ section: 'organizations', page: 'resources' }}
+      >
         {#await data.organizations}
           <OrganizationGridSkeleton gridClass="grid gap-8 md:grid-cols-2" />
         {:then organizations}
           {#if organizations.length === 0}
             <p class="text-center text-gray-400">No advocate resources yet — check back soon.</p>
           {:else}
-            <div
-              class="grid gap-8 md:grid-cols-2"
-              use:trackSectionView={{ section: 'organizations', page: 'resources' }}
-            >
+            <div class="grid gap-8 md:grid-cols-2">
               {#each organizations as org (org.id)}
                 <OrganizationCard
                   name={org.name}

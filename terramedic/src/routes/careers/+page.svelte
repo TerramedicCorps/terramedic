@@ -49,37 +49,36 @@
         hiring people who want to make a difference.
       </p>
 
-      {#await data.organizations}
-        <OrganizationGridSkeleton gridClass="grid gap-6 md:grid-cols-2" />
-      {:then organizations}
-        {#if organizations.length === 0}
-          <p class="text-center text-gray-400">
-            No environmental career boards yet — check back soon.
+      <div use:trackSectionView={{ section: 'organizations', page: 'careers' }}>
+        {#await data.organizations}
+          <OrganizationGridSkeleton gridClass="grid gap-6 md:grid-cols-2" />
+        {:then organizations}
+          {#if organizations.length === 0}
+            <p class="text-center text-gray-400">
+              No environmental career boards yet — check back soon.
+            </p>
+          {:else}
+            <div class="grid gap-6 md:grid-cols-2">
+              {#each organizations as org (org.id)}
+                <OrganizationCard
+                  name={org.name}
+                  description={org.description}
+                  websiteUrl={org.website_url}
+                  imageUrl={org.image_url}
+                  tags={org.tags}
+                  tagColor="gold"
+                  buttonColor="gold"
+                  actionText={org.action_text}
+                />
+              {/each}
+            </div>
+          {/if}
+        {:catch}
+          <p class="text-center text-red-400">
+            Couldn't load organizations. Please refresh to try again.
           </p>
-        {:else}
-          <div
-            class="grid gap-6 md:grid-cols-2"
-            use:trackSectionView={{ section: 'organizations', page: 'careers' }}
-          >
-            {#each organizations as org (org.id)}
-              <OrganizationCard
-                name={org.name}
-                description={org.description}
-                websiteUrl={org.website_url}
-                imageUrl={org.image_url}
-                tags={org.tags}
-                tagColor="gold"
-                buttonColor="gold"
-                actionText={org.action_text}
-              />
-            {/each}
-          </div>
-        {/if}
-      {:catch}
-        <p class="text-center text-red-400">
-          Couldn't load organizations. Please refresh to try again.
-        </p>
-      {/await}
+        {/await}
+      </div>
 
       <div class="mt-16 mb-6 text-center">
         <h2 class="mb-2 text-xl font-bold text-white md:text-2xl">

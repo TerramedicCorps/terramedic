@@ -51,7 +51,11 @@
         can contribute to healing the planet.
       </p>
 
-      <div class="mb-16" data-testid="org-card-grid">
+      <div
+        class="mb-16"
+        data-testid="org-card-grid"
+        use:trackSectionView={{ section: 'organizations', page: 'other-actions' }}
+      >
         {#await data.organizations}
           <OrganizationGridSkeleton gridClass="grid gap-6 md:grid-cols-2" />
         {:then organizations}
@@ -60,10 +64,7 @@
               No everyday-action organizations yet — check back soon.
             </p>
           {:else}
-            <div
-              class="grid gap-6 md:grid-cols-2"
-              use:trackSectionView={{ section: 'organizations', page: 'other-actions' }}
-            >
+            <div class="grid gap-6 md:grid-cols-2">
               {#each organizations as org (org.id)}
                 <OrganizationCard
                   name={org.name}
