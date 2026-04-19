@@ -33,3 +33,22 @@ export async function fetchOrganizations(
 
   return await response.json();
 }
+
+/**
+ * Build a streaming SSR `load` result that fetches organizations for
+ * the given category. The returned object contains an unresolved
+ * Promise so SvelteKit streams the list to the client while the
+ * page shell renders immediately.
+ */
+export function loadOrganizations(
+  category: string,
+  request: Request
+): { organizations: Promise<Organization[]> } {
+  const acceptLanguage = request.headers.get('accept-language') ?? undefined;
+  return {
+    organizations: fetchOrganizations(category, acceptLanguage).catch((error) => {
+      console.error(`Failed to load ${category} organizations:`, error);
+      throw error;
+    })
+  };
+}

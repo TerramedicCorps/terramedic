@@ -1,16 +1,4 @@
 import type { PageServerLoad } from './$types';
-import { fetchOrganizations } from '$lib/server/api';
+import { loadOrganizations } from '$lib/server/api';
 
-export const load: PageServerLoad = ({ request }) => {
-  const acceptLanguage = request.headers.get('accept-language') ?? undefined;
-  // Streaming SSR: return the promise rather than awaiting so SvelteKit
-  // sends the page shell immediately and streams the org list when the
-  // API responds. The component uses {#await} to show a skeleton until
-  // the promise resolves.
-  return {
-    organizations: fetchOrganizations('everyday', acceptLanguage).catch((error) => {
-      console.error('Failed to load everyday organizations:', error);
-      throw error;
-    })
-  };
-};
+export const load: PageServerLoad = ({ request }) => loadOrganizations('everyday', request);
