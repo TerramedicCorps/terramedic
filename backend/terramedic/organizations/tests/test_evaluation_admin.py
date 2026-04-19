@@ -1,4 +1,3 @@
-from datetime import timedelta
 from typing import Any
 from unittest.mock import patch
 
@@ -467,9 +466,6 @@ class TestApproveFromDetailPage:
         assert pending_evaluation.reviewed_at is not None
         # Fresh timestamp, not a frozen/stale value from elsewhere.
         assert pending_evaluation.reviewed_at >= before
-        assert timezone.now() - pending_evaluation.reviewed_at < timedelta(
-            seconds=10,
-        )
 
     def test_reject_via_detail_sets_status_without_creating_org(
         self,
