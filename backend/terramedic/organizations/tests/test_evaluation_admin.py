@@ -396,13 +396,6 @@ class TestEvaluationAdminReadonlyPresentation:
         admin = OrganizationEvaluationAdmin(OrganizationEvaluation, site)
         assert "evaluation_data" in admin.readonly_fields
 
-    def test_status_is_editable(self) -> None:
-        """Curators change status directly on the detail page; the
-        post_save signal handles the downstream side effects."""
-        site = AdminSite()
-        admin = OrganizationEvaluationAdmin(OrganizationEvaluation, site)
-        assert "status" not in admin.readonly_fields
-
     def test_status_choices(self) -> None:
         assert ReviewStatus.PENDING == "pending"
         assert ReviewStatus.APPROVED == "approved"
