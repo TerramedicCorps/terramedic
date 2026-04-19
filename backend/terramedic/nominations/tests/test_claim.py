@@ -136,7 +136,7 @@ class TestClaimNominations:
     def test_from_status_pending_reverts_skipworthy_to_pending(
         self, mock_skip: object,  # noqa: ARG002
     ) -> None:
-        """On skip, revert to the source status (not hardcoded PENDING)."""
+        """On skip, always revert to PENDING regardless of from_status."""
         nom = make_pending_nomination()
 
         result = list(
