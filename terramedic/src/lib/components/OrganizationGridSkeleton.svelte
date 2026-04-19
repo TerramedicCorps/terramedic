@@ -9,7 +9,8 @@
   $: indices = [...Array(count).keys()];
 </script>
 
-<div class={gridClass} aria-busy="true" aria-label="Loading organizations">
+<div class={gridClass} role="status" aria-live="polite" aria-busy="true">
+  <span class="sr-only">Loading organizations</span>
   {#each indices as i (i)}
     <div class="!bg-navy h-full animate-pulse rounded-lg border border-white/10 p-5">
       <div class="mb-3 h-6 w-3/4 rounded bg-white/10"></div>

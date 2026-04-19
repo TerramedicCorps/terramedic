@@ -36,7 +36,7 @@ describe('OrganizationGrid', () => {
     const { container } = render(OrganizationGrid, {
       props: { ...baseProps, promise: pending }
     });
-    expect(screen.getByLabelText('Loading organizations')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toBeInTheDocument();
     expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
   });
 
@@ -47,7 +47,7 @@ describe('OrganizationGrid', () => {
     await waitFor(() => {
       expect(screen.getByText('No organizations yet.')).toBeInTheDocument();
     });
-    expect(screen.queryByLabelText('Loading organizations')).not.toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
   test('renders cards when the promise resolves with organizations', async () => {

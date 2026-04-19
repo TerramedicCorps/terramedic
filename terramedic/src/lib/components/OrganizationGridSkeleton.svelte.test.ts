@@ -31,14 +31,21 @@ describe('OrganizationGridSkeleton', () => {
     expect(root).not.toHaveClass('lg:grid-cols-3');
   });
 
-  test('sets aria-busy=true on the root for assistive tech', () => {
+  test('exposes a polite live region that announces loading', () => {
     const { container } = render(OrganizationGridSkeleton);
     const root = container.firstElementChild;
+    expect(root).toHaveAttribute('role', 'status');
+    expect(root).toHaveAttribute('aria-live', 'polite');
     expect(root).toHaveAttribute('aria-busy', 'true');
   });
 
-  test('exposes an accessible loading label', () => {
+  test('renders visually-hidden loading text for screen readers', () => {
     render(OrganizationGridSkeleton);
-    expect(screen.getByLabelText('Loading organizations')).toBeInTheDocument();
+    expect(screen.getByText('Loading organizations')).toBeInTheDocument();
+  });
+
+  test('getByRole("status") finds the loading region', () => {
+    render(OrganizationGridSkeleton);
+    expect(screen.getByRole('status')).toBeInTheDocument();
   });
 });
