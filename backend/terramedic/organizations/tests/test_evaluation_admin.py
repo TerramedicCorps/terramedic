@@ -700,6 +700,57 @@ class TestCreateOrgOnApprovalSignal:
         assert Organization.objects.count() == 1
         assert pending_evaluation.organization == winning_org
 
+    def test_signal_skips_reactivation_on_concurrent_flip(
+        self,
+        admin_user: User,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        """If another request flips status away from APPROVED right
+        after this save, the reactivation branch's conditional UPDATE
+        must not flip is_active back to True."""
+        existing = Organization.objects.create(
+            name="Previously Approved Org",
+            website_url="https://prev.example",
+            is_active=False,
+        )
+        pending_evaluation.organization = existing
+        pending_evaluation.status = ReviewStatus.APPROVED
+        pending_evaluation.reviewer = admin_user
+        pending_evaluation.reviewed_at = timezone.now()
+        # Simulate the concurrent flip by scheduling a pre-save signal
+        # on this save that flips the DB back to REJECTED after our
+        # own save has committed but before downstream receivers run.
+        # Simpler: directly flip the DB right before invoking the
+        # receiver, by mocking the signal branch's filter call site.
+        pending_evaluation.save()
+        # After save, signal fires; conditional UPDATE sees APPROVED
+        # and reactivates. Then simulate a race where another request
+        # flips status away, and assert a subsequent spurious signal
+        # invocation does NOT re-reactivate because status is no
+        # longer APPROVED.
+        existing.refresh_from_db()
+        assert existing.is_active is True  # initial reactivation worked
+
+        # Now simulate the race: flip status to REJECTED via direct
+        # update, then run the signal manually with a stale instance
+        # whose in-memory state still says APPROVED + deactivated org.
+        OrganizationEvaluation.objects.filter(
+            pk=pending_evaluation.pk,
+        ).update(status=ReviewStatus.REJECTED)
+        existing.is_active = False  # simulate prior deactivation
+        existing.save(update_fields=["is_active"])
+        # Call the receiver directly with stale in-memory state.
+        from terramedic.organizations.signals import create_org_on_approval
+        stale = OrganizationEvaluation.objects.get(pk=pending_evaluation.pk)
+        stale.status = ReviewStatus.APPROVED  # in-memory only
+        create_org_on_approval(
+            sender=OrganizationEvaluation, instance=stale, created=False,
+        )
+        existing.refresh_from_db()
+        # Because DB still shows status=REJECTED, the conditional
+        # update finds 0 matching rows and leaves is_active=False.
+        assert existing.is_active is False
+
 
 @pytest.mark.django_db
 class TestApproveWithOtherCategory:

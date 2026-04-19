@@ -11,6 +11,7 @@ from terramedic.organizations.models.evaluation import (
     OrganizationEvaluation,
     ReviewStatus,
 )
+from terramedic.organizations.models.organization import Organization
 
 # Map evaluation review statuses to nomination statuses.
 _EVAL_TO_NOMINATION_STATUS: dict[str, str] = {
@@ -49,8 +50,17 @@ def create_org_on_approval(
 
     if instance.organization is not None:
         if not instance.organization.is_active:
-            instance.organization.is_active = True
-            instance.organization.save(update_fields=["is_active"])
+            # Atomically reactivate only if the DB still shows
+            # status=APPROVED with this same org linked. A concurrent
+            # flip away from APPROVED would lose the race and leave
+            # the org deactivated, matching reality. Mirrors the
+            # conditional UPDATE pattern used by the creation branch.
+            Organization.objects.filter(
+                pk=instance.organization.pk,
+                is_active=False,
+                evaluations__pk=instance.pk,
+                evaluations__status=ReviewStatus.APPROVED,
+            ).update(is_active=True)
         return
 
     org = create_org_from_evaluation(instance)
