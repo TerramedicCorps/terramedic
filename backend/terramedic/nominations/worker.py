@@ -15,8 +15,9 @@ import os
 from typing import Any
 
 import boto3
+from django.db import transaction
 
-from terramedic.nominations.claim import claim_nominations
+from terramedic.nominations.claim import claim_nominations, sweep_stuck_claims
 from terramedic.nominations.models import Nomination, NominationStatus
 from terramedic.organizations.models import OrganizationEvaluation
 
@@ -48,6 +49,8 @@ def _handle_dispatch(event: dict[str, Any]) -> dict[str, Any]:
         msg = "EVALUATION_REQUESTS_QUEUE_URL is not set"
         raise RuntimeError(msg)
     sqs = boto3.client("sqs")
+
+    sweep_stuck_claims()
 
     dispatched = 0
 
@@ -89,46 +92,63 @@ def _handle_results(event: dict[str, Any]) -> dict[str, Any]:
         nomination_id = body["nomination_id"]
         evaluation_attempts = body.get("evaluation_attempts", 1)
 
-        try:
-            nomination = Nomination.objects.get(pk=nomination_id)
-        except Nomination.DoesNotExist:
-            logger.warning("Nomination %s not found, skipping", nomination_id)
-            continue
-
-        if body.get("success"):
-            data = body["data"]
-            curator_notes = data.get("curator_notes", {})
-            _, created = OrganizationEvaluation.objects.get_or_create(
-                nomination=nomination,
-                defaults={
-                    "evaluation_data": data,
-                    "ai_model": data.get("evaluated_by", ""),
-                    "ai_recommendation": curator_notes.get(
-                        "recommendation", "",
-                    ),
-                    "ai_confidence": curator_notes.get("confidence"),
-                },
-            )
-            if created:
-                # Explicit status update (the post_save signal in
-                # organizations.signals also does this, but keeping
-                # it here makes the worker self-contained).
-                nomination.status = NominationStatus.EVALUATED
-                nomination.save(update_fields=["status"])
-                processed += 1
-            else:
-                logger.info(
-                    "Evaluation already exists for nomination %s; "
-                    "skipping duplicate result.",
-                    nomination_id,
-                )
+        is_success = bool(body.get("success"))
+        if is_success:
+            new_status = NominationStatus.EVALUATED
+        elif evaluation_attempts >= _MAX_RETRY_ATTEMPTS:
+            new_status = NominationStatus.FAILED
         else:
-            if evaluation_attempts >= _MAX_RETRY_ATTEMPTS:
-                nomination.status = NominationStatus.FAILED
+            new_status = NominationStatus.QUEUED
+
+        # Atomic compare-and-swap: only transition if the row is still
+        # in the expected EVALUATING state for this attempt. A single
+        # conditional UPDATE catches all races with sweep_stuck_claims
+        # and stale/duplicate SQS deliveries (including messages from
+        # earlier attempts). Zero rows affected → skip.
+        with transaction.atomic():
+            updated = Nomination.objects.filter(
+                pk=nomination_id,
+                status=NominationStatus.EVALUATING,
+                evaluation_attempts=evaluation_attempts,
+            ).update(status=new_status)
+            if not updated:
+                current = Nomination.objects.filter(
+                    pk=nomination_id,
+                ).values("status", "evaluation_attempts").first()
+                logger.warning(
+                    "Ignoring %s result for nomination %s: row changed "
+                    "(current=%s, message_attempt=%s).",
+                    "success" if is_success else "failure",
+                    nomination_id,
+                    current,
+                    evaluation_attempts,
+                )
+                continue
+
+            if is_success:
+                data = body["data"]
+                curator_notes = data.get("curator_notes", {})
+                _, created = OrganizationEvaluation.objects.get_or_create(
+                    nomination_id=nomination_id,
+                    defaults={
+                        "evaluation_data": data,
+                        "ai_model": data.get("evaluated_by", ""),
+                        "ai_recommendation": curator_notes.get(
+                            "recommendation", "",
+                        ),
+                        "ai_confidence": curator_notes.get("confidence"),
+                    },
+                )
+                if created:
+                    processed += 1
+                else:
+                    logger.info(
+                        "Evaluation already exists for nomination %s; "
+                        "skipping duplicate result.",
+                        nomination_id,
+                    )
             else:
-                nomination.status = NominationStatus.QUEUED
-            nomination.save(update_fields=["status"])
-            failed += 1
+                failed += 1
 
     logger.info("Processed %d, failed %d result(s).", processed, failed)
     return {"status": "ok", "processed": processed, "failed": failed}

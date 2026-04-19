@@ -19,6 +19,7 @@ from terramedic.nominations.claim import (
     DEFAULT_EVAL_MODEL,
     claim_nominations,
     evaluate_org,  # noqa: F401
+    sweep_stuck_claims,
 )
 from terramedic.nominations.models import NominationStatus
 from terramedic.organizations.models import OrganizationEvaluation
@@ -54,6 +55,8 @@ class Command(BaseCommand):
         api_key = resolve_secret(raw_key, "key") if is_arn(raw_key) else raw_key
         client = create_anthropic_client(api_key=api_key)
         limit: int = options["limit"]
+
+        sweep_stuck_claims()
 
         processed = 0
         failed = 0

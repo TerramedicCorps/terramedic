@@ -222,7 +222,8 @@ class TestHandleResults:
 
         nom = make_queued_nomination()
         nom.status = NominationStatus.EVALUATING
-        nom.save(update_fields=["status"])
+        nom.evaluation_attempts = 1
+        nom.save(update_fields=["status", "evaluation_attempts"])
 
         event = make_sqs_event([{
             "nomination_id": nom.pk,
@@ -247,7 +248,8 @@ class TestHandleResults:
 
         nom = make_queued_nomination()
         nom.status = NominationStatus.EVALUATING
-        nom.save(update_fields=["status"])
+        nom.evaluation_attempts = 1
+        nom.save(update_fields=["status", "evaluation_attempts"])
 
         event = make_sqs_event([{
             "nomination_id": nom.pk,
@@ -319,11 +321,13 @@ class TestHandleResults:
 
         nom1 = make_queued_nomination(url="https://one.org")
         nom1.status = NominationStatus.EVALUATING
-        nom1.save(update_fields=["status"])
+        nom1.evaluation_attempts = 1
+        nom1.save(update_fields=["status", "evaluation_attempts"])
 
         nom2 = make_queued_nomination(url="https://two.org")
         nom2.status = NominationStatus.EVALUATING
-        nom2.save(update_fields=["status"])
+        nom2.evaluation_attempts = 1
+        nom2.save(update_fields=["status", "evaluation_attempts"])
 
         result2 = dict(EVAL_RESULT)
         result2["org_metadata"] = {
@@ -355,7 +359,8 @@ class TestHandleResults:
 
         nom = make_queued_nomination()
         nom.status = NominationStatus.EVALUATING
-        nom.save(update_fields=["status"])
+        nom.evaluation_attempts = 1
+        nom.save(update_fields=["status", "evaluation_attempts"])
 
         record = {
             "nomination_id": nom.pk,
@@ -375,7 +380,8 @@ class TestHandleResults:
 
         nom = make_queued_nomination()
         nom.status = NominationStatus.EVALUATING
-        nom.save(update_fields=["status"])
+        nom.evaluation_attempts = 1
+        nom.save(update_fields=["status", "evaluation_attempts"])
 
         event = make_sqs_event([{
             "nomination_id": nom.pk,
@@ -386,3 +392,138 @@ class TestHandleResults:
         _handle_results(event)
 
         assert OrganizationEvaluation.objects.count() == 0
+
+    def test_late_success_does_not_resurrect_swept_nomination(self) -> None:
+        """If sweep_stuck_claims has already marked a nomination
+        FAILED, a late success result must not create an evaluation
+        or flip the status back to EVALUATED."""
+        from terramedic.nominations.worker import _handle_results
+
+        nom = make_queued_nomination()
+        nom.status = NominationStatus.FAILED  # swept earlier
+        nom.save(update_fields=["status"])
+
+        event = make_sqs_event([{
+            "nomination_id": nom.pk,
+            "evaluation_attempts": 1,
+            "success": True,
+            "data": EVAL_RESULT,
+        }])
+        result = _handle_results(event)
+
+        assert result["processed"] == 0
+        assert OrganizationEvaluation.objects.count() == 0
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.FAILED
+
+    def test_late_failure_does_not_resurrect_swept_nomination(self) -> None:
+        """If sweep_stuck_claims has already marked a nomination
+        FAILED, a late failure result must not revert it to QUEUED."""
+        from terramedic.nominations.worker import _handle_results
+
+        nom = make_queued_nomination()
+        nom.status = NominationStatus.FAILED  # swept earlier
+        nom.evaluation_attempts = 1
+        nom.save(update_fields=["status", "evaluation_attempts"])
+
+        event = make_sqs_event([{
+            "nomination_id": nom.pk,
+            "evaluation_attempts": 1,
+            "success": False,
+            "error": "evaluate_org failed",
+        }])
+        result = _handle_results(event)
+
+        assert result["failed"] == 0
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.FAILED
+
+    def test_ignores_stale_attempt_success(self) -> None:
+        """SQS is at-least-once: a delayed attempt-1 success must
+        not create an evaluation while attempt-2 is in progress."""
+        from terramedic.nominations.worker import _handle_results
+
+        nom = make_queued_nomination()
+        nom.status = NominationStatus.EVALUATING  # attempt 2 running
+        nom.evaluation_attempts = 2
+        nom.save(update_fields=["status", "evaluation_attempts"])
+
+        event = make_sqs_event([{
+            "nomination_id": nom.pk,
+            "evaluation_attempts": 1,  # stale — from attempt 1
+            "success": True,
+            "data": EVAL_RESULT,
+        }])
+        result = _handle_results(event)
+
+        assert result["processed"] == 0
+        assert OrganizationEvaluation.objects.count() == 0
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.EVALUATING
+
+    def test_ignores_stale_attempt_failure(self) -> None:
+        """A delayed attempt-1 failure must not revert a nomination
+        whose attempt-2 is still in progress."""
+        from terramedic.nominations.worker import _handle_results
+
+        nom = make_queued_nomination()
+        nom.status = NominationStatus.EVALUATING  # attempt 2 running
+        nom.evaluation_attempts = 2
+        nom.save(update_fields=["status", "evaluation_attempts"])
+
+        event = make_sqs_event([{
+            "nomination_id": nom.pk,
+            "evaluation_attempts": 1,  # stale
+            "success": False,
+            "error": "evaluate_org failed",
+        }])
+        result = _handle_results(event)
+
+        assert result["failed"] == 0
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.EVALUATING
+        assert nom.evaluation_attempts == 2
+
+    def test_atomic_update_loses_race_to_concurrent_sweep(self) -> None:
+        """If the row is flipped to FAILED between the fetch and the
+        conditional update (simulating a concurrent sweep or worker),
+        the atomic compare-and-swap affects 0 rows and the result is
+        ignored — no evaluation created, no status overwrite."""
+        from terramedic.nominations.worker import Nomination as WorkerNom
+        from terramedic.nominations.worker import _handle_results
+
+        nom = make_queued_nomination()
+        nom.status = NominationStatus.EVALUATING
+        nom.evaluation_attempts = 1
+        nom.save(update_fields=["status", "evaluation_attempts"])
+
+        real_filter = WorkerNom.objects.filter
+
+        def racing_filter(*args: object, **kwargs: object) -> object:
+            # Simulate a concurrent sweep flipping the row to FAILED
+            # after the conditional UPDATE's filter is built but
+            # before it runs.
+            real_filter(pk=nom.pk).update(
+                status=NominationStatus.FAILED,
+            )
+            # Restore the original filter so the UPDATE itself runs
+            # normally against the now-FAILED row.
+            WorkerNom.objects.filter = real_filter  # type: ignore[assignment,method-assign]
+            return real_filter(*args, **kwargs)
+
+        event = make_sqs_event([{
+            "nomination_id": nom.pk,
+            "evaluation_attempts": 1,
+            "success": True,
+            "data": EVAL_RESULT,
+        }])
+        try:
+            WorkerNom.objects.filter = racing_filter  # type: ignore[assignment,method-assign]
+            result = _handle_results(event)
+        finally:
+            WorkerNom.objects.filter = real_filter  # type: ignore[assignment,method-assign]
+
+        assert result["processed"] == 0
+        assert OrganizationEvaluation.objects.count() == 0
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.FAILED

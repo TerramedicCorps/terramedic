@@ -42,9 +42,21 @@ class Nomination(models.Model):
         editable=False,
     )
     evaluation_attempts = models.PositiveSmallIntegerField(default=0)
+    claimed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Timestamp when the worker last claimed this nomination "
+            "for evaluation. Used to detect stuck EVALUATING claims."
+        ),
+    )
 
     class Meta:
         ordering = ["-submitted_at"]
+        indexes = [
+            # Supports sweep_stuck_claims: filter by status + claimed_at.
+            models.Index(fields=["status", "claimed_at"]),
+        ]
 
     MAX_NOTES_LENGTH = 2000
 
