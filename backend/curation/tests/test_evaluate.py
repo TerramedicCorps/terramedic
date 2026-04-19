@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import logging
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
@@ -280,8 +281,6 @@ class TestEvaluateOrg:
         Needed to monitor whether cache_control is actually landing cache
         hits and whether the web-search max_uses cap is ever reached.
         """
-        import logging as _logging
-
         monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
         evaluation = _make_valid_evaluation()
         del evaluation["evaluated_at"]
@@ -305,7 +304,7 @@ class TestEvaluateOrg:
         )
         client.messages.create.return_value = message
 
-        with caplog.at_level(_logging.INFO, logger="curation.evaluate"):
+        with caplog.at_level(logging.INFO, logger="curation.evaluate"):
             evaluate_org(
                 "https://example.org",
                 model="claude-sonnet-4-20250514",
