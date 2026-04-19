@@ -48,19 +48,21 @@ def create_org_on_approval(
     if instance.status != ReviewStatus.APPROVED:
         return
 
-    if instance.organization is not None:
-        if not instance.organization.is_active:
-            # Atomically reactivate only if the DB still shows
-            # status=APPROVED with this same org linked. A concurrent
-            # flip away from APPROVED would lose the race and leave
-            # the org deactivated, matching reality. Mirrors the
-            # conditional UPDATE pattern used by the creation branch.
-            Organization.objects.filter(
-                pk=instance.organization.pk,
-                is_active=False,
-                evaluations__pk=instance.pk,
-                evaluations__status=ReviewStatus.APPROVED,
-            ).update(is_active=True)
+    # Use organization_id (never triggers a lazy SELECT) rather than
+    # instance.organization, which would fetch the related row on every
+    # approved save — N+1 in the bulk-approve path.
+    if instance.organization_id is not None:  # type: ignore[attr-defined]
+        # Atomically reactivate only if the DB still shows
+        # status=APPROVED with this same org linked AND is_active=False.
+        # A concurrent flip away from APPROVED, or an already-active
+        # org, matches 0 rows and is a cheap no-op. Mirrors the
+        # conditional UPDATE pattern used by the creation branch.
+        Organization.objects.filter(
+            pk=instance.organization_id,  # type: ignore[attr-defined]
+            is_active=False,
+            evaluations__pk=instance.pk,
+            evaluations__status=ReviewStatus.APPROVED,
+        ).update(is_active=True)
         return
 
     org = create_org_from_evaluation(instance)
