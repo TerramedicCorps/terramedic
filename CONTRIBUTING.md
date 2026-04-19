@@ -111,6 +111,13 @@ The backend runs at `http://localhost:8000`.
 - `poetry run ruff check .` — Lint Python code
 - `poetry run ruff format .` — Format Python code
 - `poetry run mypy terramedic` — Type-check Python code
+  (requires `SECRET_KEY` in the environment so the
+  `mypy_django_plugin` can load Django settings; any value
+  works, e.g. `SECRET_KEY=test poetry run mypy terramedic`.
+  Without it the plugin fails to initialize and mypy falls
+  back to single-file analysis, producing spurious
+  "Need type annotation" and "Cannot find stubs for parler"
+  errors on model fields)
 
 ## Coding Guidelines
 
