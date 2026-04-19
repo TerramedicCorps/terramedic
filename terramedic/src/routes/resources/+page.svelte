@@ -43,7 +43,7 @@
 
       <div class="mx-auto mb-12 max-w-4xl px-4 sm:px-6">
         {#await data.organizations}
-          <OrganizationGridSkeleton />
+          <OrganizationGridSkeleton gridClass="grid gap-8 md:grid-cols-2" />
         {:then organizations}
           {#if organizations.length === 0}
             <p class="text-center text-gray-400">No advocate resources yet — check back soon.</p>

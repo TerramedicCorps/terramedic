@@ -1,16 +1,15 @@
 <script>
-  // Skeleton shown while the org list streams in. Mirrors the
-  // 1/2/3-column OrganizationCard grid so the layout doesn't jump.
+  // Skeleton shown while the org list streams in. The caller passes
+  // `gridClass` to match its final grid so the layout doesn't jump
+  // when the real cards render. Defaults to the 3-column layout used
+  // by volunteer/donate.
   export let count = 3;
+  export let gridClass = 'grid gap-6 md:grid-cols-2 lg:grid-cols-3';
 
   $: indices = [...Array(count).keys()];
 </script>
 
-<div
-  class="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
-  aria-busy="true"
-  aria-label="Loading organizations"
->
+<div class={gridClass} aria-busy="true" aria-label="Loading organizations">
   {#each indices as i (i)}
     <div class="!bg-navy h-full animate-pulse rounded-lg border border-white/10 p-5">
       <div class="mb-3 h-6 w-3/4 rounded bg-white/10"></div>

@@ -50,7 +50,7 @@
       </p>
 
       {#await data.organizations}
-        <OrganizationGridSkeleton />
+        <OrganizationGridSkeleton gridClass="grid gap-6 md:grid-cols-2" />
       {:then organizations}
         {#if organizations.length === 0}
           <p class="text-center text-gray-400">
