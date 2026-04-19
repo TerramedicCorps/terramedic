@@ -518,7 +518,7 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         evaluation later reactivates the same org rather than creating
         a duplicate.
         """
-        if change and form and "status" in form.changed_data:
+        if change and "status" in form.changed_data:
             obj.reviewer = request.user  # type: ignore[assignment]
             obj.reviewed_at = timezone.now()
             if (
