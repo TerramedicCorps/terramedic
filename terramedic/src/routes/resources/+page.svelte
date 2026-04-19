@@ -42,7 +42,6 @@
       <div class="mx-auto mb-12 max-w-4xl px-4 sm:px-6">
         <OrganizationGrid
           promise={data.organizations}
-          gridClass="grid gap-8 md:grid-cols-2"
           tagColor="blue"
           buttonColor="blue"
           emptyText="No advocate resources yet — check back soon."

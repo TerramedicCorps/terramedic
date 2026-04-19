@@ -50,7 +50,6 @@
 
       <OrganizationGrid
         promise={data.organizations}
-        gridClass="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
         tagColor="blue"
         buttonColor="blue"
         emptyText="No volunteer organizations yet — check back soon."

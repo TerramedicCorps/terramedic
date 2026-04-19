@@ -53,7 +53,6 @@
       <div class="mb-16" data-testid="org-card-grid">
         <OrganizationGrid
           promise={data.organizations}
-          gridClass="grid gap-6 md:grid-cols-2"
           tagColor="purple"
           buttonColor="purple"
           emptyText="No everyday-action organizations yet — check back soon."

@@ -8,7 +8,6 @@
   // / error states and attaches analytics to a wrapper that's present
   // in every branch so section_view fires regardless of outcome.
   export let promise;
-  export let gridClass;
   export let tagColor;
   export let buttonColor;
   export let emptyText;
@@ -23,23 +22,32 @@
 
 <div use:trackSectionView={{ section: analyticsSection, page: analyticsPage }}>
   {#await promise}
-    <OrganizationGridSkeleton {gridClass} />
+    <OrganizationGridSkeleton />
   {:then organizations}
     {#if organizations.length === 0}
       <p class="text-center text-gray-400">{emptyText}</p>
     {:else}
-      <div class={gridClass}>
+      <!--
+        Flex-wrap + justify-center instead of a CSS grid so rows with
+        fewer than 3 cards center under the header instead of
+        left-aligning. Card width 18rem gives 3 per row inside
+        container-narrow (max-w-5xl) with 1.5rem gaps, 2 per row on
+        tablet, and full-width on phones.
+      -->
+      <div class="flex flex-wrap justify-center gap-6">
         {#each organizations as org (org.id)}
-          <OrganizationCard
-            name={org.name}
-            description={org.description}
-            websiteUrl={org.website_url}
-            imageUrl={org.image_url}
-            tags={org.tags}
-            {tagColor}
-            {buttonColor}
-            {actionText}
-          />
+          <div class="w-full sm:w-72">
+            <OrganizationCard
+              name={org.name}
+              description={org.description}
+              websiteUrl={org.website_url}
+              imageUrl={org.image_url}
+              tags={org.tags}
+              {tagColor}
+              {buttonColor}
+              {actionText}
+            />
+          </div>
         {/each}
       </div>
     {/if}

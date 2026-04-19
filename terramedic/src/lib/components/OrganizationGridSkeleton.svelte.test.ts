@@ -16,19 +16,16 @@ describe('OrganizationGridSkeleton', () => {
     expect(cards).toHaveLength(6);
   });
 
-  test('applies default gridClass (3-column layout)', () => {
+  test('uses flex-wrap + justify-center layout', () => {
     const { container } = render(OrganizationGridSkeleton);
     const root = container.firstElementChild;
-    expect(root).toHaveClass('grid', 'gap-6', 'md:grid-cols-2', 'lg:grid-cols-3');
+    expect(root).toHaveClass('flex', 'flex-wrap', 'justify-center', 'gap-6');
   });
 
-  test('applies custom gridClass prop', () => {
-    const { container } = render(OrganizationGridSkeleton, {
-      props: { gridClass: 'grid gap-8 md:grid-cols-2' }
-    });
-    const root = container.firstElementChild;
-    expect(root).toHaveClass('grid', 'gap-8', 'md:grid-cols-2');
-    expect(root).not.toHaveClass('lg:grid-cols-3');
+  test('cards have responsive width (full on mobile, 18rem on sm+)', () => {
+    const { container } = render(OrganizationGridSkeleton, { props: { count: 1 } });
+    const card = container.querySelector('.animate-pulse');
+    expect(card).toHaveClass('w-full', 'sm:w-72');
   });
 
   test('exposes a polite live region that announces loading', () => {

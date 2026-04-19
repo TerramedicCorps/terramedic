@@ -5,7 +5,6 @@ import OrganizationGrid from './OrganizationGrid.svelte';
 import type { Organization } from '$lib/server/api';
 
 const baseProps = {
-  gridClass: 'grid gap-6 md:grid-cols-2',
   tagColor: 'blue',
   buttonColor: 'blue',
   emptyText: 'No organizations yet.',
