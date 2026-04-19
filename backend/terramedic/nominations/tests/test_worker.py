@@ -508,7 +508,7 @@ class TestHandleResults:
             )
             # Restore the original filter so the UPDATE itself runs
             # normally against the now-FAILED row.
-            WorkerNom.objects.filter = real_filter  # type: ignore[method-assign]
+            WorkerNom.objects.filter = real_filter  # type: ignore[assignment,method-assign]
             return real_filter(*args, **kwargs)
 
         event = make_sqs_event([{
@@ -518,10 +518,10 @@ class TestHandleResults:
             "data": EVAL_RESULT,
         }])
         try:
-            WorkerNom.objects.filter = racing_filter  # type: ignore[method-assign]
+            WorkerNom.objects.filter = racing_filter  # type: ignore[assignment,method-assign]
             result = _handle_results(event)
         finally:
-            WorkerNom.objects.filter = real_filter  # type: ignore[method-assign]
+            WorkerNom.objects.filter = real_filter  # type: ignore[assignment,method-assign]
 
         assert result["processed"] == 0
         assert OrganizationEvaluation.objects.count() == 0
