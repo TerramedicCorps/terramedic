@@ -160,7 +160,14 @@ class Command(BaseCommand):
         )
 
     def _report_skips(self, limit: int) -> None:
-        """Report PENDING URLs that are duplicates and will be skipped."""
+        """Report PENDING URLs that are duplicates and will be skipped.
+
+        Diagnostic only. The subsequent ``claim_nominations`` call runs
+        its own PENDING query and will re-check skipworthiness row-by-row
+        via ``should_skip_url`` — this preview can disagree if a new
+        PENDING row is inserted between the two queries. That's fine:
+        the authoritative skip happens inside the claim loop.
+        """
         pending_urls = list(
             Nomination.objects.filter(
                 status=NominationStatus.PENDING,
