@@ -149,8 +149,31 @@ def _create_org_from_evaluation(
     return org
 
 
+# Scoped CSS for the Evaluation Detail readonly field. Hides the
+# redundant field label (the fieldset header already says "Evaluation
+# Detail"), flattens list nesting so sources sit one indent-level
+# under their parent item instead of stacking three deep, and lets
+# long URLs wrap inside the content column.
+_EV_DETAIL_STYLE = """<style>
+.field-evaluation_detail label { display: none; }
+.ev-detail { font-size: 13px; line-height: 1.45; }
+.ev-detail h3 { margin: 1em 0 0.3em; font-size: 14px; font-weight: 600; }
+.ev-detail h3:first-of-type { margin-top: 0.25em; }
+.ev-detail p { margin: 0.25em 0; }
+.ev-detail .ev-meta { margin-bottom: 0.75em; }
+.ev-detail .ev-item { margin: 0.4em 0 0.6em; }
+.ev-detail .ev-sources { margin: 0.2em 0 0 1.25em; padding: 0; font-size: 0.92em; }
+.ev-detail .ev-sources li {
+  list-style: disc inside; margin: 0.1em 0;
+  word-break: break-word; overflow-wrap: anywhere;
+}
+.ev-detail .ev-history { margin: 0.2em 0 0 1.25em; padding: 0; }
+.ev-detail .ev-history li { list-style: disc inside; margin: 0.1em 0; }
+</style>"""
+
+
 def _render_sources(sources: list[dict[str, str]]) -> str:
-    """Render a sources array as a small HTML list."""
+    """Render a sources array as a small flat bulleted list."""
     if not sources:
         return ""
     items: list[str] = []
@@ -165,42 +188,44 @@ def _render_sources(sources: list[dict[str, str]]) -> str:
         if excerpt:
             line += f" — <em>{excerpt}</em>"
         items.append(f"<li>{line}</li>")
-    return "<ul>" + "".join(items) + "</ul>"
+    return '<ul class="ev-sources">' + "".join(items) + "</ul>"
 
 
 def _render_sdg_section(data: dict[str, Any]) -> str:
-    """Render SDG alignment as HTML."""
+    """Render SDG alignment as HTML (flat items, no nested lists)."""
     sdgs = data.get("sdg_alignment", [])
     if not sdgs:
         return ""
-    parts = ["<h3>SDG Alignment</h3><ul>"]
+    parts = ["<h3>SDG Alignment</h3>"]
     for item in sdgs:
         sdg = escape(str(item.get("sdg", "?")))
         evidence = escape(str(item.get("evidence", "")))
         sources_html = _render_sources(item.get("sources", []))
         parts.append(
-            f"<li><strong>SDG {sdg}</strong>: "
-            f"{evidence}{sources_html}</li>",
+            '<div class="ev-item">'
+            f"<p><strong>SDG {sdg}</strong>: {evidence}</p>"
+            f"{sources_html}"
+            "</div>",
         )
-    parts.append("</ul>")
     return "\n".join(parts)
 
 
 def _render_evidence_section(data: dict[str, Any]) -> str:
-    """Render evidence of work as HTML."""
+    """Render evidence of work as HTML (flat items, no nested lists)."""
     activities = data.get("evidence_of_work", [])
     if not activities:
         return ""
-    parts = ["<h3>Evidence of Work</h3><ul>"]
+    parts = ["<h3>Evidence of Work</h3>"]
     for item in activities:
         activity = escape(str(item.get("activity", "")))
         act_type = escape(str(item.get("type", "")))
         sources_html = _render_sources(item.get("sources", []))
         parts.append(
-            f"<li><strong>{act_type}</strong>: "
-            f"{activity}{sources_html}</li>",
+            '<div class="ev-item">'
+            f"<p><strong>{act_type}</strong>: {activity}</p>"
+            f"{sources_html}"
+            "</div>",
         )
-    parts.append("</ul>")
     return "\n".join(parts)
 
 
@@ -241,7 +266,7 @@ def _render_eval_history(data: dict[str, Any]) -> str:
     history = data.get("evaluation_history", [])
     if not history:
         return ""
-    parts = ["<h3>Evaluation History</h3><ul>"]
+    parts = ['<h3>Evaluation History</h3><ul class="ev-history">']
     for entry in history:
         ver = escape(str(entry.get("prompt_version", "?")))
         sc = escape(str(entry.get("score", "?")))
@@ -484,7 +509,7 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         prompt_ver = data.get("prompt_version")
         if prompt_ver:
             parts.append(
-                "<p><strong>Prompt version:</strong> "
+                '<p class="ev-meta"><strong>Prompt version:</strong> '
                 f"{escape(str(prompt_ver))}</p>",
             )
 
@@ -499,7 +524,10 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
             if section:
                 parts.append(section)
 
-        html = "\n".join(parts) if parts else "<p>No data.</p>"
+        body = "\n".join(parts) if parts else "<p>No data.</p>"
+        html = (
+            f'{_EV_DETAIL_STYLE}<div class="ev-detail">{body}</div>'
+        )
         return mark_safe(html)  # noqa: S308
 
     @admin.action(description="Approve selected evaluations")
