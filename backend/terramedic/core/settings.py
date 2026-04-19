@@ -286,9 +286,12 @@ LOGGING = {
             "propagate": False,
         },
         "curation": {
-            "handlers": ["console"],
+            # Propagate to root (which has the console handler) rather
+            # than attaching our own. This keeps pytest's caplog
+            # working — caplog attaches to root, so propagate=False
+            # would make log capture tests silently drop records.
             "level": "INFO",
-            "propagate": False,
+            "propagate": True,
         },
     },
 }
