@@ -44,7 +44,9 @@ def _build_output_schema() -> str:
             r for r in required if r not in _PROGRAMMATIC_FIELDS
         ]
 
-    return json.dumps(schema, indent=2)
+    # Compact form (no indent) saves ~30% on tokens. The model parses
+    # indented and compact JSON identically.
+    return json.dumps(schema, separators=(",", ":"))
 
 
 _CRITERIA_AND_GUIDELINES: str = """\

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import logging
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
@@ -61,6 +62,23 @@ class TestSchemaSyncWithPrompt:
                       "evaluation_history"):
             # Should not appear as a JSON property key in the prompt
             assert f'"{field}"' not in SYSTEM_PROMPT
+
+    def test_embedded_schema_is_compact(self) -> None:
+        """The schema JSON embedded in the prompt must be compact, not pretty.
+
+        Pretty-printed JSON wastes ~30% on whitespace tokens sent on every
+        request. The model parses both forms identically.
+        """
+        start = SYSTEM_PROMPT.find("```json\n")
+        assert start != -1, "prompt must contain a ```json block"
+        end = SYSTEM_PROMPT.find("\n```", start + len("```json\n"))
+        assert end != -1, "```json block must be closed"
+        schema_block = SYSTEM_PROMPT[start + len("```json\n"):end]
+        # Round-trip through the canonical compact form — this catches
+        # any unnecessary whitespace (spaces, tabs, newlines) regardless
+        # of how it was introduced.
+        parsed = json.loads(schema_block)
+        assert schema_block == json.dumps(parsed, separators=(",", ":"))
 
 
 def _make_valid_evaluation() -> dict[str, Any]:
@@ -178,6 +196,35 @@ class TestEvaluateOrg:
         client.messages.create.return_value = message
         return client
 
+    def _mock_client_with_blocks(
+        self,
+        response_text: str,
+        extra_block_types: list[str] | None = None,
+        usage: dict[str, int] | None = None,
+    ) -> MagicMock:
+        """Mock a client whose response has non-text blocks before the text.
+
+        Used for tests that exercise mixed content (web search results,
+        server tool use) or need a specific ``usage`` object.
+        """
+        client = MagicMock()
+        message = MagicMock()
+        blocks: list[MagicMock] = []
+        for block_type in extra_block_types or []:
+            extra = MagicMock()
+            extra.type = block_type
+            extra.text = None
+            blocks.append(extra)
+        text_block = MagicMock()
+        text_block.type = "text"
+        text_block.text = response_text
+        blocks.append(text_block)
+        message.content = blocks
+        if usage is not None:
+            message.usage = MagicMock(**usage)
+        client.messages.create.return_value = message
+        return client
+
     def test_missing_api_key(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
         with pytest.raises(SystemExit):
@@ -223,6 +270,75 @@ class TestEvaluateOrg:
         tool_types = [t["type"] for t in call_kwargs["tools"]]
         assert "web_search_20250305" in tool_types
 
+    def test_system_prompt_uses_cache_control(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """System prompt must be sent as a cacheable block.
+
+        The SYSTEM_PROMPT is identical across evaluations, so marking it
+        with ``cache_control: ephemeral`` lets the API serve subsequent
+        evals from cache at ~10% of the input-token cost.
+        """
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+        evaluation = _make_valid_evaluation()
+        del evaluation["evaluated_at"]
+        del evaluation["evaluated_by"]
+        client = self._mock_client(json.dumps(evaluation))
+
+        evaluate_org(
+            "https://example.org",
+            model="claude-sonnet-4-20250514",
+            client=client,
+        )
+
+        call_kwargs = client.messages.create.call_args.kwargs
+        system = call_kwargs["system"]
+        assert isinstance(system, list), (
+            "system must be a list of blocks to attach cache_control"
+        )
+        assert system[-1].get("cache_control") == {"type": "ephemeral"}
+        assert system[-1]["type"] == "text"
+        assert system[-1]["text"] == SYSTEM_PROMPT
+
+    def test_logs_usage_and_search_count(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Token usage and web-search count must be logged per eval.
+
+        Needed to monitor whether cache_control is actually landing cache
+        hits and whether the web-search max_uses cap is ever reached.
+        """
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+        evaluation = _make_valid_evaluation()
+        del evaluation["evaluated_at"]
+        del evaluation["evaluated_by"]
+
+        client = self._mock_client_with_blocks(
+            response_text=json.dumps(evaluation),
+            extra_block_types=["server_tool_use", "server_tool_use"],
+            usage={
+                "input_tokens": 1234,
+                "output_tokens": 567,
+                "cache_read_input_tokens": 890,
+                "cache_creation_input_tokens": 0,
+            },
+        )
+
+        with caplog.at_level(logging.INFO, logger="curation.evaluate"):
+            evaluate_org(
+                "https://example.org",
+                model="claude-sonnet-4-20250514",
+                client=client,
+            )
+
+        log_text = "\n".join(r.message for r in caplog.records)
+        assert "input=1234" in log_text
+        assert "output=567" in log_text
+        assert "cache_read=890" in log_text
+        assert "searches=2" in log_text
+
     def test_extracts_text_from_mixed_content_blocks(
         self, monkeypatch: pytest.MonkeyPatch,
     ) -> None:
@@ -232,16 +348,10 @@ class TestEvaluateOrg:
         del evaluation["evaluated_at"]
         del evaluation["evaluated_by"]
 
-        client = MagicMock()
-        message = MagicMock()
-        search_block = MagicMock()
-        search_block.type = "web_search_tool_result"
-        search_block.text = None
-        text_block = MagicMock()
-        text_block.type = "text"
-        text_block.text = json.dumps(evaluation)
-        message.content = [search_block, text_block]
-        client.messages.create.return_value = message
+        client = self._mock_client_with_blocks(
+            response_text=json.dumps(evaluation),
+            extra_block_types=["web_search_tool_result"],
+        )
 
         result = evaluate_org(
             "https://example.org",
