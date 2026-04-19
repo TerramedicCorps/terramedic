@@ -469,35 +469,16 @@ def evaluate_org(
     return result
 
 
-def evaluate_org_via_claude_code(
-    url: str,
-    model: str = "sonnet",
-    categories: list[str] | None = None,
-    timeout: int = _CLAUDE_CLI_TIMEOUT,
-) -> dict[str, Any]:
-    """Evaluate an organization by shelling out to the ``claude`` CLI.
+def _invoke_claude_cli(
+    cmd: list[str], timeout: int, url: str,
+) -> str:
+    """Run the ``claude`` CLI and return the model's text response.
 
-    Uses the caller's Claude Code session, so billing hits the Max
-    subscription rather than the per-token Anthropic API. Requires the
-    shell to be logged into Claude Code (``claude auth``). Not usable
-    from Lambda — Claude Code has no service-account mode.
-
-    Returns a schema-validated evaluation dict, just like ``evaluate_org``.
-    ``evaluated_by`` is stamped with a ``claude-code:`` prefix so the two
-    paths are distinguishable in stored records.
+    Handles exit code, JSON envelope parsing, ``is_error`` handling,
+    and per-call usage logging. Raises ``RuntimeError`` on non-zero
+    exit or ``is_error: true``; ``ValueError`` on malformed stdout or
+    missing ``result`` field.
     """
-    _validate_url(url)
-    user_content = _build_user_message(url, categories=categories)
-
-    cmd = [
-        "claude",
-        "-p", user_content,
-        "--append-system-prompt", SYSTEM_PROMPT,
-        "--tools", "WebSearch,WebFetch",
-        "--output-format", "json",
-        "--permission-mode", "dontAsk",
-        "--model", model,
-    ]
     proc = subprocess.run(
         cmd,
         capture_output=True,
@@ -539,10 +520,42 @@ def evaluate_org_via_claude_code(
         tool_use.get("web_search_requests"),
         tool_use.get("web_fetch_requests"),
     )
+    return text
+
+
+def evaluate_org_via_claude_code(
+    url: str,
+    model: str = "sonnet",
+    categories: list[str] | None = None,
+    timeout: int = _CLAUDE_CLI_TIMEOUT,
+) -> dict[str, Any]:
+    """Evaluate an organization by shelling out to the ``claude`` CLI.
+
+    Uses the caller's Claude Code session, so billing hits the Max
+    subscription rather than the per-token Anthropic API. Requires the
+    shell to be logged into Claude Code (``claude auth``). Not usable
+    from Lambda — Claude Code has no service-account mode.
+
+    Returns a schema-validated evaluation dict, just like ``evaluate_org``.
+    ``evaluated_by`` is stamped with a ``claude-code:`` prefix so the two
+    paths are distinguishable in stored records.
+    """
+    _validate_url(url)
+    user_content = _build_user_message(url, categories=categories)
+
+    cmd = [
+        "claude",
+        "-p", user_content,
+        "--append-system-prompt", SYSTEM_PROMPT,
+        "--tools", "WebSearch,WebFetch",
+        "--output-format", "json",
+        "--permission-mode", "dontAsk",
+        "--model", model,
+    ]
+    text = _invoke_claude_cli(cmd, timeout=timeout, url=url)
 
     data = _extract_json(text)
     _clean_response(data)
-
     data["evaluated_at"] = (
         datetime.datetime.now(datetime.UTC).isoformat()
     )
@@ -550,7 +563,6 @@ def evaluate_org_via_claude_code(
     data["prompt_version"] = PROMPT_VERSION
 
     _validate_against_schema(data, source="Claude Code output")
-
     return data
 
 
