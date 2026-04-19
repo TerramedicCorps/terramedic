@@ -285,5 +285,10 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
+        "curation": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
 }
