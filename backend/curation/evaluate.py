@@ -366,6 +366,35 @@ def _build_user_message(
     return message
 
 
+def _validate_against_schema(
+    data: dict[str, Any], source: str = "Output",
+) -> None:
+    """Validate *data* against ``schema.json``.
+
+    Raises ``ValueError`` on mismatch with a message prefixed by
+    *source* (e.g. ``"Claude Code output"``).
+    """
+    try:
+        import jsonschema
+    except ImportError:
+        print(
+            "Error: jsonschema package not installed.\n"
+            "Install it with: poetry install",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    validator = jsonschema.Draft202012Validator(
+        _load_schema(),
+        format_checker=jsonschema.FormatChecker(),
+    )
+    try:
+        validator.validate(data)
+    except jsonschema.ValidationError as exc:
+        msg = f"{source} failed schema validation: {exc.message}"
+        raise ValueError(msg) from exc
+
+
 def evaluate_org(
     url: str,
     model: str,
@@ -435,26 +464,7 @@ def evaluate_org(
     result["evaluated_by"] = model
     result["prompt_version"] = PROMPT_VERSION
 
-    try:
-        import jsonschema
-    except ImportError:
-        print(
-            "Error: jsonschema package not installed.\n"
-            "Install it with: poetry install",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    schema = _load_schema()
-    validator = jsonschema.Draft202012Validator(
-        schema,
-        format_checker=jsonschema.FormatChecker(),
-    )
-    try:
-        validator.validate(result)
-    except jsonschema.ValidationError as exc:
-        msg = f"Output failed schema validation: {exc.message}"
-        raise ValueError(msg) from exc
+    _validate_against_schema(result, source="Output")
 
     return result
 
@@ -539,26 +549,7 @@ def evaluate_org_via_claude_code(
     data["evaluated_by"] = f"claude-code:{model}"
     data["prompt_version"] = PROMPT_VERSION
 
-    try:
-        import jsonschema
-    except ImportError:
-        print(
-            "Error: jsonschema package not installed.\n"
-            "Install it with: poetry install",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    schema = _load_schema()
-    validator = jsonschema.Draft202012Validator(
-        schema,
-        format_checker=jsonschema.FormatChecker(),
-    )
-    try:
-        validator.validate(data)
-    except jsonschema.ValidationError as exc:
-        msg = f"Claude Code output failed schema validation: {exc.message}"
-        raise ValueError(msg) from exc
+    _validate_against_schema(data, source="Claude Code output")
 
     return data
 
