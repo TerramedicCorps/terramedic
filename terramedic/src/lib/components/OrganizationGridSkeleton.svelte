@@ -6,7 +6,7 @@
   export let count = 3;
   export let gridClass = 'grid gap-6 md:grid-cols-2 lg:grid-cols-3';
 
-  $: indices = [...Array(count).keys()];
+  const indices = [...Array(count).keys()];
 </script>
 
 <div class={gridClass} role="status" aria-live="polite" aria-busy="true">
