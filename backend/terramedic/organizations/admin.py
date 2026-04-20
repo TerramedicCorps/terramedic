@@ -396,6 +396,16 @@ class EvaluationReviewForm(forms.ModelForm):  # type: ignore[type-arg]
         # 'other' is in the schema as an AI escape hatch but isn't a
         # real Category row — don't pre-check a box that maps to
         # nothing on approval.
+        #
+        # Side effect: the first no-op save of this form on a
+        # NULL-reviewer_categories evaluation promotes the implicit
+        # AI fallback to an explicit override (construct_instance
+        # writes form.initial back to the instance). The resolved
+        # category set is identical, so nothing breaks at approval
+        # time — but later schema changes to the AI list won't
+        # shadow through for that evaluation. If that becomes a
+        # problem, compare cleaned_data to the AI list before
+        # writing rather than adding drift-detection here.
         self.initial["reviewer_categories"] = [
             slug for slug in ai_categories if slug != "other"
         ]
