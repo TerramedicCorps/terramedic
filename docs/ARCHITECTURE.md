@@ -128,6 +128,9 @@ EventBridge (5 min)
   `EVALUATION_RESULTS_QUEUE_URL` are set as GitHub
   environment variables (dev, prod) so Zappa injects
   them at deploy time.
+- For the admin procedure that re-runs existing
+  evaluations after a `PROMPT_VERSION` bump, see
+  [RUNBOOKS.md](RUNBOOKS.md).
 
 ## Infrastructure
 
