@@ -34,13 +34,6 @@
     {#if organizations.length === 0}
       <p class="text-center text-gray-400">{emptyText}</p>
     {:else}
-      <!--
-        Flex-wrap + justify-center instead of a CSS grid so rows with
-        fewer than 3 cards center under the header instead of
-        left-aligning. Card width 18rem gives 3 per row inside
-        container-narrow (max-w-5xl) with 1.5rem gaps, 2 per row on
-        tablet, and full-width on phones.
-      -->
       <div class={ORG_GRID_CONTAINER_CLASS}>
         {#each organizations as org (org.id)}
           <div class={ORG_CARD_WRAPPER_CLASS}>
