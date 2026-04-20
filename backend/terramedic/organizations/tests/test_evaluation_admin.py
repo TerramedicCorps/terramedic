@@ -1,3 +1,4 @@
+import re
 from typing import Any
 from unittest.mock import patch
 
@@ -13,6 +14,25 @@ from terramedic.organizations.models import (
     OrganizationEvaluation,
     ReviewStatus,
 )
+
+
+def _reviewer_category_is_checked(content: str, slug: str) -> bool:
+    """True if the reviewer_categories checkbox for ``slug`` renders checked.
+
+    Order-independent: uses lookahead assertions so the three attributes
+    (``name``, ``value``, ``checked``) may appear in any order within the
+    same ``<input>`` tag. Django's widget renderer doesn't guarantee
+    attribute ordering across versions, and a positional regex would go
+    brittle the next time it changes.
+    """
+    pattern = (
+        rf'<input\b'
+        rf'(?=[^>]*\bname="reviewer_categories")'
+        rf'(?=[^>]*\bvalue="{re.escape(slug)}")'
+        rf'(?=[^>]*\bchecked\b)'
+        rf'[^>]*>'
+    )
+    return re.search(pattern, content) is not None
 
 
 def _make_evaluation_data(**overrides: Any) -> dict[str, Any]:
@@ -1176,26 +1196,16 @@ class TestReviewerCategoriesAdminForm:
     ) -> None:
         """The default fixture's AI list is ['donate', 'volunteer'] —
         those two should render as checked, 'resource' should not."""
-        import re
         response = admin_client.get(
             f"/admin/organizations/organizationevaluation/"
             f"{pending_evaluation.pk}/change/",
         )
         content = response.content.decode()
-        # Django's CheckboxSelectMultiple emits each option as its own
-        # <input> — match on the surrounding fragment so we don't tie
-        # the assertion to attribute ordering.
-        def checked(slug: str) -> bool:
-            pattern = (
-                rf'<input[^>]*name="reviewer_categories"[^>]*'
-                rf'value="{slug}"[^>]*checked'
-            )
-            return re.search(pattern, content) is not None
-        assert checked("donate")
-        assert checked("volunteer")
-        assert not checked("resource")
-        assert not checked("career")
-        assert not checked("everyday")
+        assert _reviewer_category_is_checked(content, "donate")
+        assert _reviewer_category_is_checked(content, "volunteer")
+        assert not _reviewer_category_is_checked(content, "resource")
+        assert not _reviewer_category_is_checked(content, "career")
+        assert not _reviewer_category_is_checked(content, "everyday")
 
     def test_submit_with_subset_persists_and_trims_org_categories(
         self,
@@ -1238,7 +1248,6 @@ class TestReviewerCategoriesAdminForm:
     ) -> None:
         """Once a reviewer has saved an override, reopening the form
         reflects their choice — not the AI's original list."""
-        import re
         ev = OrganizationEvaluation.objects.create(
             evaluation_data=_make_evaluation_data(
                 accessibility={
@@ -1252,12 +1261,6 @@ class TestReviewerCategoriesAdminForm:
             f"{ev.pk}/change/",
         )
         content = response.content.decode()
-        def checked(slug: str) -> bool:
-            pattern = (
-                rf'<input[^>]*name="reviewer_categories"[^>]*'
-                rf'value="{slug}"[^>]*checked'
-            )
-            return re.search(pattern, content) is not None
-        assert checked("donate")
-        assert not checked("volunteer")
-        assert not checked("resource")
+        assert _reviewer_category_is_checked(content, "donate")
+        assert not _reviewer_category_is_checked(content, "volunteer")
+        assert not _reviewer_category_is_checked(content, "resource")
