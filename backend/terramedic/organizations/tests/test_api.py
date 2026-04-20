@@ -28,10 +28,8 @@ def org_ccl(tags: list[Tag]) -> Organization:
     )
     org.set_current_language("en")
     org.description = "A grassroots advocacy organization."
-    org.action_text = "Support Climate Advocacy"
     org.set_current_language("fr")
     org.description = "Une organisation de plaidoyer."
-    org.action_text = "Soutenir le plaidoyer"
     org.save()
     org.tags.add(*tags)
     org.categories.add(Category.objects.get(slug="donate"))
@@ -47,7 +45,6 @@ def org_evp() -> Organization:
     )
     org.set_current_language("en")
     org.description = "Turning environmentalists into voters."
-    org.action_text = "Become a Volunteer"
     org.save()
     org.categories.add(Category.objects.get(slug="volunteer"))
     return org
@@ -62,7 +59,6 @@ def inactive_org() -> Organization:
     )
     org.set_current_language("en")
     org.description = "This org is inactive."
-    org.action_text = "N/A"
     org.save()
     org.categories.add(Category.objects.get(slug="donate"))
     return org
@@ -174,7 +170,6 @@ class TestListOrganizations:
         assert org["name"] == "Citizens' Climate Lobby"
         assert org["website_url"] == "https://citizensclimatelobby.org/"
         assert org["description"] == "A grassroots advocacy organization."
-        assert org["action_text"] == "Support Climate Advocacy"
 
 
 @pytest.mark.django_db
@@ -266,7 +261,6 @@ class TestTranslationViaAcceptLanguage:
         data = response.json()
         org = data[0]
         assert org["description"] == "Une organisation de plaidoyer."
-        assert org["action_text"] == "Soutenir le plaidoyer"
 
     def test_english_default(
         self,

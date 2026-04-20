@@ -11,6 +11,5 @@ def org() -> Organization:
     )
     o.set_current_language("en")
     o.description = "A test organization."
-    o.action_text = "Donate"
     o.save()
     return o

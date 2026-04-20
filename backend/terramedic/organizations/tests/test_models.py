@@ -35,7 +35,6 @@ class TestOrganization:
         )
         o.set_current_language("en")
         o.description = "A grassroots advocacy organization."
-        o.action_text = "Support Climate Advocacy"
         o.save()
         o.categories.add(Category.objects.get(slug="donate"))
         return o
@@ -48,14 +47,12 @@ class TestOrganization:
         )
         org.set_current_language("en")
         org.description = "A grassroots advocacy organization."
-        org.action_text = "Support Climate Advocacy"
         org.save()
         org.categories.add(Category.objects.get(slug="donate"))
 
         assert org.pk is not None
         assert org.name == "Citizens' Climate Lobby"
         assert org.description == "A grassroots advocacy organization."
-        assert org.action_text == "Support Climate Advocacy"
         assert list(org.categories.values_list("slug", flat=True)) == ["donate"]
 
     def test_str_returns_name(self, org: Organization) -> None:
@@ -68,10 +65,8 @@ class TestOrganization:
         )
         org.set_current_language("en")
         org.description = "Help donors direct political giving."
-        org.action_text = "Donate to Candidates"
         org.set_current_language("fr")
         org.description = "Aider les donateurs."
-        org.action_text = "Donner aux candidats"
         org.save()
 
         org.set_current_language("en")
@@ -94,7 +89,6 @@ class TestOrganization:
         )
         org.set_current_language("en")
         org.description = "Test"
-        org.action_text = "Test"
         org.save()
 
         org.refresh_from_db()
@@ -114,7 +108,6 @@ class TestOrganization:
         )
         org.set_current_language("en")
         org.description = "Test"
-        org.action_text = "Test"
         org.save()
 
         assert org.sort_order == 0
@@ -159,7 +152,6 @@ class TestOrganizationCategoriesM2M:
         )
         o.set_current_language("en")
         o.description = "Gets environmentalists to vote."
-        o.action_text = "Get Out the Vote"
         o.save()
         return o
 

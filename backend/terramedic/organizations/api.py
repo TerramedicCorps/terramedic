@@ -18,14 +18,13 @@ router = Router()
 def _serialize_org(
     org: Organization,
 ) -> dict[str, Any]:
-    # Manual serialization needed because django-parler translated fields
-    # (description, action_text) require accessing the active language on the
-    # model instance; django-ninja's ModelSchema cannot resolve these.
+    # Manual serialization needed because the django-parler translated
+    # description field requires accessing the active language on the
+    # model instance; django-ninja's ModelSchema cannot resolve it.
     return {
         "id": org.pk,
         "name": org.name,
         "description": org.description,
-        "action_text": org.action_text,
         "website_url": org.website_url,
         "image_url": org.image_url,
         "categories": list(

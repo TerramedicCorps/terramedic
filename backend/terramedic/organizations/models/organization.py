@@ -74,7 +74,6 @@ class Organization(TranslatableModel):
 
     translations = TranslatedFields(
         description=models.TextField(),
-        action_text=models.CharField(max_length=100),
     )
 
     class Meta:

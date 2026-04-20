@@ -18,7 +18,6 @@ function makeOrg(overrides: Partial<Organization> = {}): Organization {
     id: 1,
     name: 'Test Org',
     description: 'A test organization',
-    action_text: 'Visit',
     website_url: 'https://example.org',
     image_url: '',
     categories: ['volunteer'],
@@ -62,8 +61,8 @@ describe('OrganizationGrid', () => {
     expect(screen.queryByText('No organizations yet.')).not.toBeInTheDocument();
   });
 
-  test('button label uses the page-level actionText, not org.action_text', async () => {
-    const orgs = [makeOrg({ id: 1, name: 'Example Org', action_text: 'Support Example Org' })];
+  test('button label uses the page-level actionText', async () => {
+    const orgs = [makeOrg({ id: 1, name: 'Example Org' })];
     const promise = Promise.resolve(orgs);
     render(OrganizationGrid, {
       props: { ...baseProps, actionText: 'Learn more', promise }
@@ -72,9 +71,7 @@ describe('OrganizationGrid', () => {
     await waitFor(() => {
       expect(screen.getByText('Example Org')).toBeInTheDocument();
     });
-    // Page-level verb wins over the auto-generated per-org label.
     expect(screen.getByRole('link', { name: 'Learn more' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Support Example Org' })).not.toBeInTheDocument();
   });
 
   test('shows refresh-to-retry message when the promise rejects', async () => {
