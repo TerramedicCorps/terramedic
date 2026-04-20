@@ -1320,13 +1320,24 @@ class TestReviewerCategoriesPostApprovalSync:
             org.categories.values_list("slug", flat=True),
         ) == ["donate"]
 
-    def test_editing_reviewer_reasoning_alone_does_not_touch_org(
+    def test_unchanged_prefilled_checkboxes_do_not_resync_org(
         self,
         admin_client: Client,
         admin_user: User,
     ) -> None:
-        """Only changes to reviewer_categories should resync — editing
-        reviewer_reasoning must not silently rewrite org categories."""
+        """Out-of-band edits to ``Organization.categories`` survive a
+        form save that leaves the prefilled checkboxes untouched.
+
+        ``reviewer_categories`` is ``NULL`` after the first (bulk or
+        non-form) approval, but the form's ``__init__`` prefills the
+        checkboxes from the AI list so they render as "already
+        checked." If the reviewer submits without toggling any box,
+        ``form.initial`` shadows the ``NULL`` DB value and
+        ``reviewer_categories`` is absent from ``form.changed_data``
+        — so the sync correctly skips. Anything that edited
+        ``org.categories`` outside the admin (a shell fixup, a data
+        migration) is preserved.
+        """
         ev = OrganizationEvaluation.objects.create(
             evaluation_data=_make_evaluation_data(
                 accessibility={"categories": ["donate", "volunteer"]},
@@ -1339,9 +1350,7 @@ class TestReviewerCategoriesPostApprovalSync:
         ev.refresh_from_db()
         org = ev.organization
         assert org is not None
-        # Simulate something having edited org.categories out-of-band
-        # to drift from reviewer_categories — editing the reasoning
-        # field alone must not overwrite that drift.
+        # Simulate the out-of-band drift we want to preserve.
         donate_only = list(
             org.categories.model.objects.filter(slug="donate"),
         )
@@ -1361,9 +1370,6 @@ class TestReviewerCategoriesPostApprovalSync:
 
         ev.refresh_from_db()
         org.refresh_from_db()
-        # reviewer_categories didn't actually change from its initial
-        # (form-prefilled) value of ['donate', 'volunteer'], so the
-        # out-of-band donate-only state on the org is preserved.
         assert list(
             org.categories.values_list("slug", flat=True),
         ) == ["donate"]
