@@ -26,18 +26,19 @@ and the Lambda environment (inside the VPC, no `claude` binary).
 ### Pre-requisites
 
 - Logged in to the `claude` CLI on your local machine (`claude
-  auth`). The re-evaluation shells out to it.
-- `zappa` CLI installed locally (it's in the Poetry dev deps) and
-  configured for the target stage.
-- Clean working tree on a `dev`-based branch you're happy to have
-  loaded, in case you need to iterate on fixture generation.
+  auth`). The fixture-generation step shells out to it.
+- AWS credentials for the target stage available via `aws-vault`
+  (or whatever wrapper your workstation uses). The commands that
+  call `zappa` need creds for the stage's account.
 
 ### Steps
 
 1. **List the candidate URLs from the dev DB.**
 
    ```bash
-   zappa manage dev "list_reevaluation_candidates" > urls.txt
+   aws-vault exec terramedic-dev -- \
+     poetry run zappa manage dev \
+     "list_reevaluation_candidates" > urls.txt
    ```
 
    Prints URLs of evaluations whose stored `prompt_version` lags the
@@ -50,14 +51,16 @@ and the Lambda environment (inside the VPC, no `claude` binary).
    - `pending` — supersede still-unreviewed evaluations.
    - `all` — every evaluation behind the current version.
 
-   To pass `--status`, quote the full command:
+   Pass `--status` inside the quoted command:
 
    ```bash
-   zappa manage dev "list_reevaluation_candidates --status all" \
-     > urls.txt
+   aws-vault exec terramedic-dev -- \
+     poetry run zappa manage dev \
+     "list_reevaluation_candidates --status all" > urls.txt
    ```
 
-2. **Evaluate locally via claude-code and write a fixture.**
+2. **Evaluate locally via claude-code and write a fixture.** No
+   AWS creds needed — this step runs entirely on your machine:
 
    ```bash
    poetry run python manage.py evaluate_urls_to_fixtures \
@@ -79,7 +82,8 @@ and the Lambda environment (inside the VPC, no `claude` binary).
 3. **Push the fixture into the target stage without redeploying.**
 
    ```bash
-   poetry run python manage.py zappa_loaddata dev reeval.json
+   aws-vault exec terramedic-dev -- \
+     poetry run python manage.py zappa_loaddata dev reeval.json
    ```
 
    Base64-encodes the fixture and hands it to `zappa invoke --raw`,
