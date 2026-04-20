@@ -81,8 +81,9 @@ class OrganizationEvaluation(models.Model):
         default=None,
         help_text=(
             "Reviewer-chosen category slugs for the created"
-            " Organization. NULL means use the AI's"
-            " accessibility.categories list verbatim."
+            " Organization. NULL means fall back to the AI's"
+            " accessibility.categories list, filtered to known"
+            " Category slugs."
         ),
     )
     reviewed_at = models.DateTimeField(null=True, blank=True)
