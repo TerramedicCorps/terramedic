@@ -51,12 +51,12 @@
 
       <OrganizationGrid
         promise={data.organizations}
-        gridClass="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
         tagColor="green"
         buttonColor="green"
         emptyText="No donation opportunities yet — check back soon."
         analyticsSection="organizations"
         analyticsPage="donate"
+        actionText="Learn more"
       />
 
       <div class="mt-16 mb-6 text-center">

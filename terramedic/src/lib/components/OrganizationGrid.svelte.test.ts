@@ -5,12 +5,12 @@ import OrganizationGrid from './OrganizationGrid.svelte';
 import type { Organization } from '$lib/server/api';
 
 const baseProps = {
-  gridClass: 'grid gap-6 md:grid-cols-2',
   tagColor: 'blue',
   buttonColor: 'blue',
   emptyText: 'No organizations yet.',
   analyticsSection: 'organizations',
-  analyticsPage: 'test'
+  analyticsPage: 'test',
+  actionText: 'Volunteer'
 };
 
 function makeOrg(overrides: Partial<Organization> = {}): Organization {
@@ -60,6 +60,21 @@ describe('OrganizationGrid', () => {
       expect(screen.getByText('Second Org')).toBeInTheDocument();
     });
     expect(screen.queryByText('No organizations yet.')).not.toBeInTheDocument();
+  });
+
+  test('button label uses the page-level actionText, not org.action_text', async () => {
+    const orgs = [makeOrg({ id: 1, name: 'Example Org', action_text: 'Support Example Org' })];
+    const promise = Promise.resolve(orgs);
+    render(OrganizationGrid, {
+      props: { ...baseProps, actionText: 'Learn more', promise }
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Example Org')).toBeInTheDocument();
+    });
+    // Page-level verb wins over the auto-generated per-org label.
+    expect(screen.getByRole('link', { name: 'Learn more' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Support Example Org' })).not.toBeInTheDocument();
   });
 
   test('shows refresh-to-retry message when the promise rejects', async () => {
