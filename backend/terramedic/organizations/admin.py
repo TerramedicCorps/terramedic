@@ -388,27 +388,46 @@ class EvaluationReviewForm(forms.ModelForm):  # type: ignore[type-arg]
                 self.instance.reviewer_categories,
             )
             return
+        # 'other' is in the schema as an AI escape hatch but isn't a
+        # real Category row — don't pre-check a box that maps to
+        # nothing on approval.
+        self.initial["reviewer_categories"] = self._ai_fallback_slugs()
+
+    def _ai_fallback_slugs(self) -> list[str]:
+        """Slugs the AI proposed, filtered to ones that map to a real
+        Category row. Used both for prefill and for NULL-preservation
+        in ``clean_reviewer_categories``."""
         ai_categories = (
             (self.instance.evaluation_data or {})
             .get("accessibility", {})
             .get("categories", [])
         )
-        # 'other' is in the schema as an AI escape hatch but isn't a
-        # real Category row — don't pre-check a box that maps to
-        # nothing on approval.
-        #
-        # Side effect: the first no-op save of this form on a
-        # NULL-reviewer_categories evaluation promotes the implicit
-        # AI fallback to an explicit override (construct_instance
-        # writes form.initial back to the instance). The resolved
-        # category set is identical, so nothing breaks at approval
-        # time — but later schema changes to the AI list won't
-        # shadow through for that evaluation. If that becomes a
-        # problem, compare cleaned_data to the AI list before
-        # writing rather than adding drift-detection here.
-        self.initial["reviewer_categories"] = [
-            slug for slug in ai_categories if slug != "other"
-        ]
+        return [slug for slug in ai_categories if slug != "other"]
+
+    def clean_reviewer_categories(self) -> list[str] | None:
+        """Preserve NULL when the reviewer confirms the AI defaults.
+
+        The field prefills from the AI list when
+        ``instance.reviewer_categories`` is ``NULL``, so a reviewer
+        opening the form sees the AI-proposed categories as checked
+        boxes. If they save without toggling any box, the submission
+        equals the prefilled list — but that's "I accept the AI
+        defaults," not "I'm explicitly choosing this exact list."
+        Returning ``None`` in that case keeps the DB value ``NULL``,
+        so the evaluation continues to follow the AI list (which can
+        evolve) rather than freezing a snapshot of today's list as
+        an explicit override.
+        """
+        submitted = self.cleaned_data.get("reviewer_categories") or []
+        if self.instance.pk is None:
+            return submitted
+        if self.instance.reviewer_categories is not None:
+            # Existing override — respect whatever the reviewer submits,
+            # including the AI list if that's what they chose.
+            return submitted
+        if set(submitted) == set(self._ai_fallback_slugs()):
+            return None
+        return submitted
 
 
 @admin.register(OrganizationEvaluation)
@@ -625,18 +644,18 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
                 obj.organization.save(update_fields=["is_active"])
         super().save_model(request, obj, form, change)
 
-        # Keep the linked Organization's categories aligned with
-        # reviewer_categories whenever the reviewer edits them on an
-        # approved evaluation. On the initial PENDING→APPROVED save
-        # the post_save signal in signals.py already assigns
-        # categories via create_org_from_evaluation, so this call is
-        # an idempotent no-op in that case. On every other approved
-        # save — including APPROVED→PENDING→APPROVED cycles where
-        # the signal only reactivates is_active — this is the path
-        # that propagates the edit to the live org.
+        # Admin form saves are authoritative: whenever the reviewer
+        # submits the change form for an approved, linked evaluation,
+        # align the org's categories with the evaluation's resolved
+        # set. This covers every relevant case — explicit category
+        # edits, no-op saves (sync is idempotent), and
+        # APPROVED→PENDING→APPROVED cycles where the signal only
+        # reactivates is_active. The alternative — triggering on
+        # form.changed_data — misses the NULL-preservation path from
+        # clean_reviewer_categories (which surfaces the cleaned
+        # value, while has_changed works off raw form data).
         if (
             change
-            and "reviewer_categories" in form.changed_data
             and obj.status == ReviewStatus.APPROVED
             and obj.organization is not None
         ):

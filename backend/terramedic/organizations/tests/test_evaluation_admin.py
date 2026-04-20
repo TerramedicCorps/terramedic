@@ -1290,23 +1290,27 @@ class TestReviewerCategoriesPostApprovalSync:
             org.categories.values_list("slug", flat=True),
         ) == ["donate"]
 
-    def test_unchanged_prefilled_checkboxes_do_not_resync_org(
+    def test_noop_save_preserves_null_and_resyncs_org_to_ai_list(
         self,
         admin_client: Client,
         admin_user: User,
     ) -> None:
-        """Out-of-band edits to ``Organization.categories`` survive a
-        form save that leaves the prefilled checkboxes untouched.
+        """A no-op form save preserves ``reviewer_categories=NULL``
+        and resyncs the linked org to the AI list.
 
-        ``reviewer_categories`` is ``NULL`` after the first (bulk or
-        non-form) approval, but the form's ``__init__`` prefills the
-        checkboxes from the AI list so they render as "already
-        checked." If the reviewer submits without toggling any box,
-        ``form.initial`` shadows the ``NULL`` DB value and
-        ``reviewer_categories`` is absent from ``form.changed_data``
-        — so the sync correctly skips. Anything that edited
-        ``org.categories`` outside the admin (a shell fixup, a data
-        migration) is preserved.
+        The form's ``__init__`` prefills the checkboxes from the AI
+        list when ``reviewer_categories`` is ``NULL``. If the reviewer
+        clicks Save without toggling a box, ``clean_reviewer_categories``
+        detects that the submission equals the AI fallback and returns
+        ``None`` — so the DB stays ``NULL`` (no silent promotion to an
+        explicit override) and the evaluation continues to track the
+        AI list even if the list later evolves.
+
+        The reviewer's Save is still authoritative, though: any
+        out-of-band drift on ``org.categories`` is overwritten to
+        match the evaluation's resolved state. From the admin's point
+        of view the checkboxes are what's stored — showing the AI
+        defaults and saving makes the linked org match.
         """
         ev = OrganizationEvaluation.objects.create(
             evaluation_data=_make_evaluation_data(
@@ -1320,7 +1324,7 @@ class TestReviewerCategoriesPostApprovalSync:
         ev.refresh_from_db()
         org = ev.organization
         assert org is not None
-        # Simulate the out-of-band drift we want to preserve.
+        # Simulate out-of-band drift on the linked org.
         donate_only = list(
             org.categories.model.objects.filter(slug="donate"),
         )
@@ -1340,9 +1344,14 @@ class TestReviewerCategoriesPostApprovalSync:
 
         ev.refresh_from_db()
         org.refresh_from_db()
-        assert list(
+        # NULL preserved — the reviewer didn't express an override,
+        # they just confirmed the AI defaults.
+        assert ev.reviewer_categories is None
+        # Org resynced to match the evaluation's effective categories
+        # (the AI list), not the out-of-band drifted state.
+        assert set(
             org.categories.values_list("slug", flat=True),
-        ) == ["donate"]
+        ) == {"donate", "volunteer"}
 
     def test_reapproval_with_category_edit_syncs_org(
         self,
