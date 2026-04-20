@@ -196,9 +196,10 @@ communities.
 - A "Donate" button in the site header does **not** earn `donate`. \
 That category is for orgs where donations are a central, accountable \
 pathway with a clear theory of change.
-- Hosting a speaker series or publishing an explainer does **not** \
-earn `volunteer`. That category requires an actual hands-on or \
-advocacy pathway people can sign up for.
+- A "Sign the petition" button does **not** earn `volunteer`. That \
+category is for orgs offering sustained participation pathways — \
+canvassing, lobby days, letter writing, restoration work, local \
+chapter meetings.
 
 **When in doubt, leave the category off.** Under-classification is \
 easy for a reviewer to correct; over-classification pollutes the \
