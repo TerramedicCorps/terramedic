@@ -1264,3 +1264,23 @@ class TestCategoryAssignmentDiscipline:
         self,
     ) -> None:
         assert "When in doubt, leave the category off" in SYSTEM_PROMPT
+
+
+class TestDescriptionLengthGuidance:
+    """Org descriptions must be roughly the same length across orgs so
+    card layouts don't jitter — the current cards render the full
+    description with no truncation, so raw character count drives
+    visual variation.
+    """
+
+    def test_prompt_has_description_guidelines_section(self) -> None:
+        assert "Description guidelines" in SYSTEM_PROMPT
+
+    def test_prompt_asks_for_one_to_two_sentences(self) -> None:
+        assert "one to two sentences" in SYSTEM_PROMPT
+
+    def test_prompt_anchors_on_character_target(self) -> None:
+        """The prompt must give the model a concrete character budget
+        (120-180) so descriptions land in a narrow band."""
+        assert "120" in SYSTEM_PROMPT
+        assert "180" in SYSTEM_PROMPT

@@ -66,6 +66,24 @@ their own? A focused conservation org, a regional volunteer network, a niche \
 career platform, or a research group producing guides for advocates all belong. \
 A massive global NGO that everyone already knows about does not.
 
+## Description guidelines
+
+The ``org_metadata.description`` field is rendered verbatim on \
+Terramedic's public listing cards, side by side with other orgs. \
+Uneven lengths make the grid look jittery, so aim for consistency:
+
+- **Write one to two sentences, roughly 120-180 characters total.** \
+Treat 200 as a hard ceiling.
+- Lead with **what the org does**, not what it is. Prefer *"Protects \
+old-growth rainforest by funding Indigenous-led land stewardship in \
+Borneo"* over *"A 501(c)(3) nonprofit dedicated to rainforest \
+conservation."*
+- Drop filler phrases like *"is an organization that"*, *"founded \
+in..."*, or *"mission is to..."* — they eat characters without \
+adding information.
+- Don't pad short orgs to hit the target; concision beats filler. \
+Don't truncate mid-thought to fit either — rewrite instead.
+
 ## Nomination categories
 
 Each organization should fit one or more of the categories below. If the \
