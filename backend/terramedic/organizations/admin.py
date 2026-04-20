@@ -357,9 +357,10 @@ class EvaluationReviewForm(forms.ModelForm):  # type: ignore[type-arg]
         required=False,
         label="Categories to assign on approval",
         help_text=(
-            "Prefilled with the AI's proposed list. Uncheck any that"
-            " don't fit before approving — this replaces editing the"
-            " Organization record after the fact."
+            "Prefilled with the AI's proposed list. Edits here flow"
+            " to the linked Organization — before approval via the"
+            " create path, and after approval via re-sync. Uncheck"
+            " any that don't fit."
         ),
     )
 
