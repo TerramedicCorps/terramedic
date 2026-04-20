@@ -377,16 +377,19 @@ class EvaluationReviewForm(forms.ModelForm):  # type: ignore[type-arg]
         self.fields["reviewer_categories"].choices = list(  # type: ignore[attr-defined]
             Category.objects.values_list("slug", "label"),
         )
-        instance = kwargs.get("instance")
-        if instance is None:
+        # Use self.instance (populated by ModelForm.__init__ whether
+        # the caller passed instance positionally or by keyword) and
+        # gate on pk so unbound forms — e.g. the admin's "add" view —
+        # skip prefill cleanly.
+        if self.instance.pk is None:
             return
-        if instance.reviewer_categories is not None:
+        if self.instance.reviewer_categories is not None:
             self.initial["reviewer_categories"] = list(
-                instance.reviewer_categories,
+                self.instance.reviewer_categories,
             )
             return
         ai_categories = (
-            (instance.evaluation_data or {})
+            (self.instance.evaluation_data or {})
             .get("accessibility", {})
             .get("categories", [])
         )
