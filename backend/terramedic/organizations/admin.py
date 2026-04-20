@@ -344,11 +344,20 @@ class EvaluationReviewForm(forms.ModelForm):  # type: ignore[type-arg]
 
     Prefilled with the AI's ``accessibility.categories`` the first time
     a reviewer opens the form, so unchecking is the reviewer's only
-    action when the AI over-classified. On save, the reviewer's
-    selection (even if unchanged) is persisted to
-    ``reviewer_categories``, which the ``create_org_on_approval``
-    signal uses as the source of truth for the new Organization's
-    categories.
+    action when the AI over-classified. On save:
+
+    * **Edited away from the AI list** — the reviewer's selection is
+      persisted to ``reviewer_categories`` as an explicit override.
+    * **Confirmed unchanged (still matches the AI list)** —
+      ``clean_reviewer_categories`` returns ``None`` so the field
+      stays ``NULL``, and the evaluation keeps tracking the AI list
+      rather than freezing today's list as a snapshot.
+
+    Either way, ``OrganizationEvaluationAdmin.save_model`` resyncs the
+    linked ``Organization.categories`` to the evaluation's effective
+    set — ``reviewer_categories`` when present, else the AI list —
+    so the admin form is authoritative for the linked org's
+    categories on every save.
     """
 
     reviewer_categories = forms.MultipleChoiceField(
