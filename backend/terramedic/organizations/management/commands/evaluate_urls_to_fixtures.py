@@ -148,14 +148,19 @@ class Command(BaseCommand):
 def _read_urls(path: Path) -> list[str]:
     """Read URLs from a plain-text file, one per line.
 
-    Blank lines and lines whose first non-space character is ``#`` are
-    skipped so the file can carry human-readable comments without
-    confusing downstream processing.
+    Skips blank lines, lines whose first non-space character is ``#``,
+    and anything that doesn't start with ``http://`` or ``https://``.
+    The last rule lets a curator redirect ``zappa manage ...
+    "list_reevaluation_candidates"`` output straight to a file — the
+    Lambda log wrapping (``START``, ``END``, ``REPORT``, Zappa upgrade
+    notice, etc.) drops out automatically without a hand-grep step.
     """
     urls: list[str] = []
     for raw in path.read_text().splitlines():
         line = raw.strip()
         if not line or line.startswith("#"):
+            continue
+        if not line.startswith(("http://", "https://")):
             continue
         urls.append(line)
     return urls

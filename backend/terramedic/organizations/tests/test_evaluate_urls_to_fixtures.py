@@ -278,6 +278,50 @@ class TestEvaluateUrlsToFixtures:
 
         mock_eval.assert_not_called()
 
+    def test_skips_non_http_lines_so_zappa_log_wrapping_survives(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        """``zappa manage ... "list_reevaluation_candidates"`` wraps
+        the command's stdout with Lambda log lines (START/END/REPORT,
+        ``Important! A new version of Zappa ...``, etc.). A curator
+        redirecting that straight to a file shouldn't have to strip
+        it by hand — only lines starting with http:// or https://
+        count as candidate URLs."""
+        urls_file = tmp_path / "urls.txt"
+        urls_file.write_text("\n".join([
+            "Important! A new version of Zappa is available!",
+            "START RequestId: abc Version: $LATEST",
+            "DEBUG handler Zappa Event: {...}",
+            "https://a.example",
+            "https://b.example",
+            "END RequestId: abc",
+            "REPORT Duration: 220ms",
+            "ftp://not-an-http-url.example",
+            "plain text that isn't a URL",
+        ]))
+        out_path = tmp_path / "out.json"
+
+        with patch(
+            f"{_EVAL_CMD_MODULE}.evaluate_org_via_claude_code",
+            side_effect=lambda url, **kw: _fake_eval(url, **kw),
+        ):
+            call_command(
+                "evaluate_urls_to_fixtures",
+                str(urls_file),
+                "--out",
+                str(out_path),
+            )
+
+        data = json.loads(out_path.read_text())
+        urls = [
+            row["fields"]["evaluation_data"]["org_metadata"][
+                "website_url"
+            ]
+            for row in data
+        ]
+        assert urls == ["https://a.example", "https://b.example"]
+
     def test_non_dry_run_requires_out_argument(
         self,
         tmp_path: Path,
