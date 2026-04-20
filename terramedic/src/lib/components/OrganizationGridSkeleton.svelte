@@ -1,4 +1,9 @@
 <script>
+  import {
+    ORG_CARD_WRAPPER_CLASS,
+    ORG_GRID_CONTAINER_CLASS
+  } from '$lib/components/organizationGrid.styles';
+
   // Skeleton shown while the org list streams in. Layout mirrors
   // OrganizationGrid (flex-wrap + centered cards at a fixed 18rem
   // width) so the real cards slot in without a reflow.
@@ -9,11 +14,11 @@
   $: indices = [...Array(count).keys()];
 </script>
 
-<div class="flex flex-wrap justify-center gap-6" role="status" aria-live="polite" aria-busy="true">
+<div class={ORG_GRID_CONTAINER_CLASS} role="status" aria-live="polite" aria-busy="true">
   <span class="sr-only">Loading organizations</span>
   {#each indices as i (i)}
     <div
-      class="!bg-navy flex h-full w-full animate-pulse flex-col rounded-lg border border-white/10 p-5 sm:w-72"
+      class="!bg-navy flex h-full animate-pulse flex-col rounded-lg border border-white/10 p-5 {ORG_CARD_WRAPPER_CLASS}"
     >
       <div class="mb-3 h-6 w-3/4 rounded bg-white/10"></div>
       <div class="mb-3 flex flex-wrap gap-1.5">

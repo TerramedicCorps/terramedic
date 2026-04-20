@@ -1,6 +1,11 @@
 <script>
   import OrganizationCard from '$lib/components/OrganizationCard.svelte';
   import OrganizationGridSkeleton from '$lib/components/OrganizationGridSkeleton.svelte';
+  import {
+    DEFAULT_ORG_ACTION_TEXT,
+    ORG_CARD_WRAPPER_CLASS,
+    ORG_GRID_CONTAINER_CLASS
+  } from '$lib/components/organizationGrid.styles';
   import { trackSectionView } from '$lib/utils/analytics';
 
   // Shared wrapper for listing pages (/volunteer, /donate, etc.) that
@@ -13,7 +18,7 @@
   export let emptyText;
   export let analyticsSection;
   export let analyticsPage;
-  export let actionText = 'Visit Website';
+  export let actionText = DEFAULT_ORG_ACTION_TEXT;
 </script>
 
 <div use:trackSectionView={{ section: analyticsSection, page: analyticsPage }}>
@@ -23,16 +28,9 @@
     {#if organizations.length === 0}
       <p class="text-center text-gray-400">{emptyText}</p>
     {:else}
-      <!--
-        Flex-wrap + justify-center instead of a CSS grid so rows with
-        fewer than 3 cards center under the header instead of
-        left-aligning. Card width 18rem gives 3 per row inside
-        container-narrow (max-w-5xl) with 1.5rem gaps, 2 per row on
-        tablet, and full-width on phones.
-      -->
-      <div class="flex flex-wrap justify-center gap-6">
+      <div class={ORG_GRID_CONTAINER_CLASS}>
         {#each organizations as org (org.id)}
-          <div class="w-full sm:w-72">
+          <div class={ORG_CARD_WRAPPER_CLASS}>
             <OrganizationCard
               name={org.name}
               description={org.description}

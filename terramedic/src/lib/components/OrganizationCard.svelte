@@ -1,12 +1,13 @@
 <script>
   import { Card, Button } from 'flowbite-svelte';
+  import { DEFAULT_ORG_ACTION_TEXT } from '$lib/components/organizationGrid.styles';
   import { trackEvent } from '$lib/utils/analytics';
 
   export let name = '';
   export let description = '';
   export let websiteUrl = '';
   export let imageUrl = '';
-  export let actionText = 'Visit Website';
+  export let actionText = DEFAULT_ORG_ACTION_TEXT;
   export let tags = [];
   export let tagColor = 'blue'; // 'blue', 'green', 'gold', 'purple', 'orange', 'red', 'gray'
   export let buttonColor = 'blue'; // 'blue', 'green', 'gold', 'purple'
