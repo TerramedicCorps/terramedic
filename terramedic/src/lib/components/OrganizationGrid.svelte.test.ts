@@ -61,7 +61,7 @@ describe('OrganizationGrid', () => {
     expect(screen.queryByText('No organizations yet.')).not.toBeInTheDocument();
   });
 
-  test('button label uses the page-level actionText', async () => {
+  test('forwards actionText prop to each card link', async () => {
     const orgs = [makeOrg({ id: 1, name: 'Example Org' })];
     const promise = Promise.resolve(orgs);
     render(OrganizationGrid, {
