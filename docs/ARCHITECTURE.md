@@ -74,7 +74,7 @@ django-parler (i18n), PostGIS (geospatial).
   (PointField). Translated field: description.
 - **Tag**: name (unique). Many-to-many with Organization.
 - **Category** choices: donate, volunteer, resource,
-  action, career.
+  everyday, career.
 
 **API endpoints** (all public, no auth):
 
