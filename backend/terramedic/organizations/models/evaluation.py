@@ -75,6 +75,16 @@ class OrganizationEvaluation(models.Model):
             "Reasoning when overriding the AI recommendation."
         ),
     )
+    reviewer_categories: Any = models.JSONField(
+        null=True,
+        blank=True,
+        default=None,
+        help_text=(
+            "Reviewer-chosen category slugs for the created"
+            " Organization. NULL means use the AI's"
+            " accessibility.categories list verbatim."
+        ),
+    )
     reviewed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

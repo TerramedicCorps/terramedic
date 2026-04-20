@@ -1243,3 +1243,24 @@ class TestMain:
 
         expected = default_dir / "example-org.json"
         assert expected.exists()
+
+
+class TestCategoryAssignmentDiscipline:
+    """The prompt must warn the model off over-classifying organizations.
+
+    Reviewers were routinely manually trimming 3-4 category assignments
+    down to the 1-2 that actually fit the org.
+    """
+
+    def test_prompt_has_assignment_discipline_section(self) -> None:
+        assert "Assignment discipline" in SYSTEM_PROMPT
+
+    def test_prompt_calls_out_typical_category_count(self) -> None:
+        """The prompt should anchor the model on 1-2 categories as the
+        typical count, so it stops routinely assigning 3-5."""
+        assert "one or two" in SYSTEM_PROMPT
+
+    def test_prompt_defaults_to_leaving_categories_off_when_unsure(
+        self,
+    ) -> None:
+        assert "When in doubt, leave the category off" in SYSTEM_PROMPT

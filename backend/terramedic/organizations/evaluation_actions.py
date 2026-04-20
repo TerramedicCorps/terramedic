@@ -19,17 +19,27 @@ def create_org_from_evaluation(
 ) -> Organization:
     """Create an Organization from evaluation data.
 
-    Assigns every valid category from the evaluation's
-    ``accessibility.categories`` array. If none are valid
-    (for example, all entries are ``"other"``), the
-    organization is filed under ``resource`` as a fallback
-    so it still shows up somewhere.
+    Categories are resolved in this order:
+
+    1. ``evaluation.reviewer_categories`` — the reviewer's explicit
+       choice. Set via the admin detail form. ``NULL`` means "no
+       override" (fall through); an empty list means "reviewer cleared
+       all categories" and triggers the ``resource`` fallback.
+    2. ``accessibility.categories`` from the AI — the legacy / bulk
+       approve path.
+
+    If the resolved list contains no valid slugs (for example, all
+    entries are ``"other"``), the organization is filed under
+    ``resource`` as a fallback so it still shows up somewhere.
     """
     data = evaluation.evaluation_data
     meta = data.get("org_metadata", {})
     accessibility = data.get("accessibility", {})
 
-    requested = accessibility.get("categories", [])
+    if evaluation.reviewer_categories is not None:
+        requested = evaluation.reviewer_categories
+    else:
+        requested = accessibility.get("categories", [])
     valid_categories = list(Category.objects.filter(slug__in=requested))
     if not valid_categories:
         valid_categories = list(Category.objects.filter(slug="resource"))

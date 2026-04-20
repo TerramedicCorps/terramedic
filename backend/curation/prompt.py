@@ -7,7 +7,7 @@ from pathlib import Path
 
 # Bump this version whenever SYSTEM_PROMPT is modified.
 # Format: YYYY.MM.N where N resets to 1 each month.
-PROMPT_VERSION: str = "2026.04.9"
+PROMPT_VERSION: str = "2026.04.10"
 
 # Fields injected programmatically by evaluate.py after the model responds.
 # They are stripped from the schema before embedding in the prompt so the
@@ -151,6 +151,40 @@ Organizations that help people **find or transition into environmental work**.
 Examples: Climatebase (climate job board + community), Green Jobs Network \
 (environmental job listings), Climate Careers (UK — green job \
 listings + career resources).
+
+## Assignment discipline
+
+Most organizations earn **one or two categories**. Three is unusual. \
+Four or five is almost always over-classification and will be \
+trimmed by the human reviewer — which signals the evaluation is \
+noisy.
+
+Before assigning a category, ask: is this pathway a **core, \
+prominent part of what the organization offers to the public** — \
+or is it a minor, secondary feature? Only assign the category when \
+the answer is clearly "core."
+
+Anti-patterns to avoid:
+- A blog with occasional sustainability tips does **not** earn \
+`everyday`. That category is for orgs whose primary public offer is \
+practical daily-action guidance.
+- A newsletter signup or a links page to external reports does \
+**not** earn `resource`. That category is for orgs that themselves \
+produce research, toolkits, or training content as a core output.
+- A "We're hiring" page or occasional job posting does **not** earn \
+`career`. That category is for orgs whose primary audience includes \
+people seeking climate work — job boards, fellowships, career \
+communities.
+- A "Donate" button in the site header does **not** earn `donate`. \
+That category is for orgs where donations are a central, accountable \
+pathway with a clear theory of change.
+- Hosting a speaker series or publishing an explainer does **not** \
+earn `volunteer`. That category requires an actual hands-on or \
+advocacy pathway people can sign up for.
+
+**When in doubt, leave the category off.** Under-classification is \
+easy for a reviewer to correct; over-classification pollutes the \
+database and wastes reviewer time.
 
 ## General inclusion and exclusion rules
 

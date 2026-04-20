@@ -1076,3 +1076,186 @@ class TestCategoryFilter:
         content = response.content.decode()
         assert "Volunteer Corps" in content
         assert "Test Organization" not in content
+
+
+@pytest.mark.django_db
+class TestReviewerCategoriesOverride:
+    """Reviewer can trim the AI's category list before approval.
+
+    The AI tends to over-classify (assigns 3-4 categories when only 1-2
+    actually fit). Before this change, reviewers had to approve the
+    evaluation and then edit the created Organization to remove the
+    spurious categories. Now the reviewer picks the final list up-front,
+    and the post_save signal creates the Organization with only that
+    subset.
+    """
+
+    def test_reviewer_categories_defaults_to_none(self) -> None:
+        """A fresh evaluation has no reviewer override — the AI's list
+        is used on approval."""
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(),
+        )
+        assert ev.reviewer_categories is None
+
+    def test_reviewer_categories_override_trims_ai_list_on_approval(
+        self,
+        admin_user: User,
+    ) -> None:
+        """When reviewer_categories is a subset of the AI's list, only
+        the chosen slugs get assigned to the created Organization."""
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                accessibility={
+                    "categories": ["donate", "volunteer", "resource"],
+                },
+            ),
+            reviewer_categories=["donate"],
+        )
+        ev.status = ReviewStatus.APPROVED
+        ev.reviewer = admin_user
+        ev.reviewed_at = timezone.now()
+        ev.save()
+        ev.refresh_from_db()
+        assert ev.organization is not None
+        assert list(
+            ev.organization.categories.values_list("slug", flat=True),
+        ) == ["donate"]
+
+    def test_reviewer_categories_none_falls_back_to_ai_list(
+        self,
+        admin_user: User,
+    ) -> None:
+        """Leaving reviewer_categories as None preserves the legacy
+        behavior: the AI's accessibility.categories is used verbatim.
+        This is what the bulk-approve path relies on."""
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                accessibility={"categories": ["donate", "volunteer"]},
+            ),
+        )
+        assert ev.reviewer_categories is None
+        ev.status = ReviewStatus.APPROVED
+        ev.reviewer = admin_user
+        ev.reviewed_at = timezone.now()
+        ev.save()
+        ev.refresh_from_db()
+        assert ev.organization is not None
+        assert set(
+            ev.organization.categories.values_list("slug", flat=True),
+        ) == {"donate", "volunteer"}
+
+
+@pytest.mark.django_db
+class TestReviewerCategoriesAdminForm:
+    """The detail-page form exposes per-category checkboxes prefilled
+    with the AI's proposed list so reviewers can uncheck spurious ones
+    before approving."""
+
+    def test_detail_form_renders_category_checkboxes(
+        self,
+        admin_client: Client,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        response = admin_client.get(
+            f"/admin/organizations/organizationevaluation/"
+            f"{pending_evaluation.pk}/change/",
+        )
+        content = response.content.decode()
+        assert 'name="reviewer_categories"' in content
+        assert 'value="donate"' in content
+        assert 'value="volunteer"' in content
+        assert 'value="resource"' in content
+
+    def test_detail_form_prefills_checkboxes_with_ai_list(
+        self,
+        admin_client: Client,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        """The default fixture's AI list is ['donate', 'volunteer'] —
+        those two should render as checked, 'resource' should not."""
+        import re
+        response = admin_client.get(
+            f"/admin/organizations/organizationevaluation/"
+            f"{pending_evaluation.pk}/change/",
+        )
+        content = response.content.decode()
+        # Django's CheckboxSelectMultiple emits each option as its own
+        # <input> — match on the surrounding fragment so we don't tie
+        # the assertion to attribute ordering.
+        def checked(slug: str) -> bool:
+            pattern = (
+                rf'<input[^>]*name="reviewer_categories"[^>]*'
+                rf'value="{slug}"[^>]*checked'
+            )
+            return re.search(pattern, content) is not None
+        assert checked("donate")
+        assert checked("volunteer")
+        assert not checked("resource")
+        assert not checked("career")
+        assert not checked("everyday")
+
+    def test_submit_with_subset_persists_and_trims_org_categories(
+        self,
+        admin_client: Client,
+    ) -> None:
+        """Reviewer unchecks 'volunteer' and 'resource', approves —
+        persisted override is ['donate'] and the Organization gets
+        only that slug."""
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                accessibility={
+                    "categories": ["donate", "volunteer", "resource"],
+                },
+            ),
+        )
+        url = (
+            f"/admin/organizations/organizationevaluation/"
+            f"{ev.pk}/change/"
+        )
+        response = admin_client.post(
+            url,
+            {
+                "status": ReviewStatus.APPROVED,
+                "reviewer_reasoning": "",
+                "reviewer_categories": ["donate"],
+                "_save": "Save",
+            },
+        )
+        assert response.status_code == 302
+        ev.refresh_from_db()
+        assert ev.reviewer_categories == ["donate"]
+        assert ev.organization is not None
+        assert list(
+            ev.organization.categories.values_list("slug", flat=True),
+        ) == ["donate"]
+
+    def test_prefill_uses_saved_override_when_present(
+        self,
+        admin_client: Client,
+    ) -> None:
+        """Once a reviewer has saved an override, reopening the form
+        reflects their choice — not the AI's original list."""
+        import re
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                accessibility={
+                    "categories": ["donate", "volunteer", "resource"],
+                },
+            ),
+            reviewer_categories=["donate"],
+        )
+        response = admin_client.get(
+            f"/admin/organizations/organizationevaluation/"
+            f"{ev.pk}/change/",
+        )
+        content = response.content.decode()
+        def checked(slug: str) -> bool:
+            pattern = (
+                rf'<input[^>]*name="reviewer_categories"[^>]*'
+                rf'value="{slug}"[^>]*checked'
+            )
+            return re.search(pattern, content) is not None
+        assert checked("donate")
+        assert not checked("volunteer")
+        assert not checked("resource")

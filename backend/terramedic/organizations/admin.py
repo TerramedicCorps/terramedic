@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from django import forms
 from django.contrib import admin, messages
 from django.db import connection
 from django.db.models import Count, Q, QuerySet
@@ -335,6 +336,64 @@ class CategoryFilter(admin.SimpleListFilter):
         return queryset.filter(pk__in=pks)
 
 
+class EvaluationReviewForm(forms.ModelForm):  # type: ignore[type-arg]
+    """Admin detail form with per-category checkboxes.
+
+    Prefilled with the AI's ``accessibility.categories`` the first time
+    a reviewer opens the form, so unchecking is the reviewer's only
+    action when the AI over-classified. On save, the reviewer's
+    selection (even if unchanged) is persisted to
+    ``reviewer_categories``, which the ``create_org_on_approval``
+    signal uses as the source of truth for the new Organization's
+    categories.
+    """
+
+    reviewer_categories = forms.MultipleChoiceField(
+        choices=(),
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label="Categories to assign on approval",
+        help_text=(
+            "Prefilled with the AI's proposed list. Uncheck any that"
+            " don't fit before approving — this replaces editing the"
+            " Organization record after the fact."
+        ),
+    )
+
+    class Meta:
+        model = OrganizationEvaluation
+        fields = (
+            "status",
+            "reviewer_reasoning",
+            "reviewer_categories",
+        )
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["reviewer_categories"].choices = list(  # type: ignore[attr-defined]
+            Category.objects.values_list("slug", "label"),
+        )
+        instance = kwargs.get("instance")
+        if instance is None:
+            return
+        if instance.reviewer_categories is not None:
+            self.initial["reviewer_categories"] = list(
+                instance.reviewer_categories,
+            )
+            return
+        ai_categories = (
+            (instance.evaluation_data or {})
+            .get("accessibility", {})
+            .get("categories", [])
+        )
+        # 'other' is in the schema as an AI escape hatch but isn't a
+        # real Category row — don't pre-check a box that maps to
+        # nothing on approval.
+        self.initial["reviewer_categories"] = [
+            slug for slug in ai_categories if slug != "other"
+        ]
+
+
 @admin.register(OrganizationEvaluation)
 class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     list_display = [
@@ -347,6 +406,7 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         "reviewed_at",
     ]
     list_filter = ["status", EvidenceScoreFilter, CategoryFilter]
+    form = EvaluationReviewForm
     # search_fields must be non-empty for Django to render the search
     # box.  The default icontains query on "status" is harmless but
     # unused — actual search logic lives in get_search_results below.
@@ -365,6 +425,7 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
             {
                 "fields": (
                     "status",
+                    "reviewer_categories",
                     "reviewer_reasoning",
                 ),
                 "description": (
