@@ -2,6 +2,7 @@
   import OrganizationCard from '$lib/components/OrganizationCard.svelte';
   import OrganizationGridSkeleton from '$lib/components/OrganizationGridSkeleton.svelte';
   import {
+    DEFAULT_ORG_ACTION_TEXT,
     ORG_CARD_WRAPPER_CLASS,
     ORG_GRID_CONTAINER_CLASS
   } from '$lib/components/organizationGrid.styles';
@@ -21,10 +22,7 @@
   // `org.action_text` so /donate shows "Learn more", /volunteer shows
   // "Volunteer", etc. — the stored `action_text` is auto-generated
   // per-org ("Support {name}") and less contextual than the page verb.
-  // Default matches OrganizationCard's default so a caller that
-  // forgets to pass one still renders a labeled button (and emits a
-  // sane analytics value) instead of "undefined".
-  export let actionText = 'Visit Website';
+  export let actionText = DEFAULT_ORG_ACTION_TEXT;
 </script>
 
 <div use:trackSectionView={{ section: analyticsSection, page: analyticsPage }}>
