@@ -17,7 +17,10 @@
   // `org.action_text` so /donate shows "Learn more", /volunteer shows
   // "Volunteer", etc. — the stored `action_text` is auto-generated
   // per-org ("Support {name}") and less contextual than the page verb.
-  export let actionText;
+  // Default matches OrganizationCard's default so a caller that
+  // forgets to pass one still renders a labeled button (and emits a
+  // sane analytics value) instead of "undefined".
+  export let actionText = 'Visit Website';
 </script>
 
 <div use:trackSectionView={{ section: analyticsSection, page: analyticsPage }}>
