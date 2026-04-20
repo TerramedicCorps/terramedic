@@ -1367,3 +1367,79 @@ class TestReviewerCategoriesPostApprovalSync:
         assert list(
             org.categories.values_list("slug", flat=True),
         ) == ["donate"]
+
+    def test_reapproval_with_category_edit_syncs_org(
+        self,
+        admin_client: Client,
+        admin_user: User,
+    ) -> None:
+        """Un-approve then re-approve in two form submits, changing
+        reviewer_categories on the re-approval save. The post_save
+        signal only reactivates is_active on the re-approval (it
+        doesn't touch categories when an org is already linked), so
+        the sync must run even when status is also in changed_data —
+        otherwise the DB row drifts from the linked Organization.
+        """
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                accessibility={
+                    "categories": ["donate", "volunteer", "resource"],
+                },
+            ),
+        )
+        change_url = (
+            f"/admin/organizations/organizationevaluation/"
+            f"{ev.pk}/change/"
+        )
+        # First approval — signal creates org with full AI list.
+        admin_client.post(
+            change_url,
+            {
+                "status": ReviewStatus.APPROVED,
+                "reviewer_reasoning": "",
+                "reviewer_categories": [
+                    "donate", "volunteer", "resource",
+                ],
+                "_save": "Save",
+            },
+        )
+        ev.refresh_from_db()
+        org = ev.organization
+        assert org is not None
+        assert set(
+            org.categories.values_list("slug", flat=True),
+        ) == {"donate", "volunteer", "resource"}
+
+        # Un-approve.
+        admin_client.post(
+            change_url,
+            {
+                "status": ReviewStatus.REJECTED,
+                "reviewer_reasoning": "needs trimming",
+                "reviewer_categories": [
+                    "donate", "volunteer", "resource",
+                ],
+                "_save": "Save",
+            },
+        )
+
+        # Re-approve AND change reviewer_categories in the same save.
+        admin_client.post(
+            change_url,
+            {
+                "status": ReviewStatus.APPROVED,
+                "reviewer_reasoning": "trimmed",
+                "reviewer_categories": ["donate"],
+                "_save": "Save",
+            },
+        )
+
+        ev.refresh_from_db()
+        org.refresh_from_db()
+        assert ev.status == ReviewStatus.APPROVED
+        assert ev.reviewer_categories == ["donate"]
+        # The linked org must reflect the reviewer's edit, not the
+        # stale pre-unapproval set.
+        assert list(
+            org.categories.values_list("slug", flat=True),
+        ) == ["donate"]

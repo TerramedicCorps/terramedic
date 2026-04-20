@@ -611,17 +611,18 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
                 obj.organization.save(update_fields=["is_active"])
         super().save_model(request, obj, form, change)
 
-        # On the APPROVED transition, create_org_on_approval in
-        # signals.py handles category assignment via
-        # create_org_from_evaluation. For subsequent edits of
-        # reviewer_categories on an already-approved evaluation the
-        # signal short-circuits (it only handles the transition), so
-        # we re-sync the linked org's categories here to keep the
-        # form and the live org from drifting apart.
+        # Keep the linked Organization's categories aligned with
+        # reviewer_categories whenever the reviewer edits them on an
+        # approved evaluation. On the initial PENDING→APPROVED save
+        # the post_save signal in signals.py already assigns
+        # categories via create_org_from_evaluation, so this call is
+        # an idempotent no-op in that case. On every other approved
+        # save — including APPROVED→PENDING→APPROVED cycles where
+        # the signal only reactivates is_active — this is the path
+        # that propagates the edit to the live org.
         if (
             change
             and "reviewer_categories" in form.changed_data
-            and "status" not in form.changed_data
             and obj.status == ReviewStatus.APPROVED
             and obj.organization is not None
         ):
