@@ -70,12 +70,11 @@ django-parler (i18n), PostGIS (geospatial).
 **Models:**
 
 - **Organization** (TranslatableModel): name, website_url,
-  image_url, category, sort_order, is_active, location
-  (PointField). Translated fields: description,
-  action_text.
+  image_url, categories, sort_order, is_active, location
+  (PointField). Translated field: description.
 - **Tag**: name (unique). Many-to-many with Organization.
 - **Category** choices: donate, volunteer, resource,
-  action, career.
+  everyday, career.
 
 **API endpoints** (all public, no auth):
 

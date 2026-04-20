@@ -18,10 +18,6 @@
   export let emptyText;
   export let analyticsSection;
   export let analyticsPage;
-  // Button label for every card on this page. Page-level override of
-  // `org.action_text` so /donate shows "Learn more", /volunteer shows
-  // "Volunteer", etc. — the stored `action_text` is auto-generated
-  // per-org ("Support {name}") and less contextual than the page verb.
   export let actionText = DEFAULT_ORG_ACTION_TEXT;
 </script>
 

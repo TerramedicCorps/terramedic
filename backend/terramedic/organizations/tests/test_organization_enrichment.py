@@ -110,7 +110,6 @@ class TestOrganizationFocusAreas:
         )
         org2.set_current_language("en")
         org2.description = "Another org."
-        org2.action_text = "Donate"
         org2.save()
         org2.focus_areas.add(fa)
 

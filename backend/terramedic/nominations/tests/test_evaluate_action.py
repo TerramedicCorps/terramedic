@@ -168,7 +168,6 @@ class TestEvaluateActionSkipsExistingOrg:
         )
         org.set_current_language("en")
         org.description = "An org."
-        org.action_text = "Support"
         org.save()
 
         nom = _make_nomination(url="https://example.org")
