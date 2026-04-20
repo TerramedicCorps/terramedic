@@ -1264,3 +1264,106 @@ class TestReviewerCategoriesAdminForm:
         assert _reviewer_category_is_checked(content, "donate")
         assert not _reviewer_category_is_checked(content, "volunteer")
         assert not _reviewer_category_is_checked(content, "resource")
+
+
+@pytest.mark.django_db
+class TestReviewerCategoriesPostApprovalSync:
+    """Edits to reviewer_categories on an already-approved evaluation
+    must flow through to the linked Organization.
+
+    The post_save signal only creates or reactivates an Organization on
+    the APPROVED transition; it doesn't touch categories on subsequent
+    saves. Without an explicit sync, an admin editing
+    reviewer_categories after approval would see the evaluation form
+    disagree with the live Organization state.
+    """
+
+    def test_changing_reviewer_categories_after_approval_updates_org(
+        self,
+        admin_client: Client,
+        admin_user: User,
+    ) -> None:
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                accessibility={
+                    "categories": ["donate", "volunteer", "resource"],
+                },
+            ),
+        )
+        ev.status = ReviewStatus.APPROVED
+        ev.reviewer = admin_user
+        ev.reviewed_at = timezone.now()
+        ev.save()
+        ev.refresh_from_db()
+        org = ev.organization
+        assert org is not None
+        assert set(
+            org.categories.values_list("slug", flat=True),
+        ) == {"donate", "volunteer", "resource"}
+
+        response = admin_client.post(
+            f"/admin/organizations/organizationevaluation/"
+            f"{ev.pk}/change/",
+            {
+                "status": ReviewStatus.APPROVED,
+                "reviewer_reasoning": "",
+                "reviewer_categories": ["donate"],
+                "_save": "Save",
+            },
+        )
+        assert response.status_code == 302
+
+        ev.refresh_from_db()
+        org.refresh_from_db()
+        assert ev.reviewer_categories == ["donate"]
+        assert list(
+            org.categories.values_list("slug", flat=True),
+        ) == ["donate"]
+
+    def test_editing_reviewer_reasoning_alone_does_not_touch_org(
+        self,
+        admin_client: Client,
+        admin_user: User,
+    ) -> None:
+        """Only changes to reviewer_categories should resync — editing
+        reviewer_reasoning must not silently rewrite org categories."""
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                accessibility={"categories": ["donate", "volunteer"]},
+            ),
+        )
+        ev.status = ReviewStatus.APPROVED
+        ev.reviewer = admin_user
+        ev.reviewed_at = timezone.now()
+        ev.save()
+        ev.refresh_from_db()
+        org = ev.organization
+        assert org is not None
+        # Simulate something having edited org.categories out-of-band
+        # to drift from reviewer_categories — editing the reasoning
+        # field alone must not overwrite that drift.
+        donate_only = list(
+            org.categories.model.objects.filter(slug="donate"),
+        )
+        org.categories.set(donate_only)
+
+        response = admin_client.post(
+            f"/admin/organizations/organizationevaluation/"
+            f"{ev.pk}/change/",
+            {
+                "status": ReviewStatus.APPROVED,
+                "reviewer_reasoning": "just clarifying",
+                "reviewer_categories": ["donate", "volunteer"],
+                "_save": "Save",
+            },
+        )
+        assert response.status_code == 302
+
+        ev.refresh_from_db()
+        org.refresh_from_db()
+        # reviewer_categories didn't actually change from its initial
+        # (form-prefilled) value of ['donate', 'volunteer'], so the
+        # out-of-band donate-only state on the org is preserved.
+        assert list(
+            org.categories.values_list("slug", flat=True),
+        ) == ["donate"]
