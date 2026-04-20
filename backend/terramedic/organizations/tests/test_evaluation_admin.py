@@ -7,7 +7,10 @@ from django.contrib.auth.models import User
 from django.test import Client
 from django.utils import timezone
 
-from terramedic.organizations.admin import OrganizationEvaluationAdmin
+from terramedic.organizations.admin import (
+    EvaluationReviewForm,
+    OrganizationEvaluationAdmin,
+)
 from terramedic.organizations.models import (
     Organization,
     OrganizationEvaluation,
@@ -1076,3 +1079,352 @@ class TestCategoryFilter:
         content = response.content.decode()
         assert "Volunteer Corps" in content
         assert "Test Organization" not in content
+
+
+@pytest.mark.django_db
+class TestReviewerCategoriesOverride:
+    """Reviewer can adjust the AI's category list before approval.
+
+    The override works in either direction: trim a category the AI
+    over-assigned, or add one the AI missed. The common case is trimming
+    — the AI tends to over-classify (assigning 3-4 categories when only
+    1-2 fit) — but the mechanism isn't restricted to subsets of the AI's
+    list. Before this change, reviewers had to approve the evaluation
+    and then edit the created Organization; now the reviewer picks the
+    final list up-front and the post_save signal creates the
+    Organization with exactly that set.
+    """
+
+    def test_reviewer_categories_defaults_to_none(self) -> None:
+        """A fresh evaluation has no reviewer override — the AI's list
+        is used on approval."""
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(),
+        )
+        assert ev.reviewer_categories is None
+
+    def test_reviewer_categories_override_trims_ai_list_on_approval(
+        self,
+        admin_user: User,
+    ) -> None:
+        """When reviewer_categories is a subset of the AI's list, only
+        the chosen slugs get assigned to the created Organization."""
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                accessibility={
+                    "categories": ["donate", "volunteer", "resource"],
+                },
+            ),
+            reviewer_categories=["donate"],
+        )
+        ev.status = ReviewStatus.APPROVED
+        ev.reviewer = admin_user
+        ev.reviewed_at = timezone.now()
+        ev.save()
+        ev.refresh_from_db()
+        assert ev.organization is not None
+        assert list(
+            ev.organization.categories.values_list("slug", flat=True),
+        ) == ["donate"]
+
+    def test_reviewer_categories_none_falls_back_to_ai_list(
+        self,
+        admin_user: User,
+    ) -> None:
+        """Leaving reviewer_categories as None preserves the legacy
+        behavior: the AI's accessibility.categories is used verbatim.
+        This is what the bulk-approve path relies on."""
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                accessibility={"categories": ["donate", "volunteer"]},
+            ),
+        )
+        assert ev.reviewer_categories is None
+        ev.status = ReviewStatus.APPROVED
+        ev.reviewer = admin_user
+        ev.reviewed_at = timezone.now()
+        ev.save()
+        ev.refresh_from_db()
+        assert ev.organization is not None
+        assert set(
+            ev.organization.categories.values_list("slug", flat=True),
+        ) == {"donate", "volunteer"}
+
+
+@pytest.mark.django_db
+class TestReviewerCategoriesAdminForm:
+    """The detail-page form exposes per-category checkboxes prefilled
+    with the AI's proposed list so reviewers can uncheck spurious ones
+    before approving."""
+
+    def test_detail_form_renders_category_checkboxes(
+        self,
+        admin_client: Client,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        response = admin_client.get(
+            f"/admin/organizations/organizationevaluation/"
+            f"{pending_evaluation.pk}/change/",
+        )
+        content = response.content.decode()
+        assert 'name="reviewer_categories"' in content
+        assert 'value="donate"' in content
+        assert 'value="volunteer"' in content
+        assert 'value="resource"' in content
+
+    def test_detail_form_prefills_checkboxes_with_ai_list(
+        self,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        """Initial checkbox state comes from the AI's proposed list.
+
+        Assert against ``form.initial`` directly — the widget's HTML
+        output is a Django-internal detail we don't want to lock in.
+        """
+        form = EvaluationReviewForm(instance=pending_evaluation)
+        assert set(form.initial["reviewer_categories"]) == {
+            "donate", "volunteer",
+        }
+
+    def test_submit_with_subset_persists_and_trims_org_categories(
+        self,
+        admin_client: Client,
+    ) -> None:
+        """Reviewer unchecks 'volunteer' and 'resource', approves —
+        persisted override is ['donate'] and the Organization gets
+        only that slug."""
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                accessibility={
+                    "categories": ["donate", "volunteer", "resource"],
+                },
+            ),
+        )
+        url = (
+            f"/admin/organizations/organizationevaluation/"
+            f"{ev.pk}/change/"
+        )
+        response = admin_client.post(
+            url,
+            {
+                "status": ReviewStatus.APPROVED,
+                "reviewer_reasoning": "",
+                "reviewer_categories": ["donate"],
+                "_save": "Save",
+            },
+        )
+        assert response.status_code == 302
+        ev.refresh_from_db()
+        assert ev.reviewer_categories == ["donate"]
+        assert ev.organization is not None
+        assert list(
+            ev.organization.categories.values_list("slug", flat=True),
+        ) == ["donate"]
+
+    def test_prefill_uses_saved_override_when_present(self) -> None:
+        """Once a reviewer has saved an override, reopening the form
+        reflects their choice — not the AI's original list."""
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                accessibility={
+                    "categories": ["donate", "volunteer", "resource"],
+                },
+            ),
+            reviewer_categories=["donate"],
+        )
+        form = EvaluationReviewForm(instance=ev)
+        assert form.initial["reviewer_categories"] == ["donate"]
+
+
+@pytest.mark.django_db
+class TestReviewerCategoriesPostApprovalSync:
+    """Edits to reviewer_categories on an already-approved evaluation
+    must flow through to the linked Organization.
+
+    The post_save signal only creates or reactivates an Organization on
+    the APPROVED transition; it doesn't touch categories on subsequent
+    saves. Without an explicit sync, an admin editing
+    reviewer_categories after approval would see the evaluation form
+    disagree with the live Organization state.
+    """
+
+    def test_changing_reviewer_categories_after_approval_updates_org(
+        self,
+        admin_client: Client,
+        admin_user: User,
+    ) -> None:
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                accessibility={
+                    "categories": ["donate", "volunteer", "resource"],
+                },
+            ),
+        )
+        ev.status = ReviewStatus.APPROVED
+        ev.reviewer = admin_user
+        ev.reviewed_at = timezone.now()
+        ev.save()
+        ev.refresh_from_db()
+        org = ev.organization
+        assert org is not None
+        assert set(
+            org.categories.values_list("slug", flat=True),
+        ) == {"donate", "volunteer", "resource"}
+
+        response = admin_client.post(
+            f"/admin/organizations/organizationevaluation/"
+            f"{ev.pk}/change/",
+            {
+                "status": ReviewStatus.APPROVED,
+                "reviewer_reasoning": "",
+                "reviewer_categories": ["donate"],
+                "_save": "Save",
+            },
+        )
+        assert response.status_code == 302
+
+        ev.refresh_from_db()
+        org.refresh_from_db()
+        assert ev.reviewer_categories == ["donate"]
+        assert list(
+            org.categories.values_list("slug", flat=True),
+        ) == ["donate"]
+
+    def test_noop_save_preserves_null_and_resyncs_org_to_ai_list(
+        self,
+        admin_client: Client,
+        admin_user: User,
+    ) -> None:
+        """A no-op form save preserves ``reviewer_categories=NULL``
+        and resyncs the linked org to the AI list.
+
+        The form's ``__init__`` prefills the checkboxes from the AI
+        list when ``reviewer_categories`` is ``NULL``. If the reviewer
+        clicks Save without toggling a box, ``clean_reviewer_categories``
+        detects that the submission equals the AI fallback and returns
+        ``None`` — so the DB stays ``NULL`` (no silent promotion to an
+        explicit override) and the evaluation continues to track the
+        AI list even if the list later evolves.
+
+        The reviewer's Save is still authoritative, though: any
+        out-of-band drift on ``org.categories`` is overwritten to
+        match the evaluation's resolved state. From the admin's point
+        of view the checkboxes are what's stored — showing the AI
+        defaults and saving makes the linked org match.
+        """
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                accessibility={"categories": ["donate", "volunteer"]},
+            ),
+        )
+        ev.status = ReviewStatus.APPROVED
+        ev.reviewer = admin_user
+        ev.reviewed_at = timezone.now()
+        ev.save()
+        ev.refresh_from_db()
+        org = ev.organization
+        assert org is not None
+        # Simulate out-of-band drift on the linked org.
+        donate_only = list(
+            org.categories.model.objects.filter(slug="donate"),
+        )
+        org.categories.set(donate_only)
+
+        response = admin_client.post(
+            f"/admin/organizations/organizationevaluation/"
+            f"{ev.pk}/change/",
+            {
+                "status": ReviewStatus.APPROVED,
+                "reviewer_reasoning": "just clarifying",
+                "reviewer_categories": ["donate", "volunteer"],
+                "_save": "Save",
+            },
+        )
+        assert response.status_code == 302
+
+        ev.refresh_from_db()
+        org.refresh_from_db()
+        # NULL preserved — the reviewer didn't express an override,
+        # they just confirmed the AI defaults.
+        assert ev.reviewer_categories is None
+        # Org resynced to match the evaluation's effective categories
+        # (the AI list), not the out-of-band drifted state.
+        assert set(
+            org.categories.values_list("slug", flat=True),
+        ) == {"donate", "volunteer"}
+
+    def test_reapproval_with_category_edit_syncs_org(
+        self,
+        admin_client: Client,
+        admin_user: User,
+    ) -> None:
+        """Un-approve then re-approve in two form submits, changing
+        reviewer_categories on the re-approval save. The post_save
+        signal only reactivates is_active on the re-approval (it
+        doesn't touch categories when an org is already linked), so
+        the sync must run even when status is also in changed_data —
+        otherwise the DB row drifts from the linked Organization.
+        """
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=_make_evaluation_data(
+                accessibility={
+                    "categories": ["donate", "volunteer", "resource"],
+                },
+            ),
+        )
+        change_url = (
+            f"/admin/organizations/organizationevaluation/"
+            f"{ev.pk}/change/"
+        )
+        # First approval — signal creates org with full AI list.
+        admin_client.post(
+            change_url,
+            {
+                "status": ReviewStatus.APPROVED,
+                "reviewer_reasoning": "",
+                "reviewer_categories": [
+                    "donate", "volunteer", "resource",
+                ],
+                "_save": "Save",
+            },
+        )
+        ev.refresh_from_db()
+        org = ev.organization
+        assert org is not None
+        assert set(
+            org.categories.values_list("slug", flat=True),
+        ) == {"donate", "volunteer", "resource"}
+
+        # Un-approve.
+        admin_client.post(
+            change_url,
+            {
+                "status": ReviewStatus.REJECTED,
+                "reviewer_reasoning": "needs trimming",
+                "reviewer_categories": [
+                    "donate", "volunteer", "resource",
+                ],
+                "_save": "Save",
+            },
+        )
+
+        # Re-approve AND change reviewer_categories in the same save.
+        admin_client.post(
+            change_url,
+            {
+                "status": ReviewStatus.APPROVED,
+                "reviewer_reasoning": "trimmed",
+                "reviewer_categories": ["donate"],
+                "_save": "Save",
+            },
+        )
+
+        ev.refresh_from_db()
+        org.refresh_from_db()
+        assert ev.status == ReviewStatus.APPROVED
+        assert ev.reviewer_categories == ["donate"]
+        # The linked org must reflect the reviewer's edit, not the
+        # stale pre-unapproval set.
+        assert list(
+            org.categories.values_list("slug", flat=True),
+        ) == ["donate"]

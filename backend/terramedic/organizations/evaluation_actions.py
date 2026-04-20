@@ -14,25 +14,44 @@ from terramedic.organizations.models import (
 )
 
 
+def _resolve_categories(
+    evaluation: OrganizationEvaluation,
+) -> list[Category]:
+    """Resolve the list of Category rows to attach to the Organization.
+
+    Precedence:
+
+    1. ``evaluation.reviewer_categories`` — the reviewer's explicit
+       choice. ``NULL`` means "no override" (fall through); an empty
+       list means "reviewer cleared all categories" and triggers the
+       ``resource`` fallback.
+    2. ``accessibility.categories`` from the AI — the legacy / bulk
+       approve path.
+
+    If the resolved list contains no valid slugs (for example, all
+    entries are ``"other"``), ``resource`` is returned as a fallback
+    so the org still surfaces somewhere.
+    """
+    if evaluation.reviewer_categories is not None:
+        requested = evaluation.reviewer_categories
+    else:
+        data = evaluation.evaluation_data or {}
+        requested = data.get("accessibility", {}).get("categories", [])
+    valid_categories = list(Category.objects.filter(slug__in=requested))
+    if not valid_categories:
+        valid_categories = list(Category.objects.filter(slug="resource"))
+    return valid_categories
+
+
 def create_org_from_evaluation(
     evaluation: OrganizationEvaluation,
 ) -> Organization:
     """Create an Organization from evaluation data.
 
-    Assigns every valid category from the evaluation's
-    ``accessibility.categories`` array. If none are valid
-    (for example, all entries are ``"other"``), the
-    organization is filed under ``resource`` as a fallback
-    so it still shows up somewhere.
+    See ``_resolve_categories`` for how the category set is chosen.
     """
-    data = evaluation.evaluation_data
+    data = evaluation.evaluation_data or {}
     meta = data.get("org_metadata", {})
-    accessibility = data.get("accessibility", {})
-
-    requested = accessibility.get("categories", [])
-    valid_categories = list(Category.objects.filter(slug__in=requested))
-    if not valid_categories:
-        valid_categories = list(Category.objects.filter(slug="resource"))
 
     org = Organization(
         name=meta.get("name", ""),
@@ -43,5 +62,23 @@ def create_org_from_evaluation(
     org.set_current_language("en")
     org.description = meta.get("description", "")
     org.save()
-    org.categories.set(valid_categories)
+    org.categories.set(_resolve_categories(evaluation))
     return org
+
+
+def sync_org_categories_from_evaluation(
+    evaluation: OrganizationEvaluation,
+) -> None:
+    """Re-apply the resolved category set to the linked Organization.
+
+    For already-approved evaluations whose ``reviewer_categories`` was
+    edited on the admin form. The post_save signal short-circuits when
+    an org is already linked (it only handles the APPROVED transition),
+    so changes to ``reviewer_categories`` after approval would silently
+    desync the Organization's categories without this sync.
+
+    No-op if no Organization is linked.
+    """
+    if evaluation.organization is None:
+        return
+    evaluation.organization.categories.set(_resolve_categories(evaluation))

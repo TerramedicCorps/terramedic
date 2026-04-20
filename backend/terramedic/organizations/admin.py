@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from django import forms
 from django.contrib import admin, messages
 from django.db import connection
 from django.db.models import Count, Q, QuerySet
@@ -11,6 +12,9 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from parler.admin import TranslatableAdmin
 
+from terramedic.organizations.evaluation_actions import (
+    sync_org_categories_from_evaluation,
+)
 from terramedic.organizations.models import (
     SDG,
     Category,
@@ -335,6 +339,106 @@ class CategoryFilter(admin.SimpleListFilter):
         return queryset.filter(pk__in=pks)
 
 
+class EvaluationReviewForm(forms.ModelForm):  # type: ignore[type-arg]
+    """Admin detail form with per-category checkboxes.
+
+    Prefilled with the AI's ``accessibility.categories`` the first time
+    a reviewer opens the form, so unchecking is the reviewer's only
+    action when the AI over-classified. On save:
+
+    * **Edited away from the AI list** — the reviewer's selection is
+      persisted to ``reviewer_categories`` as an explicit override.
+    * **Confirmed unchanged (still matches the AI list)** —
+      ``clean_reviewer_categories`` returns ``None`` so the field
+      stays ``NULL``, and the evaluation keeps tracking the AI list
+      rather than freezing today's list as a snapshot.
+
+    Either way, ``OrganizationEvaluationAdmin.save_model`` resyncs the
+    linked ``Organization.categories`` to the evaluation's effective
+    set — ``reviewer_categories`` when present, else the AI list —
+    so the admin form is authoritative for the linked org's
+    categories on every save.
+    """
+
+    reviewer_categories = forms.MultipleChoiceField(
+        choices=(),
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label="Categories to assign on approval",
+        help_text=(
+            "Prefilled with the AI's proposed list. Edits here flow"
+            " to the linked Organization — before approval via the"
+            " create path, and after approval via re-sync. Uncheck"
+            " any that don't fit."
+        ),
+    )
+
+    class Meta:
+        model = OrganizationEvaluation
+        fields = (
+            "status",
+            "reviewer_reasoning",
+            "reviewer_categories",
+        )
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["reviewer_categories"].choices = list(  # type: ignore[attr-defined]
+            Category.objects.values_list("slug", "label"),
+        )
+        # Use self.instance (populated by ModelForm.__init__ whether
+        # the caller passed instance positionally or by keyword) and
+        # gate on pk so unbound forms — e.g. the admin's "add" view —
+        # skip prefill cleanly.
+        if self.instance.pk is None:
+            return
+        if self.instance.reviewer_categories is not None:
+            self.initial["reviewer_categories"] = list(
+                self.instance.reviewer_categories,
+            )
+            return
+        # 'other' is in the schema as an AI escape hatch but isn't a
+        # real Category row — don't pre-check a box that maps to
+        # nothing on approval.
+        self.initial["reviewer_categories"] = self._ai_fallback_slugs()
+
+    def _ai_fallback_slugs(self) -> list[str]:
+        """Slugs the AI proposed, filtered to ones that map to a real
+        Category row. Used both for prefill and for NULL-preservation
+        in ``clean_reviewer_categories``."""
+        ai_categories = (
+            (self.instance.evaluation_data or {})
+            .get("accessibility", {})
+            .get("categories", [])
+        )
+        return [slug for slug in ai_categories if slug != "other"]
+
+    def clean_reviewer_categories(self) -> list[str] | None:
+        """Preserve NULL when the reviewer confirms the AI defaults.
+
+        The field prefills from the AI list when
+        ``instance.reviewer_categories`` is ``NULL``, so a reviewer
+        opening the form sees the AI-proposed categories as checked
+        boxes. If they save without toggling any box, the submission
+        equals the prefilled list — but that's "I accept the AI
+        defaults," not "I'm explicitly choosing this exact list."
+        Returning ``None`` in that case keeps the DB value ``NULL``,
+        so the evaluation continues to follow the AI list (which can
+        evolve) rather than freezing a snapshot of today's list as
+        an explicit override.
+        """
+        submitted = self.cleaned_data.get("reviewer_categories") or []
+        if self.instance.pk is None:
+            return submitted
+        if self.instance.reviewer_categories is not None:
+            # Existing override — respect whatever the reviewer submits,
+            # including the AI list if that's what they chose.
+            return submitted
+        if set(submitted) == set(self._ai_fallback_slugs()):
+            return None
+        return submitted
+
+
 @admin.register(OrganizationEvaluation)
 class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     list_display = [
@@ -347,6 +451,7 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         "reviewed_at",
     ]
     list_filter = ["status", EvidenceScoreFilter, CategoryFilter]
+    form = EvaluationReviewForm
     # search_fields must be non-empty for Django to render the search
     # box.  The default icontains query on "status" is harmless but
     # unused — actual search logic lives in get_search_results below.
@@ -365,6 +470,7 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
             {
                 "fields": (
                     "status",
+                    "reviewer_categories",
                     "reviewer_reasoning",
                 ),
                 "description": (
@@ -546,6 +652,23 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
                 obj.organization.is_active = False
                 obj.organization.save(update_fields=["is_active"])
         super().save_model(request, obj, form, change)
+
+        # Admin form saves are authoritative: whenever the reviewer
+        # submits the change form for an approved, linked evaluation,
+        # align the org's categories with the evaluation's resolved
+        # set. This covers every relevant case — explicit category
+        # edits, no-op saves (sync is idempotent), and
+        # APPROVED→PENDING→APPROVED cycles where the signal only
+        # reactivates is_active. The alternative — triggering on
+        # form.changed_data — misses the NULL-preservation path from
+        # clean_reviewer_categories (which surfaces the cleaned
+        # value, while has_changed works off raw form data).
+        if (
+            change
+            and obj.status == ReviewStatus.APPROVED
+            and obj.organization is not None
+        ):
+            sync_org_categories_from_evaluation(obj)
 
     @admin.action(description="Approve selected evaluations")
     def approve_evaluations(

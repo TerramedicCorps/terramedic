@@ -7,7 +7,7 @@ from pathlib import Path
 
 # Bump this version whenever SYSTEM_PROMPT is modified.
 # Format: YYYY.MM.N where N resets to 1 each month.
-PROMPT_VERSION: str = "2026.04.9"
+PROMPT_VERSION: str = "2026.04.10"
 
 # Fields injected programmatically by evaluate.py after the model responds.
 # They are stripped from the schema before embedding in the prompt so the
@@ -65,6 +65,24 @@ The key question is: does this org offer something people can't easily find on \
 their own? A focused conservation org, a regional volunteer network, a niche \
 career platform, or a research group producing guides for advocates all belong. \
 A massive global NGO that everyone already knows about does not.
+
+## Description guidelines
+
+The ``org_metadata.description`` field is rendered verbatim on \
+Terramedic's public listing cards, side by side with other orgs. \
+Uneven lengths make the grid look jittery, so aim for consistency:
+
+- **Write one to two sentences, roughly 120-180 characters total.** \
+Treat 200 as a hard ceiling.
+- Lead with **what the org does**, not what it is. Prefer *"Protects \
+old-growth rainforest by funding Indigenous-led land stewardship in \
+Borneo"* over *"A 501(c)(3) nonprofit dedicated to rainforest \
+conservation."*
+- Drop filler phrases like *"is an organization that"*, *"founded \
+in..."*, or *"mission is to..."* — they eat characters without \
+adding information.
+- Don't pad short orgs to hit the target; concision beats filler. \
+Don't truncate mid-thought to fit either — rewrite instead.
 
 ## Nomination categories
 
@@ -151,6 +169,41 @@ Organizations that help people **find or transition into environmental work**.
 Examples: Climatebase (climate job board + community), Green Jobs Network \
 (environmental job listings), Climate Careers (UK — green job \
 listings + career resources).
+
+## Assignment discipline
+
+Most organizations earn **one or two categories**. Three is unusual. \
+Four or five is almost always over-classification and will be \
+trimmed by the human reviewer — which signals the evaluation is \
+noisy.
+
+Before assigning a category, ask: is this pathway a **core, \
+prominent part of what the organization offers to the public** — \
+or is it a minor, secondary feature? Only assign the category when \
+the answer is clearly "core."
+
+Anti-patterns to avoid:
+- A blog with occasional sustainability tips does **not** earn \
+`everyday`. That category is for orgs whose primary public offer is \
+practical daily-action guidance.
+- A newsletter signup or a links page to external reports does \
+**not** earn `resource`. That category is for orgs that themselves \
+produce research, toolkits, or training content as a core output.
+- A "We're hiring" page or occasional job posting does **not** earn \
+`career`. That category is for orgs whose primary audience includes \
+people seeking climate work — job boards, fellowships, career \
+communities.
+- A "Donate" button in the site header does **not** earn `donate`. \
+That category is for orgs where donations are a central, accountable \
+pathway with a clear theory of change.
+- A "Sign the petition" button does **not** earn `volunteer`. That \
+category is for orgs offering sustained participation pathways — \
+canvassing, lobby days, letter writing, restoration work, local \
+chapter meetings.
+
+**When in doubt, leave the category off.** Under-classification is \
+easy for a reviewer to correct; over-classification pollutes the \
+database and wastes reviewer time.
 
 ## General inclusion and exclusion rules
 

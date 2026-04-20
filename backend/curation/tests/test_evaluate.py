@@ -1243,3 +1243,45 @@ class TestMain:
 
         expected = default_dir / "example-org.json"
         assert expected.exists()
+
+
+class TestCategoryAssignmentDiscipline:
+    """The prompt must warn the model off over-classifying organizations.
+
+    Reviewers were routinely manually trimming 3-4 category assignments
+    down to the 1-2 that actually fit the org.
+    """
+
+    def test_prompt_has_assignment_discipline_section(self) -> None:
+        assert "Assignment discipline" in SYSTEM_PROMPT
+
+    def test_prompt_calls_out_typical_category_count(self) -> None:
+        """The prompt should anchor the model on 1-2 categories as the
+        typical count, so it stops routinely assigning 3-5."""
+        assert "one or two" in SYSTEM_PROMPT
+
+    def test_prompt_defaults_to_leaving_categories_off_when_unsure(
+        self,
+    ) -> None:
+        assert "When in doubt, leave the category off" in SYSTEM_PROMPT
+
+
+class TestDescriptionLengthGuidance:
+    """Org descriptions must be roughly the same length across orgs so
+    card layouts don't jitter — the current cards render the full
+    description with no truncation, so raw character count drives
+    visual variation.
+    """
+
+    def test_prompt_has_description_guidelines_section(self) -> None:
+        assert "Description guidelines" in SYSTEM_PROMPT
+
+    def test_prompt_asks_for_one_to_two_sentences(self) -> None:
+        assert "one to two sentences" in SYSTEM_PROMPT
+
+    def test_prompt_anchors_on_character_target(self) -> None:
+        """The prompt must give the model a concrete character budget
+        (120-180) so descriptions land in a narrow band. Assert the
+        range as one token so incidental three-digit substrings
+        elsewhere in the prompt can't satisfy it."""
+        assert "120-180 characters" in SYSTEM_PROMPT
