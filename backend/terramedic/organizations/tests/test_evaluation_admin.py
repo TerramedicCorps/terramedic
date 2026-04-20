@@ -1080,14 +1080,16 @@ class TestCategoryFilter:
 
 @pytest.mark.django_db
 class TestReviewerCategoriesOverride:
-    """Reviewer can trim the AI's category list before approval.
+    """Reviewer can adjust the AI's category list before approval.
 
-    The AI tends to over-classify (assigns 3-4 categories when only 1-2
-    actually fit). Before this change, reviewers had to approve the
-    evaluation and then edit the created Organization to remove the
-    spurious categories. Now the reviewer picks the final list up-front,
-    and the post_save signal creates the Organization with only that
-    subset.
+    The override works in either direction: trim a category the AI
+    over-assigned, or add one the AI missed. The common case is trimming
+    — the AI tends to over-classify (assigning 3-4 categories when only
+    1-2 fit) — but the mechanism isn't restricted to subsets of the AI's
+    list. Before this change, reviewers had to approve the evaluation
+    and then edit the created Organization; now the reviewer picks the
+    final list up-front and the post_save signal creates the
+    Organization with exactly that set.
     """
 
     def test_reviewer_categories_defaults_to_none(self) -> None:
