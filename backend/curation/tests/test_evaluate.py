@@ -1281,6 +1281,7 @@ class TestDescriptionLengthGuidance:
 
     def test_prompt_anchors_on_character_target(self) -> None:
         """The prompt must give the model a concrete character budget
-        (120-180) so descriptions land in a narrow band."""
-        assert "120" in SYSTEM_PROMPT
-        assert "180" in SYSTEM_PROMPT
+        (120-180) so descriptions land in a narrow band. Assert the
+        range as one token so incidental three-digit substrings
+        elsewhere in the prompt can't satisfy it."""
+        assert "120-180 characters" in SYSTEM_PROMPT
