@@ -1,4 +1,3 @@
-import re
 from typing import Any
 from unittest.mock import patch
 
@@ -8,31 +7,15 @@ from django.contrib.auth.models import User
 from django.test import Client
 from django.utils import timezone
 
-from terramedic.organizations.admin import OrganizationEvaluationAdmin
+from terramedic.organizations.admin import (
+    EvaluationReviewForm,
+    OrganizationEvaluationAdmin,
+)
 from terramedic.organizations.models import (
     Organization,
     OrganizationEvaluation,
     ReviewStatus,
 )
-
-
-def _reviewer_category_is_checked(content: str, slug: str) -> bool:
-    """True if the reviewer_categories checkbox for ``slug`` renders checked.
-
-    Order-independent: uses lookahead assertions so the three attributes
-    (``name``, ``value``, ``checked``) may appear in any order within the
-    same ``<input>`` tag. Django's widget renderer doesn't guarantee
-    attribute ordering across versions, and a positional regex would go
-    brittle the next time it changes.
-    """
-    pattern = (
-        rf'<input\b'
-        rf'(?=[^>]*\bname="reviewer_categories")'
-        rf'(?=[^>]*\bvalue="{re.escape(slug)}")'
-        rf'(?=[^>]*\bchecked\b)'
-        rf'[^>]*>'
-    )
-    return re.search(pattern, content) is not None
 
 
 def _make_evaluation_data(**overrides: Any) -> dict[str, Any]:
@@ -1191,21 +1174,17 @@ class TestReviewerCategoriesAdminForm:
 
     def test_detail_form_prefills_checkboxes_with_ai_list(
         self,
-        admin_client: Client,
         pending_evaluation: OrganizationEvaluation,
     ) -> None:
-        """The default fixture's AI list is ['donate', 'volunteer'] —
-        those two should render as checked, 'resource' should not."""
-        response = admin_client.get(
-            f"/admin/organizations/organizationevaluation/"
-            f"{pending_evaluation.pk}/change/",
-        )
-        content = response.content.decode()
-        assert _reviewer_category_is_checked(content, "donate")
-        assert _reviewer_category_is_checked(content, "volunteer")
-        assert not _reviewer_category_is_checked(content, "resource")
-        assert not _reviewer_category_is_checked(content, "career")
-        assert not _reviewer_category_is_checked(content, "everyday")
+        """Initial checkbox state comes from the AI's proposed list.
+
+        Assert against ``form.initial`` directly — the widget's HTML
+        output is a Django-internal detail we don't want to lock in.
+        """
+        form = EvaluationReviewForm(instance=pending_evaluation)
+        assert set(form.initial["reviewer_categories"]) == {
+            "donate", "volunteer",
+        }
 
     def test_submit_with_subset_persists_and_trims_org_categories(
         self,
@@ -1242,10 +1221,7 @@ class TestReviewerCategoriesAdminForm:
             ev.organization.categories.values_list("slug", flat=True),
         ) == ["donate"]
 
-    def test_prefill_uses_saved_override_when_present(
-        self,
-        admin_client: Client,
-    ) -> None:
+    def test_prefill_uses_saved_override_when_present(self) -> None:
         """Once a reviewer has saved an override, reopening the form
         reflects their choice — not the AI's original list."""
         ev = OrganizationEvaluation.objects.create(
@@ -1256,14 +1232,8 @@ class TestReviewerCategoriesAdminForm:
             ),
             reviewer_categories=["donate"],
         )
-        response = admin_client.get(
-            f"/admin/organizations/organizationevaluation/"
-            f"{ev.pk}/change/",
-        )
-        content = response.content.decode()
-        assert _reviewer_category_is_checked(content, "donate")
-        assert not _reviewer_category_is_checked(content, "volunteer")
-        assert not _reviewer_category_is_checked(content, "resource")
+        form = EvaluationReviewForm(instance=ev)
+        assert form.initial["reviewer_categories"] == ["donate"]
 
 
 @pytest.mark.django_db
