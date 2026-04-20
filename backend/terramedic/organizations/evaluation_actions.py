@@ -35,8 +35,8 @@ def _resolve_categories(
     if evaluation.reviewer_categories is not None:
         requested = evaluation.reviewer_categories
     else:
-        accessibility = evaluation.evaluation_data.get("accessibility", {})
-        requested = accessibility.get("categories", [])
+        data = evaluation.evaluation_data or {}
+        requested = data.get("accessibility", {}).get("categories", [])
     valid_categories = list(Category.objects.filter(slug__in=requested))
     if not valid_categories:
         valid_categories = list(Category.objects.filter(slug="resource"))
@@ -50,7 +50,7 @@ def create_org_from_evaluation(
 
     See ``_resolve_categories`` for how the category set is chosen.
     """
-    data = evaluation.evaluation_data
+    data = evaluation.evaluation_data or {}
     meta = data.get("org_metadata", {})
 
     org = Organization(
