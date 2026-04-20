@@ -15,10 +15,13 @@ class Migration(migrations.Migration):
                 blank=True,
                 default=None,
                 help_text=(
-                    "Reviewer-chosen category slugs for the created"
+                    "Reviewer-chosen category slugs for the linked"
                     " Organization. NULL means fall back to the AI's"
                     " accessibility.categories list, filtered to known"
-                    " Category slugs."
+                    " Category slugs. Edits here flow through to the"
+                    " linked Organization — on the APPROVED transition"
+                    " via the create path, and on subsequent admin"
+                    " saves via re-sync."
                 ),
                 null=True,
             ),
