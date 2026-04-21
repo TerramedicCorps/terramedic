@@ -97,16 +97,26 @@ def _get_api_key() -> str:
 def _build_user_content(
     org: Organization, category: Category,
 ) -> str:
-    """Build the per-category user turn (org facts + pathway slug)."""
+    """Build the per-category user turn (org facts + pathway slug).
+
+    ``org.description`` is a parler-translated field, so reading it
+    directly returns whatever the active thread language is. The
+    service writes English-only output, so pin the input to English
+    too via ``safe_translation_getter`` — otherwise a French-locale
+    admin session would feed French context into an English prompt.
+    """
     tags = ", ".join(
         org.tags.order_by("name").values_list("name", flat=True),
     ) or "(none)"
+    description = org.safe_translation_getter(
+        "description", default="", language_code="en",
+    )
     return (
         f"## Organization\n\n"
         f"- Name: {org.name}\n"
         f"- Website: {org.website_url}\n"
         f"- Tags: {tags}\n"
-        f"- General description: {org.description or '(empty)'}\n\n"
+        f"- General description: {description or '(empty)'}\n\n"
         f"## Pathway\n\n"
         f"Draft copy for the **{category.slug}** pathway "
         f"({category.label}). Return the JSON object described in "
