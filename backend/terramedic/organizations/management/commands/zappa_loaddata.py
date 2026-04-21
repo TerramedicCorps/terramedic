@@ -28,12 +28,19 @@ from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError
 
-# Lambda sync-invoke payload caps at 6 MB. We refuse anything over
-# 5 MB locally to leave ~1 MB of headroom for the surrounding Python
-# snippet, zappa's own envelope, and base64's ~33% overhead on the
-# wire. If a fixture exceeds this, upload to S3 and loaddata from
-# there — not worth inlining.
-_MAX_FIXTURE_BYTES = 5 * 1024 * 1024
+# Lambda sync-invoke payload caps at 6 MB. What actually goes over
+# the wire is the full invoke payload — the Python snippet we hand to
+# ``zappa invoke --raw``, with the fixture embedded as a base64 string
+# (~33% expansion) plus snippet scaffolding and zappa's envelope. A
+# ~5 MB raw fixture therefore lands at ~6.7 MB on the wire and fails
+# the Lambda limit even though the raw bytes would fit. We enforce
+# against the encoded payload size and leave ~256 KB for snippet and
+# envelope overhead. Fixtures past the limit should go via S3.
+_LAMBDA_INVOKE_LIMIT_BYTES = 6 * 1024 * 1024
+_SNIPPET_ENVELOPE_OVERHEAD_BYTES = 256 * 1024
+_MAX_ENCODED_PAYLOAD_BYTES = (
+    _LAMBDA_INVOKE_LIMIT_BYTES - _SNIPPET_ENVELOPE_OVERHEAD_BYTES
+)
 
 
 class Command(BaseCommand):
@@ -65,14 +72,6 @@ class Command(BaseCommand):
 
         payload = fixture_path.read_bytes()
 
-        if len(payload) > _MAX_FIXTURE_BYTES:
-            raise CommandError(
-                f"Fixture is {len(payload):,} bytes — too large for"
-                f" inline zappa invoke (limit"
-                f" {_MAX_FIXTURE_BYTES:,}). Upload to S3 and"
-                " loaddata from there.",
-            )
-
         try:
             json.loads(payload)
         except json.JSONDecodeError as exc:
@@ -81,6 +80,19 @@ class Command(BaseCommand):
             ) from exc
 
         snippet = _build_invoke_snippet(payload)
+
+        # Size-check the snippet that actually goes on the wire, not
+        # the raw fixture: base64 expands content ~33%, which can push
+        # an innocuous-looking fixture past the Lambda invoke limit.
+        encoded_size = len(snippet.encode("utf-8"))
+        if encoded_size > _MAX_ENCODED_PAYLOAD_BYTES:
+            raise CommandError(
+                f"Fixture is {len(payload):,} bytes raw and encodes"
+                f" to {encoded_size:,} bytes — too large for inline"
+                f" zappa invoke (limit"
+                f" {_MAX_ENCODED_PAYLOAD_BYTES:,}). Upload to S3 and"
+                " loaddata from there.",
+            )
 
         self.stdout.write(
             f"Loading {fixture_path} into {stage} via zappa invoke"
