@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.conf import settings
 from django.contrib.gis.db.models.functions import Distance
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import D
@@ -26,18 +27,23 @@ def _translated(
     """Pull a translated field off the prefetched through row.
 
     Prefers the active language (django-parler honors
-    ``Accept-Language`` via middleware); falls back to English when
-    absent so English defaults aren't silently dropped for non-en
-    requests.
+    ``Accept-Language`` via middleware); falls back to the project's
+    ``LANGUAGE_CODE`` when absent so default-language content isn't
+    silently dropped for non-matching requests. Following
+    ``settings.LANGUAGE_CODE`` (rather than a hardcoded ``"en"``)
+    means if the project's default language ever changes, this
+    follows along without a code edit.
     """
-    language = get_language() or "en"
+    active = get_language() or settings.LANGUAGE_CODE
+    fallback = settings.LANGUAGE_CODE
     translations = list(entry.translations.all())  # type: ignore[attr-defined]
     for translation in translations:
-        if translation.language_code == language:
+        if translation.language_code == active:
             return str(getattr(translation, field, "") or "")
-    for translation in translations:
-        if translation.language_code == "en":
-            return str(getattr(translation, field, "") or "")
+    if fallback != active:
+        for translation in translations:
+            if translation.language_code == fallback:
+                return str(getattr(translation, field, "") or "")
     return ""
 
 
