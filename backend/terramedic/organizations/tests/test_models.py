@@ -160,6 +160,35 @@ class TestCategoryModel:
 
 
 @pytest.mark.django_db
+class TestOrganizationCategoryThrough:
+    """Design decisions we own on the OrganizationCategory through
+    model (Django's own tests cover M2M/parler/unique_together)."""
+
+    def test_deleting_category_is_protected_by_through_rows(
+        self,
+    ) -> None:
+        """Categories are seeded by migration and shouldn't vanish
+        from under existing organizations. PROTECT (not CASCADE) is
+        our deliberate choice on OrganizationCategory.category —
+        deleting a seeded Category out from under approved orgs
+        should raise, not silently wipe rows."""
+        from django.db.models.deletion import ProtectedError
+
+        org = Organization(
+            name="Two-Pathway Org",
+            website_url="https://example.org/",
+        )
+        org.set_current_language("en")
+        org.description = "General description."
+        org.save()
+        donate = Category.objects.get(slug="donate")
+        org.categories.add(donate)
+
+        with pytest.raises(ProtectedError):
+            donate.delete()
+
+
+@pytest.mark.django_db
 class TestOrganizationCategoriesM2M:
     """An Organization can belong to multiple categories at once."""
 
