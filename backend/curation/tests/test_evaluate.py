@@ -586,6 +586,40 @@ class TestEvaluateOrgViaClaudeCode:
         # _fake_subprocess_result stamps duration_ms=12345.
         assert result["duration_ms"] == 12345
 
+    def test_preserves_nominated_url_when_model_normalizes_to_root(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """If a curator nominates a subpage (e.g. a local chapter or
+        a specific program page), the eval must stay bound to that
+        subpage. The model tends to normalize ``website_url`` to the
+        domain root, which would collapse distinct chapter pages into
+        a single Organization record. The nominated URL wins."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        eval_payload = _make_valid_evaluation()
+        del eval_payload["evaluated_at"]
+        del eval_payload["evaluated_by"]
+        # Model normalized to the domain root.
+        eval_payload["org_metadata"]["website_url"] = (
+            "https://yaleclimateconnections.org"
+        )
+
+        monkeypatch.setattr(
+            "subprocess.run",
+            lambda *_a, **_kw: self._fake_subprocess_result(eval_payload),
+        )
+
+        result = evaluate_org_via_claude_code(
+            "https://yaleclimateconnections.org/solutions/",
+            model="sonnet",
+        )
+
+        assert (
+            result["org_metadata"]["website_url"]
+            == "https://yaleclimateconnections.org/solutions/"
+        )
+
     def test_stamps_evaluated_by_with_claude_code_prefix(
         self, monkeypatch: pytest.MonkeyPatch,
     ) -> None:

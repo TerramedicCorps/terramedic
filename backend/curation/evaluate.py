@@ -511,6 +511,11 @@ def evaluate_org(
     result["evaluated_by"] = model
     result["prompt_version"] = PROMPT_VERSION
     result["duration_ms"] = int(elapsed * 1000)
+    # Preserve the nominated URL verbatim. The model tends to
+    # normalize ``website_url`` to the domain root, which would
+    # collapse subpages (local chapter pages, specific program
+    # landing pages) into a single Organization record.
+    result.setdefault("org_metadata", {})["website_url"] = url
 
     _validate_against_schema(result, source="Output")
 
@@ -630,6 +635,11 @@ def evaluate_org_via_claude_code(
     data["prompt_version"] = PROMPT_VERSION
     if duration_ms is not None:
         data["duration_ms"] = duration_ms
+    # Preserve the nominated URL verbatim. The model tends to
+    # normalize ``website_url`` to the domain root, which would
+    # collapse subpages (local chapter pages, specific program
+    # landing pages) into a single Organization record.
+    data.setdefault("org_metadata", {})["website_url"] = url
 
     _validate_against_schema(data, source="Claude Code output")
     return data
