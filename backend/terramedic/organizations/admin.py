@@ -7,10 +7,12 @@ from django.db import connection
 from django.db.models import Count, Q, QuerySet
 from django.db.models.functions import TruncMonth
 from django.http import HttpRequest, HttpResponse
+from django.shortcuts import redirect
+from django.urls import URLPattern, path
 from django.utils import timezone
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
-from parler.admin import TranslatableAdmin
+from parler.admin import TranslatableAdmin, TranslatableTabularInline
 
 from terramedic.organizations.evaluation_actions import (
     sync_org_categories_from_evaluation,
@@ -22,10 +24,15 @@ from terramedic.organizations.models import (
     FocusArea,
     OperatingRegion,
     Organization,
+    OrganizationCategory,
     OrganizationEvaluation,
     ReviewStatus,
     Skill,
     Tag,
+)
+from terramedic.organizations.services.ai_descriptions import (
+    AIDescriptionError,
+    draft_for_category,
 )
 
 logger = logging.getLogger(__name__)
@@ -33,8 +40,23 @@ logger = logging.getLogger(__name__)
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
-    list_display = ["slug", "label"]
+    list_display = ["slug", "label", "default_action_text"]
     search_fields = ["slug", "label"]
+    fields = ["slug", "label", "default_action_text"]
+
+
+class OrganizationCategoryInline(TranslatableTabularInline):
+    """Per-(org, category) editor for the Organization change form.
+
+    Carries the pathway-specific description and action_text that the
+    curation pipeline drafts for each category. Curators pick
+    categories and edit their copy in the same place.
+    """
+
+    model = OrganizationCategory
+    extra = 0
+    fields = ["category", "sort_order", "description", "action_text"]
+    autocomplete_fields = ["category"]
 
 
 @admin.register(SDG)
@@ -103,6 +125,11 @@ class OrganizationAdmin(TranslatableAdmin):
     list_filter = ["categories", "is_active"]
     search_fields = ["name"]
     list_editable = ["sort_order", "is_active"]
+    inlines = [OrganizationCategoryInline]
+    actions = ["generate_missing_descriptions"]
+    change_form_template = (
+        "admin/organizations/organization/change_form.html"
+    )
 
     def get_queryset(
         self, request: HttpRequest,
@@ -116,6 +143,130 @@ class OrganizationAdmin(TranslatableAdmin):
     def categories_display(self, obj: Organization) -> str:
         slugs = list(obj.categories.values_list("slug", flat=True))
         return ", ".join(slugs) if slugs else "—"
+
+    def get_urls(self) -> list[URLPattern]:
+        urls = super().get_urls()
+        custom = [
+            path(
+                "<int:object_id>/generate-descriptions/",
+                self.admin_site.admin_view(
+                    self.generate_descriptions_view,
+                ),
+                name="organizations_organization_generate_descriptions",
+            ),
+        ]
+        return custom + urls
+
+    def generate_descriptions_view(
+        self, request: HttpRequest, object_id: int,
+    ) -> HttpResponse:
+        """Fill blank per-category copy on ``object_id`` via the AI.
+
+        Rows with non-empty description AND action_text (in English)
+        are left alone — this is a backfill button, not a redraft one.
+        The curation pipeline drafts ``category_copy`` on the initial
+        evaluation, so for freshly-approved orgs this view typically
+        reports "nothing to draft". Useful when a curator adds a new
+        category manually after approval.
+        """
+        try:
+            org = Organization.objects.get(pk=object_id)
+        except Organization.DoesNotExist:
+            messages.error(request, "Organization not found.")
+            return redirect("admin:organizations_organization_changelist")
+
+        drafted, skipped, errored = self._draft_blank_entries(org)
+
+        if errored:
+            messages.error(
+                request,
+                f"AI draft failed: {errored}",
+            )
+        elif drafted:
+            messages.success(
+                request,
+                f"Drafted copy for {drafted} categor"
+                f"{'y' if drafted == 1 else 'ies'}"
+                f" ({skipped} already had copy).",
+            )
+        else:
+            messages.info(
+                request,
+                "Nothing to draft — every category already has copy.",
+            )
+
+        return redirect(
+            "admin:organizations_organization_change", object_id,
+        )
+
+    def _draft_blank_entries(
+        self, org: Organization,
+    ) -> tuple[int, int, str]:
+        """Return ``(drafted, skipped, error_message)``.
+
+        ``error_message`` is empty on success. An AIDescriptionError
+        short-circuits the loop — admins get one clear flash instead
+        of N noisy ones.
+        """
+        drafted = 0
+        skipped = 0
+        entries = (
+            OrganizationCategory.objects.filter(organization=org)
+            .select_related("category")
+            .prefetch_related("translations")
+        )
+        for entry in entries:
+            entry.set_current_language("en")
+            try:
+                has_desc = bool((entry.description or "").strip())
+            except Exception:  # noqa: BLE001
+                has_desc = False
+            try:
+                has_action = bool((entry.action_text or "").strip())
+            except Exception:  # noqa: BLE001
+                has_action = False
+            if has_desc and has_action:
+                skipped += 1
+                continue
+            try:
+                copy = draft_for_category(org, entry.category)
+            except AIDescriptionError as exc:
+                return drafted, skipped, str(exc)
+            entry.description = copy.description
+            entry.action_text = copy.action_text
+            entry.save()
+            drafted += 1
+        return drafted, skipped, ""
+
+    @admin.action(description="Generate missing per-category descriptions")
+    def generate_missing_descriptions(
+        self,
+        request: HttpRequest,
+        queryset: QuerySet[Organization],
+    ) -> None:
+        """Changelist bulk action: draft blank copy across selected orgs."""
+        total_drafted = 0
+        total_skipped = 0
+        failures: list[str] = []
+        for org in queryset:
+            drafted, skipped, err = self._draft_blank_entries(org)
+            total_drafted += drafted
+            total_skipped += skipped
+            if err:
+                failures.append(f"{org.name}: {err}")
+
+        self.message_user(
+            request,
+            f"Drafted {total_drafted} row(s), skipped "
+            f"{total_skipped} already populated.",
+            messages.SUCCESS,
+        )
+        if failures:
+            self.message_user(
+                request,
+                "Some orgs failed: " + "; ".join(failures),
+                messages.ERROR,
+            )
 
 
 # Scoped CSS for the Evaluation Detail readonly field. Visually hides

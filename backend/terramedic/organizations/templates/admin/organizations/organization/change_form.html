@@ -1,0 +1,5 @@
+{% extends "admin/change_form.html" %} {% load i18n admin_urls %} {% block object-tools-items %} {{ block.super }} {% if original %}
+<li>
+  <a href="{% url 'admin:organizations_organization_generate_descriptions' original.pk %}" class="historylink"> {% trans "Generate descriptions" %} </a>
+</li>
+{% endif %} {% endblock %}
