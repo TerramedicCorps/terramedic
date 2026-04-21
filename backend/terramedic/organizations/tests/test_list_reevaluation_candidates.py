@@ -1,9 +1,10 @@
 """Tests for the ``list_reevaluation_candidates`` command.
 
-Runs against the dev DB via ``zappa manage`` to dump URLs of approved
-evaluations whose stored ``prompt_version`` lags the live one —
-input for the split re-evaluation workflow (evaluate locally via
-claude-code, loaddata fixtures back via zappa).
+Runs against the dev DB via ``zappa manage`` to dump URLs of
+evaluations whose stored ``prompt_version`` lags the live one
+(default pool: rejected; configurable via ``--status``) — input for
+the split re-evaluation workflow (evaluate locally via claude-code,
+loaddata fixtures back via zappa).
 """
 
 from __future__ import annotations
