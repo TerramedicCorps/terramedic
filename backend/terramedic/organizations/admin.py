@@ -222,14 +222,14 @@ class OrganizationAdmin(TranslatableAdmin):
         )
         for entry in entries:
             entry.set_current_language("en")
-            try:
-                has_desc = bool((entry.description or "").strip())
-            except Exception:  # noqa: BLE001
-                has_desc = False
-            try:
-                has_action = bool((entry.action_text or "").strip())
-            except Exception:  # noqa: BLE001
-                has_action = False
+            desc = entry.safe_translation_getter(
+                "description", default="", language_code="en",
+            )
+            action = entry.safe_translation_getter(
+                "action_text", default="", language_code="en",
+            )
+            has_desc = bool((desc or "").strip())
+            has_action = bool((action or "").strip())
             if has_desc and has_action:
                 skipped += 1
                 continue
