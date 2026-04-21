@@ -80,6 +80,13 @@ funding Indigenous-led land stewardship in Borneo"* over *"A \
 - Drop filler phrases like *"is an organization that"*, *"founded \
 in..."*, or *"mission is to..."* — they eat characters without \
 adding information.
+- Keep the reading level accessible to a general reader. \
+Movement-specific terms (*"carbon pricing"*, *"lobby days"*, \
+*"canvassing"*) are fine when they're the precise word, but avoid \
+policy jargon and nested clauses.
+- Prefer **two short sentences** over one long clause-stacked \
+sentence. If a draft has three or more commas in a single \
+sentence, rewrite as two.
 - Don't pad short orgs to hit the target; concision beats filler. \
 Don't truncate mid-thought to fit either — rewrite instead."""
 
