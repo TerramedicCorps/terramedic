@@ -164,12 +164,14 @@ class OrganizationAdmin(TranslatableAdmin):
     ) -> HttpResponse:
         """Fill blank per-category copy on ``object_id`` via the AI.
 
-        Rows with non-empty description AND action_text (in English)
-        are left alone — this is a backfill button, not a redraft one.
-        The curation pipeline drafts ``category_copy`` on the initial
-        evaluation, so for freshly-approved orgs this view typically
-        reports "nothing to draft". Useful when a curator adds a new
-        category manually after approval.
+        For each row, only the blank field(s) (in English) are
+        overwritten — partial curator edits (e.g., a hand-written
+        description with a blank action_text) are preserved. Rows
+        with both fields populated are skipped entirely. The curation
+        pipeline drafts ``category_copy`` on the initial evaluation,
+        so for freshly-approved orgs this view typically reports
+        "nothing to draft". Useful when a curator adds a new category
+        manually after approval.
         """
         try:
             org = Organization.objects.get(pk=object_id)
@@ -234,8 +236,10 @@ class OrganizationAdmin(TranslatableAdmin):
                 copy = draft_for_category(org, entry.category)
             except AIDescriptionError as exc:
                 return drafted, skipped, str(exc)
-            entry.description = copy.description
-            entry.action_text = copy.action_text
+            if not has_desc:
+                entry.description = copy.description
+            if not has_action:
+                entry.action_text = copy.action_text
             entry.save()
             drafted += 1
         return drafted, skipped, ""

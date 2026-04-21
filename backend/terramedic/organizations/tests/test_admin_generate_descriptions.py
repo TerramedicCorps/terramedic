@@ -110,6 +110,39 @@ class TestGenerateDescriptionsView:
         assert volunteer.description == "AI-drafted volunteer pitch."
         assert volunteer.action_text == "Volunteer"
 
+    def test_preserves_partial_curator_edits(
+        self, client: Client, org: Organization,
+    ) -> None:
+        """If a curator wrote a description but left action_text
+        blank (or vice versa), only the blank field is filled —
+        hand-written copy is never overwritten."""
+        partial = OrganizationCategory.objects.create(
+            organization=org,
+            category=Category.objects.get(slug="donate"),
+        )
+        partial.set_current_language("en")
+        partial.description = "Hand-written donate pitch."
+        partial.action_text = ""
+        partial.save()
+
+        draft = DraftedCopy(
+            description="AI draft description.",
+            action_text="Donate",
+        )
+        with patch(
+            "terramedic.organizations.admin.draft_for_category",
+            return_value=draft,
+        ):
+            response = client.get(_url(org), follow=False)
+
+        assert response.status_code == 302
+        partial.refresh_from_db()
+        partial.set_current_language("en")
+        # Curator's description preserved; only the blank
+        # action_text got the AI fill.
+        assert partial.description == "Hand-written donate pitch."
+        assert partial.action_text == "Donate"
+
     def test_reports_nothing_to_draft_when_all_rows_populated(
         self, client: Client, org: Organization,
     ) -> None:
