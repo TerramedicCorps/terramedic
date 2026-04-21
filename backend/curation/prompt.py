@@ -7,7 +7,7 @@ from pathlib import Path
 
 # Bump this version whenever SYSTEM_PROMPT is modified.
 # Format: YYYY.MM.N where N resets to 1 each month.
-PROMPT_VERSION: str = "2026.04.12"
+PROMPT_VERSION: str = "2026.04.13"
 
 # Fields injected programmatically by evaluate.py after the model responds.
 # They are stripped from the schema before embedding in the prompt so the
@@ -66,6 +66,41 @@ The key question is: does this org offer something people can't easily find on \
 their own? A focused conservation org, a regional volunteer network, a niche \
 career platform, or a research group producing guides for advocates all belong. \
 A massive global NGO that everyone already knows about does not.
+
+## Per-category copy (``category_copy``)
+
+The general ``org_metadata.description`` is what reviewers see in \
+multi-category contexts — the nearby map, the unfiltered listing, \
+search results. But when a user lands on a pathway-specific page \
+(``/donate``, ``/volunteer``, etc.), they want a pitch framed for \
+*that* pathway. That's what ``category_copy`` is for.
+
+**For every slug you list in ``accessibility.categories`` (except \
+``other``), produce exactly one ``category_copy`` entry.** Skipping \
+an entry means that org's card on the matching pathway page falls \
+back to the general description — acceptable but less compelling.
+
+Each entry contains:
+
+- ``slug`` — matches one of ``accessibility.categories`` (not \
+``other``).
+- ``description`` — a **pathway-specific pitch**, 120–180 characters, \
+2–3 sentences. Speak directly to the reader arriving on that \
+pathway. For ``donate``, lead with theory of change and where money \
+goes. For ``volunteer``, lead with what the person will actually do. \
+For ``resource``, lead with the artifact they'll come away with. For \
+``everyday``, lead with the action they can take today. For \
+``career``, lead with who the org serves and what they'll find \
+(jobs, fellowships, community).
+- ``action_text`` — the CTA label on the card for that pathway. \
+Overrides ``Category.default_action_text``. Stay under 30 characters \
+and action-oriented: *"Donate"*, *"Volunteer"*, *"Browse guides"*, \
+*"See openings"*. Avoid *"Learn more"* unless nothing more specific \
+fits.
+
+Keep the general ``org_metadata.description`` itself **generic** — \
+don't let it drift toward the strongest single pathway. It's the \
+fallback for every other context.
 
 ## Description guidelines
 

@@ -95,6 +95,7 @@ def _make_valid_evaluation() -> dict[str, Any]:
             {"activity": "Tree planting", "type": "conservation"},
         ],
         "accessibility": {},
+        "category_copy": [],
         "evidence_score": {"score": 3, "rationale": "Moderate evidence"},
         "curator_notes": {"recommendation": "include", "confidence": 85},
         "evaluated_at": "2026-04-04T12:00:00+00:00",
@@ -800,6 +801,63 @@ class TestValidateAgainstSchema:
 
         with pytest.raises(RuntimeError, match="jsonschema"):
             _validate_against_schema({}, source="Output")
+
+
+class TestCategoryCopyInSchema:
+    """``category_copy`` is a top-level required field. Per-category
+    description + action_text come from the same AI pass that proposes
+    ``accessibility.categories``, so the common path never needs a
+    second round-trip to generate per-category copy."""
+
+    def test_category_copy_is_top_level_required(self) -> None:
+        schema = _load_schema()
+        assert "category_copy" in schema["required"]
+
+    def test_category_copy_item_requires_slug_description_action_text(
+        self,
+    ) -> None:
+        schema = _load_schema()
+        item_schema = schema["properties"]["category_copy"]["items"]
+        assert set(item_schema["required"]) == {
+            "slug", "description", "action_text",
+        }
+
+    def test_category_copy_slug_matches_canonical_categories(self) -> None:
+        """category_copy slugs are the five canonical pathways (no
+        ``other`` — it's an escape hatch that doesn't map to a
+        Terramedic Category row)."""
+        schema = _load_schema()
+        slug_enum = set(
+            schema["properties"]["category_copy"]["items"]
+            ["properties"]["slug"]["enum"],
+        )
+        assert slug_enum == {
+            "donate", "volunteer", "resource", "everyday", "career",
+        }
+
+    def test_action_text_has_max_length(self) -> None:
+        """Card CTAs are tight — enforce a reasonable ceiling so the
+        model can't return a paragraph."""
+        schema = _load_schema()
+        at_schema = schema["properties"]["category_copy"]["items"][
+            "properties"
+        ]["action_text"]
+        assert at_schema["maxLength"] <= 80
+
+    def test_prompt_instructs_model_on_category_copy(self) -> None:
+        """The model has to know to produce category_copy; embedding
+        the schema alone isn't enough — the prompt gives it voice
+        guidance too."""
+        assert "category_copy" in SYSTEM_PROMPT
+
+    def test_prompt_version_bumped(self) -> None:
+        """Reintroducing per-category copy is a meaningful change to
+        what the model returns; downstream tooling filters on
+        prompt_version to distinguish old vs. new evaluations."""
+        from curation.prompt import PROMPT_VERSION
+
+        # Schema change landed in 2026-04; any prior version is older.
+        assert PROMPT_VERSION >= "2026.04.13"
 
 
 class TestCleanResponse:

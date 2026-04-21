@@ -3,7 +3,7 @@
   "title": "Organization Evaluation",
   "description": "Output format for the Terramedic curation pipeline. Each evaluation assesses a candidate environmental organization for inclusion in the database.",
   "type": "object",
-  "required": ["org_metadata", "sdg_alignment", "evidence_of_work", "accessibility", "evidence_score", "curator_notes", "evaluated_at", "evaluated_by", "prompt_version"],
+  "required": ["org_metadata", "sdg_alignment", "evidence_of_work", "accessibility", "category_copy", "evidence_score", "curator_notes", "evaluated_at", "evaluated_by", "prompt_version"],
   "properties": {
     "org_metadata": {
       "type": "object",
@@ -256,6 +256,30 @@
             "enum": ["donate", "volunteer", "resource", "everyday", "career", "other"]
           },
           "description": "Which Terramedic pathways this org fits into."
+        }
+      }
+    },
+    "category_copy": {
+      "type": "array",
+      "description": "Per-category pitch for each slug in accessibility.categories. One entry per proposed category; omit for 'other'. The description speaks directly to a reader arriving on that pathway page; the action_text is the CTA label for that pathway, overriding Category.default_action_text.",
+      "items": {
+        "type": "object",
+        "required": ["slug", "description", "action_text"],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "enum": ["donate", "volunteer", "resource", "everyday", "career"],
+            "description": "Which pathway this copy is for. Must be one of the slugs in accessibility.categories (except 'other')."
+          },
+          "description": {
+            "type": "string",
+            "description": "2-3 sentence pitch framed for someone arriving on the <slug> pathway page. Speaks directly to that reader's motivation — donors, volunteers, learners, etc. Roughly 120-180 characters, matching the general-description guidelines."
+          },
+          "action_text": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "CTA label for this pathway (e.g., 'Donate', 'Volunteer', 'Browse jobs'). Overrides Category.default_action_text."
+          }
         }
       }
     },
