@@ -7,6 +7,7 @@ admin actions use, without a circular import through the admin module.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from django.db import transaction
@@ -17,6 +18,8 @@ from terramedic.organizations.models import (
     OrganizationCategory,
     OrganizationEvaluation,
 )
+
+logger = logging.getLogger(__name__)
 
 _DEFAULT_LANGUAGE = "en"
 
@@ -56,17 +59,29 @@ def _category_copy_index(
     """Index ``category_copy`` entries by slug.
 
     Returns a dict ``{slug: {"description": ..., "action_text": ...}}``.
-    Missing slugs (or malformed entries) are silently skipped; the
-    through-model row will fall back to blank copy.
+    Malformed entries (not a dict, missing/non-string slug) are
+    skipped with a WARN log — the through-model row falls back to
+    blank copy, but the log makes curation-pipeline bugs visible
+    instead of silently invisible.
     """
     data = evaluation.evaluation_data or {}
     entries = data.get("category_copy") or []
     index: dict[str, dict[str, str]] = {}
     for entry in entries:
         if not isinstance(entry, dict):
+            logger.warning(
+                "Skipping malformed category_copy entry "
+                "(not a dict) on evaluation %s: %r",
+                evaluation.pk, entry,
+            )
             continue
         slug = entry.get("slug")
         if not isinstance(slug, str):
+            logger.warning(
+                "Skipping malformed category_copy entry "
+                "(missing/non-string slug) on evaluation %s: %r",
+                evaluation.pk, entry,
+            )
             continue
         index[slug] = {
             "description": str(entry.get("description") or ""),
