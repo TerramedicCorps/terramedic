@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.db import transaction
+
 from terramedic.organizations.models import (
     Category,
     Organization,
@@ -121,6 +123,7 @@ def _apply_category_set(
             _write_category_copy(through, copy)
 
 
+@transaction.atomic
 def create_org_from_evaluation(
     evaluation: OrganizationEvaluation,
 ) -> Organization:
@@ -131,6 +134,10 @@ def create_org_from_evaluation(
     evaluation's ``category_copy`` array (produced by the curation
     pipeline); slugs without an entry start blank and can be filled
     later via the admin "Generate descriptions" action.
+
+    Wrapped in ``transaction.atomic`` so a failure while writing
+    per-category copy rolls back the whole create — no half-built
+    orgs.
     """
     data: dict[str, Any] = evaluation.evaluation_data or {}
     meta = data.get("org_metadata", {})
@@ -153,6 +160,7 @@ def create_org_from_evaluation(
     return org
 
 
+@transaction.atomic
 def sync_org_categories_from_evaluation(
     evaluation: OrganizationEvaluation,
 ) -> None:
@@ -161,6 +169,10 @@ def sync_org_categories_from_evaluation(
     Preserves existing per-(org, category) copy for slugs that remain
     selected; re-applies ``category_copy`` for newly-added slugs;
     drops rows for removed slugs.
+
+    Wrapped in ``transaction.atomic`` so a failure partway through
+    the delete/create/translation-write reconciliation rolls back —
+    either all the category changes land, or none do.
 
     No-op if no Organization is linked.
     """
