@@ -88,9 +88,11 @@ and the Lambda environment (inside the VPC, no `claude` binary).
 
    Base64-encodes the fixture and hands it to `zappa invoke --raw`,
    which decodes it and pipes it into Django's `loaddata` over
-   stdin. The 6 MB Lambda sync-invoke payload limit applies — the
-   command refuses fixtures over ~5 MB and suggests uploading to
-   S3 instead.
+   stdin. The 6 MB Lambda sync-invoke payload limit applies to the
+   full snippet going on the wire — since base64 expands content
+   ~33%, the command refuses fixtures whose encoded payload would
+   exceed the limit (~4 MB raw in practice) and suggests uploading
+   to S3 instead.
 
 ### Verification
 
