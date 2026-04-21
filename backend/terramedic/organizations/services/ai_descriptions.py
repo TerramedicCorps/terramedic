@@ -97,8 +97,7 @@ def _get_api_key() -> str:
 def _build_user_content(
     org: Organization, category: Category,
 ) -> str:
-    """Build the user-turn content. Stays stable across categories for
-    the same org so the prompt cache amortizes over bulk drafts."""
+    """Build the per-category user turn (org facts + pathway slug)."""
     tags = ", ".join(
         org.tags.order_by("name").values_list("name", flat=True),
     ) or "(none)"
