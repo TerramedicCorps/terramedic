@@ -57,7 +57,17 @@ class Command(BaseCommand):
 
     def handle(self, *_args: Any, **options: Any) -> None:
         status_filter: str = options["status"]
-        qs = OrganizationEvaluation.objects.all().order_by("pk")
+        # Push filtering into the DB via JSONField path lookups so we
+        # never materialize full ``evaluation_data`` blobs client-side;
+        # pair with ``.iterator()`` to keep memory bounded on large
+        # result sets.
+        qs = OrganizationEvaluation.objects.exclude(
+            evaluation_data__prompt_version=PROMPT_VERSION,
+        ).exclude(
+            evaluation_data__org_metadata__website_url__isnull=True,
+        ).exclude(
+            evaluation_data__org_metadata__website_url="",
+        ).order_by("pk")
         if status_filter != "all":
             # Choice is validated to a ReviewStatus member; map
             # explicitly so the enum stays the source of truth.
@@ -68,11 +78,8 @@ class Command(BaseCommand):
             }
             qs = qs.filter(status=status_map[status_filter])
 
-        for ev in qs:
-            data = ev.evaluation_data or {}
-            if data.get("prompt_version") == PROMPT_VERSION:
-                continue
-            url = (data.get("org_metadata") or {}).get("website_url")
-            if not url:
-                continue
+        urls = qs.values_list(
+            "evaluation_data__org_metadata__website_url", flat=True,
+        ).iterator()
+        for url in urls:
             self.stdout.write(url)
