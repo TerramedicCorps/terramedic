@@ -2,7 +2,12 @@ import pytest
 from django.contrib.gis.geos import Point
 from django.test import Client
 
-from terramedic.organizations.models import Category, Organization, Tag
+from terramedic.organizations.models import (
+    Category,
+    Organization,
+    OrganizationCategory,
+    Tag,
+)
 
 
 @pytest.fixture
@@ -245,6 +250,150 @@ class TestNearbyOrganizations:
     def test_nearby_requires_params(self, client: Client) -> None:
         response = client.get("/api/organizations/nearby/")
         assert response.status_code == 422
+
+
+@pytest.mark.django_db
+class TestPerCategoryDescriptionAndActionText:
+    """When the API is filtered by ``?category=<slug>``, each card's
+    description and action_text come from the matching
+    OrganizationCategory row. Unfiltered / nearby responses use the
+    org's general description and leave action_text empty."""
+
+    @pytest.fixture
+    def two_pathway_org(self) -> Organization:
+        org = Organization(
+            name="Citizens' Climate Lobby",
+            website_url="https://citizensclimatelobby.org/",
+        )
+        org.set_current_language("en")
+        org.description = "General advocacy description."
+        org.save()
+
+        donate_entry = OrganizationCategory.objects.create(
+            organization=org,
+            category=Category.objects.get(slug="donate"),
+        )
+        donate_entry.set_current_language("en")
+        donate_entry.description = "Fund climate lobbying at scale."
+        donate_entry.action_text = "Donate to CCL"
+        donate_entry.save()
+
+        volunteer_entry = OrganizationCategory.objects.create(
+            organization=org,
+            category=Category.objects.get(slug="volunteer"),
+        )
+        volunteer_entry.set_current_language("en")
+        volunteer_entry.description = "Join a local lobby day."
+        volunteer_entry.action_text = "Find a chapter"
+        volunteer_entry.save()
+
+        return org
+
+    def test_category_filter_returns_per_category_description(
+        self, client: Client, two_pathway_org: Organization,
+    ) -> None:
+        response = client.get("/api/organizations/?category=donate")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["description"] == "Fund climate lobbying at scale."
+        assert data[0]["action_text"] == "Donate to CCL"
+
+    def test_same_org_returns_different_copy_under_different_pathways(
+        self, client: Client, two_pathway_org: Organization,
+    ) -> None:
+        donate = client.get("/api/organizations/?category=donate").json()
+        volunteer = client.get(
+            "/api/organizations/?category=volunteer",
+        ).json()
+
+        assert donate[0]["description"] != volunteer[0]["description"]
+        assert donate[0]["action_text"] != volunteer[0]["action_text"]
+        assert donate[0]["description"] == "Fund climate lobbying at scale."
+        assert volunteer[0]["description"] == "Join a local lobby day."
+
+    def test_unfiltered_list_returns_general_description_and_empty_action(
+        self, client: Client, two_pathway_org: Organization,
+    ) -> None:
+        response = client.get("/api/organizations/")
+        data = response.json()
+        assert data[0]["description"] == "General advocacy description."
+        assert data[0]["action_text"] == ""
+
+    def test_nearby_returns_general_description_and_empty_action(
+        self, client: Client,
+    ) -> None:
+        from django.contrib.gis.geos import Point as GeoPoint
+
+        org = Organization(
+            name="DC Org",
+            website_url="https://dc.example.org/",
+            location=GeoPoint(-77.0369, 38.9072),
+        )
+        org.set_current_language("en")
+        org.description = "DC-area environmental group."
+        org.save()
+        entry = OrganizationCategory.objects.create(
+            organization=org,
+            category=Category.objects.get(slug="donate"),
+        )
+        entry.set_current_language("en")
+        entry.description = "Specific donate pitch."
+        entry.action_text = "Give $50"
+        entry.save()
+
+        response = client.get(
+            "/api/organizations/nearby/?lat=38.9&lng=-77.0&radius=50",
+        )
+        data = response.json()
+        assert data[0]["description"] == "DC-area environmental group."
+        assert data[0]["action_text"] == ""
+
+    def test_action_text_falls_back_to_category_default_when_blank(
+        self, client: Client,
+    ) -> None:
+        """A through row with empty action_text should surface the
+        Category.default_action_text (seeded by migration 0022)."""
+        org = Organization(
+            name="Blank-CTA Org",
+            website_url="https://example.org/",
+        )
+        org.set_current_language("en")
+        org.description = "General."
+        org.save()
+        entry = OrganizationCategory.objects.create(
+            organization=org,
+            category=Category.objects.get(slug="donate"),
+        )
+        entry.set_current_language("en")
+        entry.description = "Donate-specific pitch."
+        # action_text intentionally left blank.
+        entry.save()
+
+        response = client.get("/api/organizations/?category=donate")
+        data = response.json()
+        assert data[0]["action_text"] == "Learn more"
+
+    def test_description_falls_back_to_general_when_per_cat_blank(
+        self, client: Client,
+    ) -> None:
+        org = Organization(
+            name="Blank-desc Org",
+            website_url="https://example.org/",
+        )
+        org.set_current_language("en")
+        org.description = "General description for fallback."
+        org.save()
+        OrganizationCategory.objects.create(
+            organization=org,
+            category=Category.objects.get(slug="donate"),
+        )
+        # No translation row written — per-category description is
+        # absent, so the response should fall back to the general one.
+
+        response = client.get("/api/organizations/?category=donate")
+        data = response.json()
+        assert data[0]["description"] == "General description for fallback."
 
 
 @pytest.mark.django_db

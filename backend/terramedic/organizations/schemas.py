@@ -5,6 +5,7 @@ class OrganizationOut(Schema):
     id: int
     name: str
     description: str
+    action_text: str = ""
     website_url: str
     image_url: str
     categories: list[str]
