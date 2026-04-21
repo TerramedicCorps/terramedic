@@ -356,6 +356,11 @@
       "type": "string",
       "description": "Version of the curation prompt used for this evaluation."
     },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Wall-clock time, in milliseconds, for the model call (including any server-side tool turns). Omitted if not measurable."
+    },
     "evaluation_history": {
       "type": "array",
       "description": "Prior evaluations of this organization, preserved when re-evaluating with a new prompt version.",

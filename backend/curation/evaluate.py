@@ -18,6 +18,7 @@ import logging
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -306,11 +307,20 @@ def _strip_nulls(obj: Any) -> None:
 def _build_user_message(
     url: str,
     categories: list[str] | None = None,
-) -> str:
-    """Fetch the org's website and build the user message for the model."""
+) -> tuple[str, int]:
+    """Fetch the org's website and build the user message for the model.
+
+    Returns ``(message, pages_fetched)`` — the count tracks every page
+    the curation layer attempted to fetch via ``httpx`` (homepage +
+    subpages) regardless of whether each fetch succeeded, so it lines
+    up 1:1 with the ``Fetching ...`` lines written to stderr. This is
+    distinct from any ``server_tool_use`` web fetches Claude might do
+    on top; callers log both.
+    """
     import httpx
 
     print(f"Fetching {url} ...", file=sys.stderr)
+    pages_fetched = 1
     homepage_html = None
     try:
         resp = httpx.get(
@@ -329,6 +339,7 @@ def _build_user_message(
     subpage_texts: list[str] = []
     if homepage_html:
         subpage_urls = _extract_subpage_urls(homepage_html, url)
+        pages_fetched += len(subpage_urls)
         for sub_url in subpage_urls:
             print(f"  Fetching {sub_url} ...", file=sys.stderr)
             sub_text = _fetch_page_text(sub_url)
@@ -363,7 +374,7 @@ def _build_user_message(
             "Evaluate based on your training data and flag "
             "that the website was unreachable in curator_notes.flags."
         )
-    return message
+    return message, pages_fetched
 
 
 def _validate_against_schema(
@@ -425,8 +436,11 @@ def evaluate_org(
             sys.exit(1)
         client = Anthropic(api_key=api_key)
 
-    user_content = _build_user_message(url, categories=categories)
+    user_content, pages_fetched = _build_user_message(
+        url, categories=categories,
+    )
 
+    t0 = time.monotonic()
     response = client.messages.create(
         model=model,
         max_tokens=4096,
@@ -463,15 +477,23 @@ def evaluate_org(
         elif block_type == "server_tool_use":
             search_count += 1
 
+    elapsed = time.monotonic() - t0
     usage = getattr(response, "usage", None)
+    # ``pages_fetched`` counts homepage + subpages the curation layer
+    # pulled inline via httpx. ``server_searches`` counts the
+    # Claude-side web_search tool calls. They're separate cost
+    # drivers, so log both.
     logger.info(
-        "eval usage url=%s input=%s output=%s "
-        "cache_read=%s cache_creation=%s searches=%s",
+        "eval usage url=%s elapsed_s=%.1f input=%s output=%s "
+        "cache_read=%s cache_creation=%s pages_fetched=%s "
+        "server_searches=%s",
         url,
+        elapsed,
         getattr(usage, "input_tokens", None),
         getattr(usage, "output_tokens", None),
         getattr(usage, "cache_read_input_tokens", None),
         getattr(usage, "cache_creation_input_tokens", None),
+        pages_fetched,
         search_count,
     )
 
@@ -488,6 +510,7 @@ def evaluate_org(
     )
     result["evaluated_by"] = model
     result["prompt_version"] = PROMPT_VERSION
+    result["duration_ms"] = int(elapsed * 1000)
 
     _validate_against_schema(result, source="Output")
 
@@ -495,14 +518,17 @@ def evaluate_org(
 
 
 def _invoke_claude_cli(
-    cmd: list[str], timeout: int, url: str,
-) -> str:
-    """Run the ``claude`` CLI and return the model's text response.
+    cmd: list[str], timeout: int, url: str, pages_fetched: int = 0,
+) -> tuple[str, int | None]:
+    """Run the ``claude`` CLI and return ``(text, duration_ms)``.
 
-    Handles exit code, JSON envelope parsing, ``is_error`` handling,
-    and per-call usage logging. Raises ``RuntimeError`` on non-zero
-    exit or ``is_error: true``; ``ValueError`` on malformed stdout or
-    missing ``result`` field.
+    ``duration_ms`` is wall-clock for the whole call including tool
+    turns, lifted from the CLI envelope so callers can persist it on
+    the evaluation record without re-measuring. Handles exit code,
+    JSON envelope parsing, ``is_error`` handling, and per-call usage
+    logging. Raises ``RuntimeError`` on non-zero exit or
+    ``is_error: true``; ``ValueError`` on malformed stdout or missing
+    ``result`` field.
     """
     proc = subprocess.run(
         cmd,
@@ -540,15 +566,24 @@ def _invoke_claude_cli(
     # total_cost_usd is 0 on Max subscriptions (no per-token billing);
     # kept for parity with the API-path usage log so the two sources
     # can be grepped the same way.
+    # ``duration_ms`` is wall-clock for the whole call including tool
+    # turns; ``duration_api_ms`` is just Anthropic API time. The gap
+    # between them is where WebFetch / WebSearch latency lives, so
+    # log both when diagnosing slow evaluations.
     logger.info(
-        "eval via claude-code url=%s cost_usd=%s "
-        "searches=%s fetches=%s",
+        "eval via claude-code url=%s duration_ms=%s duration_api_ms=%s "
+        "cost_usd=%s pages_fetched=%s server_searches=%s "
+        "server_fetches=%s",
         url,
+        envelope.get("duration_ms"),
+        envelope.get("duration_api_ms"),
         envelope.get("total_cost_usd"),
+        pages_fetched,
         tool_use.get("web_search_requests"),
         tool_use.get("web_fetch_requests"),
     )
-    return text
+    duration_ms = envelope.get("duration_ms")
+    return text, duration_ms if isinstance(duration_ms, int) else None
 
 
 def evaluate_org_via_claude_code(
@@ -569,7 +604,9 @@ def evaluate_org_via_claude_code(
     paths are distinguishable in stored records.
     """
     _validate_url(url)
-    user_content = _build_user_message(url, categories=categories)
+    user_content, pages_fetched = _build_user_message(
+        url, categories=categories,
+    )
 
     cmd = [
         "claude",
@@ -580,7 +617,9 @@ def evaluate_org_via_claude_code(
         "--permission-mode", "dontAsk",
         "--model", model,
     ]
-    text = _invoke_claude_cli(cmd, timeout=timeout, url=url)
+    text, duration_ms = _invoke_claude_cli(
+        cmd, timeout=timeout, url=url, pages_fetched=pages_fetched,
+    )
 
     data = _extract_json(text)
     _clean_response(data)
@@ -589,6 +628,8 @@ def evaluate_org_via_claude_code(
     )
     data["evaluated_by"] = f"claude-code:{model}"
     data["prompt_version"] = PROMPT_VERSION
+    if duration_ms is not None:
+        data["duration_ms"] = duration_ms
 
     _validate_against_schema(data, source="Claude Code output")
     return data

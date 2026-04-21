@@ -337,7 +337,7 @@ class TestEvaluateOrg:
         assert "input=1234" in log_text
         assert "output=567" in log_text
         assert "cache_read=890" in log_text
-        assert "searches=2" in log_text
+        assert "server_searches=2" in log_text
 
     def test_extracts_text_from_mixed_content_blocks(
         self, monkeypatch: pytest.MonkeyPatch,
@@ -473,6 +473,8 @@ class TestEvaluateOrgViaClaudeCode:
             "is_error": is_error,
             "result": json.dumps(payload),
             "total_cost_usd": 0.001,
+            "duration_ms": 12345,
+            "duration_api_ms": 6789,
             "usage": {
                 "input_tokens": 100,
                 "output_tokens": 50,
@@ -493,7 +495,7 @@ class TestEvaluateOrgViaClaudeCode:
     ) -> None:
         monkeypatch.setattr(
             "curation.evaluate._build_user_message",
-            lambda *_a, **_kw: "fake user message",
+            lambda *_a, **_kw: ("fake user message", 0),
         )
 
     def test_invokes_claude_cli_with_expected_flags(
@@ -557,6 +559,32 @@ class TestEvaluateOrgViaClaudeCode:
         )
 
         assert result["org_metadata"]["name"] == "Test Org"
+
+    def test_stamps_duration_ms_from_envelope(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """``duration_ms`` from the CLI envelope must land on the
+        stored evaluation so it's queryable later without grepping
+        logs."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        eval_payload = _make_valid_evaluation()
+        del eval_payload["evaluated_at"]
+        del eval_payload["evaluated_by"]
+
+        monkeypatch.setattr(
+            "subprocess.run",
+            lambda *_a, **_kw: self._fake_subprocess_result(eval_payload),
+        )
+
+        result = evaluate_org_via_claude_code(
+            "https://example.org",
+            model="sonnet",
+        )
+
+        # _fake_subprocess_result stamps duration_ms=12345.
+        assert result["duration_ms"] == 12345
 
     def test_stamps_evaluated_by_with_claude_code_prefix(
         self, monkeypatch: pytest.MonkeyPatch,
@@ -973,7 +1001,7 @@ class TestBuildUserMessage:
             return resp
 
         monkeypatch.setattr(_httpx, "get", fake_get)
-        message = _build_user_message("https://example.org")
+        message, _ = _build_user_message("https://example.org")
         today = datetime.datetime.now(tz=datetime.UTC).date().isoformat()  # type: ignore[attr-defined]
         assert f"Today's date is {today}" in message
 
@@ -990,7 +1018,7 @@ class TestBuildUserMessage:
             return resp
 
         monkeypatch.setattr(_httpx, "get", fake_get)
-        message = _build_user_message(
+        message, _ = _build_user_message(
             "https://example.org",
             categories=["donate", "resource"],
         )
@@ -1011,7 +1039,7 @@ class TestBuildUserMessage:
             return resp
 
         monkeypatch.setattr(_httpx, "get", fake_get)
-        message = _build_user_message("https://example.org")
+        message, _ = _build_user_message("https://example.org")
         assert "nominated" not in message.lower()
 
 
