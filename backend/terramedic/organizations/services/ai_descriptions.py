@@ -119,16 +119,25 @@ def _parse_response(text: str) -> DraftedCopy:
     if text.startswith("```"):
         lines = text.split("\n")
         text = "\n".join(lines[1:-1])
-    start = text.find("{")
-    end = text.rfind("}")
-    if start == -1 or end == -1 or end < start:
-        msg = f"AI response did not contain a JSON object: {text[:200]!r}"
-        raise AIDescriptionError(msg)
     try:
-        data = json.loads(text[start:end + 1])
-    except json.JSONDecodeError as exc:
-        msg = f"AI response was not valid JSON: {exc}"
-        raise AIDescriptionError(msg) from exc
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        # Fallback: model wrapped the object in prose despite the
+        # system-prompt instruction. Extract between the first { and
+        # last }.
+        start = text.find("{")
+        end = text.rfind("}")
+        if start == -1 or end == -1 or end < start:
+            msg = (
+                f"AI response did not contain a JSON object: "
+                f"{text[:200]!r}"
+            )
+            raise AIDescriptionError(msg) from None
+        try:
+            data = json.loads(text[start:end + 1])
+        except json.JSONDecodeError as exc:
+            msg = f"AI response was not valid JSON: {exc}"
+            raise AIDescriptionError(msg) from exc
     description = str(data.get("description") or "").strip()
     action_text = str(data.get("action_text") or "").strip()
     if not description:
