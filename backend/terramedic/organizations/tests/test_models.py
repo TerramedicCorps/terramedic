@@ -139,6 +139,25 @@ class TestCategoryModel:
         with pytest.raises(IntegrityError):
             Category.objects.create(slug="donate", label="Duplicate")
 
+    def test_default_action_text_field_seeded_for_canonical_slugs(
+        self,
+    ) -> None:
+        """Every canonical category ships with a non-empty fallback CTA
+        so un-drafted OrganizationCategory rows still render a button."""
+        expected = {
+            "donate": "Learn more",
+            "volunteer": "Volunteer",
+            "resource": "Explore resources",
+            "everyday": "Take action",
+            "career": "Browse jobs",
+        }
+        for slug, text in expected.items():
+            category = Category.objects.get(slug=slug)
+            assert category.default_action_text == text, (
+                f"{slug} default_action_text was "
+                f"{category.default_action_text!r}, expected {text!r}"
+            )
+
 
 @pytest.mark.django_db
 class TestOrganizationCategoriesM2M:

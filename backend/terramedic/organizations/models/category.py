@@ -12,6 +12,16 @@ class Category(models.Model):
 
     slug = models.CharField(max_length=20, primary_key=True)
     label = models.CharField(max_length=100)
+    default_action_text = models.CharField(
+        max_length=80,
+        blank=True,
+        default="",
+        help_text=(
+            "Fallback CTA label used when an OrganizationCategory row"
+            " has no per-(org, category) action_text. Empty string means"
+            " the frontend decides."
+        ),
+    )
 
     class Meta:
         ordering = ["slug"]
