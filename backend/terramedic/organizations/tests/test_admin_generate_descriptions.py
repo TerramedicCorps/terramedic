@@ -89,7 +89,7 @@ class TestGenerateDescriptionsView:
             "terramedic.organizations.admin.draft_for_category",
             return_value=draft,
         ) as mock_draft:
-            response = client.get(_url(org), follow=False)
+            response = client.post(_url(org), follow=False)
 
         assert response.status_code == 302  # redirect back to change form
         # Only the blank volunteer entry was drafted.
@@ -133,7 +133,7 @@ class TestGenerateDescriptionsView:
             "terramedic.organizations.admin.draft_for_category",
             return_value=draft,
         ):
-            response = client.get(_url(org), follow=False)
+            response = client.post(_url(org), follow=False)
 
         assert response.status_code == 302
         partial.refresh_from_db()
@@ -158,7 +158,7 @@ class TestGenerateDescriptionsView:
         with patch(
             "terramedic.organizations.admin.draft_for_category",
         ) as mock_draft:
-            response = client.get(_url(org), follow=True)
+            response = client.post(_url(org), follow=True)
 
         assert mock_draft.call_count == 0
         messages = [m.message for m in response.context["messages"]]
@@ -178,7 +178,7 @@ class TestGenerateDescriptionsView:
                 "ANTHROPIC_API_KEY is not set",
             ),
         ):
-            response = client.get(_url(org), follow=True)
+            response = client.post(_url(org), follow=True)
 
         assert response.status_code == 200
         messages = [m.message for m in response.context["messages"]]
@@ -187,7 +187,7 @@ class TestGenerateDescriptionsView:
     def test_missing_org_redirects_with_error_message(
         self, client: Client,
     ) -> None:
-        response = client.get(
+        response = client.post(
             reverse(
                 "admin:organizations_organization_generate_descriptions",
                 args=[99999],
@@ -196,3 +196,15 @@ class TestGenerateDescriptionsView:
         )
         messages = [m.message for m in response.context["messages"]]
         assert any("not found" in m.lower() for m in messages)
+
+    def test_get_returns_405(
+        self, client: Client, org: Organization,
+    ) -> None:
+        """GET must not trigger drafting — admin writes require POST."""
+        with patch(
+            "terramedic.organizations.admin.draft_for_category",
+        ) as mock_draft:
+            response = client.get(_url(org))
+
+        assert response.status_code == 405
+        assert mock_draft.call_count == 0

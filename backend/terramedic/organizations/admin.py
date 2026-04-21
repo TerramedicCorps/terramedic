@@ -12,6 +12,7 @@ from django.urls import URLPattern, path
 from django.utils import timezone
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
+from django.views.decorators.http import require_POST
 from parler.admin import TranslatableAdmin, TranslatableTabularInline
 
 from terramedic.organizations.evaluation_actions import (
@@ -152,7 +153,7 @@ class OrganizationAdmin(TranslatableAdmin):
             path(
                 "<int:object_id>/generate-descriptions/",
                 self.admin_site.admin_view(
-                    self.generate_descriptions_view,
+                    require_POST(self.generate_descriptions_view),
                 ),
                 name="organizations_organization_generate_descriptions",
             ),

@@ -1,5 +1,8 @@
 {% extends "admin/change_form.html" %} {% load i18n admin_urls %} {% block object-tools-items %} {{ block.super }} {% if original %}
 <li>
-  <a href="{% url 'admin:organizations_organization_generate_descriptions' original.pk %}" class="historylink"> {% trans "Generate descriptions" %} </a>
+  <form method="post" action="{% url 'admin:organizations_organization_generate_descriptions' original.pk %}" style="display: inline">
+    {% csrf_token %}
+    <button type="submit" class="historylink" style="background: none; border: none; padding: 0; cursor: pointer; font: inherit; color: inherit; text-decoration: inherit">{% trans "Generate descriptions" %}</button>
+  </form>
 </li>
 {% endif %} {% endblock %}
