@@ -7,7 +7,7 @@ from pathlib import Path
 
 # Bump this version whenever SYSTEM_PROMPT is modified.
 # Format: YYYY.MM.N where N resets to 1 each month.
-PROMPT_VERSION: str = "2026.04.10"
+PROMPT_VERSION: str = "2026.04.12"
 
 # Fields injected programmatically by evaluate.py after the model responds.
 # They are stripped from the schema before embedding in the prompt so the
@@ -16,6 +16,7 @@ _PROGRAMMATIC_FIELDS = (
     "evaluated_at",
     "evaluated_by",
     "prompt_version",
+    "duration_ms",
     "evaluation_history",
 )
 
@@ -83,6 +84,17 @@ in..."*, or *"mission is to..."* — they eat characters without \
 adding information.
 - Don't pad short orgs to hit the target; concision beats filler. \
 Don't truncate mid-thought to fit either — rewrite instead.
+- **Describe what was nominated, not the parent site.** If the URL \
+points to a subpage (e.g. ``/solutions/``, ``/chapters/denver``, a \
+specific program landing page), the description must cover that \
+subpage's scope — the hub, tool, chapter, or program — not a \
+generic summary of the parent organization. Example: for \
+``yaleclimateconnections.org/solutions/``, describe the Solutions \
+Hub's practical guides and how-to content, not YCC's broader \
+journalism operation. If the nominated subpage links out to \
+deeper pages (e.g. individual guides under a hub, upcoming \
+events on a chapter page), follow those links when they help you \
+characterize the subpage's actual scope and activities.
 
 ## Nomination categories
 
