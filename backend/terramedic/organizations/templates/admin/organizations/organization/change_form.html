@@ -1,8 +1,23 @@
-{% extends "admin/change_form.html" %} {% load i18n admin_urls %} {% block object-tools-items %} {{ block.super }} {% if original %}
+{% extends "admin/change_form.html" %} {% load i18n admin_urls %} {% block extrastyle %} {{ block.super }}
+<style>
+  .organization-generate-descriptions-form {
+    display: inline;
+  }
+  .organization-generate-descriptions-button {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+    text-decoration: inherit;
+  }
+</style>
+{% endblock %} {% block object-tools-items %} {{ block.super }} {% if original %}
 <li>
-  <form method="post" action="{% url 'admin:organizations_organization_generate_descriptions' original.pk %}" style="display: inline">
+  <form method="post" action="{% url 'admin:organizations_organization_generate_descriptions' original.pk %}" class="organization-generate-descriptions-form">
     {% csrf_token %}
-    <button type="submit" class="historylink" style="background: none; border: none; padding: 0; cursor: pointer; font: inherit; color: inherit; text-decoration: inherit">{% trans "Generate descriptions" %}</button>
+    <button type="submit" class="historylink organization-generate-descriptions-button">{% trans "Generate descriptions" %}</button>
   </form>
 </li>
 {% endif %} {% endblock %}
