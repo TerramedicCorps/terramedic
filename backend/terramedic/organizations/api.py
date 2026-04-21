@@ -115,7 +115,10 @@ def list_organizations(
     ).prefetch_related("tags", _prefetch_category_entries())
 
     if category:
-        qs = qs.filter(category_entries__category_id=category).distinct()
+        # (organization, category) is unique_together on the through
+        # model, so the filtered JOIN yields at most one row per org —
+        # no .distinct() needed, and the ordering stays deterministic.
+        qs = qs.filter(category_entries__category_id=category)
         qs = qs.order_by("category_entries__sort_order", "sort_order", "name")
 
     return [_serialize_org(org, category_slug=category) for org in qs]
