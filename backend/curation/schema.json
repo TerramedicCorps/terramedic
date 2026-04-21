@@ -273,7 +273,7 @@
           },
           "description": {
             "type": "string",
-            "description": "2-3 sentence pitch framed for someone arriving on the <slug> pathway page. Speaks directly to that reader's motivation — donors, volunteers, learners, etc. Roughly 120-180 characters, matching the general-description guidelines."
+            "description": "One- to two-sentence pitch framed for someone arriving on the <slug> pathway page. Speaks directly to that reader's motivation — donors, volunteers, learners, etc. Roughly 120-180 characters, matching the general-description guidelines."
           },
           "action_text": {
             "type": "string",
