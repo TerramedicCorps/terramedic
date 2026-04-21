@@ -171,7 +171,11 @@ class TestListReevaluationCandidates:
             status=ReviewStatus.APPROVED,
         )
         out = StringIO()
-        call_command("list_reevaluation_candidates", stdout=out)
+        call_command(
+            "list_reevaluation_candidates",
+            "--status", "approved",
+            stdout=out,
+        )
         assert out.getvalue().strip() == ""
 
     def test_emits_one_url_per_line_in_pk_order(self) -> None:
