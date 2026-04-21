@@ -2,7 +2,6 @@
   import OrganizationCard from '$lib/components/OrganizationCard.svelte';
   import OrganizationGridSkeleton from '$lib/components/OrganizationGridSkeleton.svelte';
   import {
-    DEFAULT_ORG_ACTION_TEXT,
     ORG_CARD_WRAPPER_CLASS,
     ORG_GRID_CONTAINER_CLASS
   } from '$lib/components/organizationGrid.styles';
@@ -12,13 +11,17 @@
   // stream an organization list via {#await}. Handles skeleton / empty
   // / error states and attaches analytics to a wrapper that's present
   // in every branch so section_view fires regardless of outcome.
+  //
+  // Each card's CTA comes from org.action_text — the backend
+  // guarantees a non-empty value for category-filtered responses via
+  // the Category.default_action_text fallback, so the frontend
+  // trusts it.
   export let promise;
   export let tagColor;
   export let buttonColor;
   export let emptyText;
   export let analyticsSection;
   export let analyticsPage;
-  export let actionText = DEFAULT_ORG_ACTION_TEXT;
 </script>
 
 <div use:trackSectionView={{ section: analyticsSection, page: analyticsPage }}>
@@ -37,9 +40,9 @@
               websiteUrl={org.website_url}
               imageUrl={org.image_url}
               tags={org.tags}
+              actionText={org.action_text}
               {tagColor}
               {buttonColor}
-              {actionText}
             />
           </div>
         {/each}

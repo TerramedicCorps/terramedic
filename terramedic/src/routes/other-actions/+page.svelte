@@ -58,7 +58,6 @@
           emptyText="No everyday-action organizations yet — check back soon."
           analyticsSection="organizations"
           analyticsPage="other-actions"
-          actionText="Take action"
         />
       </div>
 
