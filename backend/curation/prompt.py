@@ -45,8 +45,8 @@ of programs, outcomes, or leverage. Keep the tone \
 org. Keep the tone **informational**, not a recruitment pitch. \
 Many listed orgs run lobby days, canvassing, phone banks, or \
 campaigning — describe these as activities the org organizes.
-- **resource** — the artifact(s) they'll come away with.
-- **everyday** — the action(s) they can take today.
+- **resource** — the artifacts they'll come away with.
+- **everyday** — the actions they can take today.
 - **career** — who the org serves, what they'll find (jobs, \
 fellowships, community).
 
