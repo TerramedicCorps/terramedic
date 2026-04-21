@@ -83,10 +83,9 @@ adding information.
 - Keep the reading level accessible to a general reader. \
 Movement-specific terms (*"carbon pricing"*, *"lobby days"*, \
 *"canvassing"*) are fine when they're the precise word, but avoid \
-policy jargon and nested clauses.
+policy jargon.
 - Prefer **two short sentences** over one long clause-stacked \
-sentence. If a draft has three or more commas in a single \
-sentence, rewrite as two.
+sentence.
 - Don't pad short orgs to hit the target; concision beats filler. \
 Don't truncate mid-thought to fit either — rewrite instead."""
 
