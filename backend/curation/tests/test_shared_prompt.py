@@ -32,6 +32,65 @@ class TestSharedPromptConstants:
         assert "180" in DESCRIPTION_STYLE_RULES
         assert "filler" in DESCRIPTION_STYLE_RULES.lower()
 
+    def test_guidance_carries_501c3_compliance_context(self) -> None:
+        """Both donate and volunteer rules depend on this context —
+        if it goes missing, neither pathway-specific guard below can
+        do its job. Isolated from the per-pathway tests so the
+        compliance note itself can be asserted once, then referenced.
+        """
+        from curation.prompt import PER_CATEGORY_COPY_GUIDANCE
+
+        assert "501(c)(3)" in PER_CATEGORY_COPY_GUIDANCE
+        assert (
+            "501(c)(4)" in PER_CATEGORY_COPY_GUIDANCE
+            or "non-(c)(3)" in PER_CATEGORY_COPY_GUIDANCE
+        )
+
+    def test_donate_guidance_keeps_tone_neutral_for_non_c3_orgs(
+        self,
+    ) -> None:
+        """Terramedic, a 501(c)(3), must not appear to solicit
+        donations on behalf of 501(c)(4)s, PACs, or bundlers it
+        lists. The donate bullet must tell the model to stay
+        informational rather than imperative — writing "Donate to
+        fund X" for a (c)(4) creates legal risk."""
+        from curation.prompt import PER_CATEGORY_COPY_GUIDANCE
+
+        lower = PER_CATEGORY_COPY_GUIDANCE.lower()
+        assert "donate" in lower
+        # Either "informational" / "neutral" appears (the positive
+        # framing) or "solicit" / "imperative" appears (the
+        # negative framing the guidance rules out). Accept either —
+        # both express the same constraint.
+        assert any(
+            term in lower
+            for term in ("informational", "solicit", "imperative", "neutral")
+        ), "donate guidance must name the neutral/non-solicitation rule"
+
+    def test_volunteer_guidance_avoids_recruiting_for_c4_activities(
+        self,
+    ) -> None:
+        """Many listed orgs recruit volunteers for lobbying,
+        canvassing, or electoral campaigning — classic (c)(4)
+        activity. A (c)(3) can't appear to recruit volunteers for
+        those activities on behalf of a (c)(4). The volunteer rule
+        must flag this so the model doesn't write "Join us to lobby
+        Congress" copy."""
+        from curation.prompt import PER_CATEGORY_COPY_GUIDANCE
+
+        lower = PER_CATEGORY_COPY_GUIDANCE.lower()
+        assert "volunteer" in lower
+        # The rule has to surface at least one of the specific (c)(4)
+        # activity types — lobby/canvass/campaign/recruit — so the
+        # model knows what to avoid framing as a direct call.
+        assert any(
+            term in lower
+            for term in ("recruit", "lobby", "canvass", "campaign")
+        ), (
+            "volunteer guidance must name the specific activity types"
+            " ((c)(4)-style recruiting) it constrains"
+        )
+
 
 class TestBothPromptsEmbedSharedConstants:
     def test_curation_system_prompt_embeds_per_category_guidance(

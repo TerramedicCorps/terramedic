@@ -17,7 +17,7 @@ from pathlib import Path
 # Bump this version whenever SYSTEM_PROMPT or any of the shared
 # prompt constants below is modified.
 # Format: YYYY.MM.N where N resets to 1 each month.
-PROMPT_VERSION: str = "2026.04.14"
+PROMPT_VERSION: str = "2026.04.15"
 
 
 # -- Shared constants --------------------------------------------------
@@ -26,16 +26,45 @@ PROMPT_VERSION: str = "2026.04.14"
 # prompts still embed them verbatim.
 
 # Reader-per-pathway framing. Names all five canonical slugs.
+#
+# The donate and volunteer rules carry a compliance constraint:
+# Terramedic is a 501(c)(3) and must not appear to solicit donations
+# or recruit volunteers on behalf of non-(c)(3) entities (501(c)(4)
+# advocacy groups, PACs, bundlers). The guidance keeps both tones
+# informational rather than directive so the listing stays neutral
+# regardless of the listed org's tax status.
 PER_CATEGORY_COPY_GUIDANCE: str = """\
 Each pathway draws a different reader; speak directly to the one \
 arriving on each pathway's page:
 
-- **donate** — theory of change, where the money goes.
-- **volunteer** — what the person will actually do.
+- **donate** — describe the org's **theory of change**: how \
+donations support the work and what a gift actually buys in terms \
+of programs, outcomes, or leverage. Keep the tone \
+**informational**, not a solicitation.
+- **volunteer** — describe **what volunteers actually do** at the \
+org. Keep the tone **informational**, not a recruitment pitch. \
+Many listed orgs run lobby days, canvassing, phone banks, or \
+campaigning — describe these as activities the org organizes.
 - **resource** — the artifact they'll come away with.
 - **everyday** — the action they can take today.
 - **career** — who the org serves, what they'll find (jobs, \
-fellowships, community)."""
+fellowships, community).
+
+**Compliance note — donate and volunteer pathways.** Terramedic is \
+a 501(c)(3) and must not appear to solicit donations or recruit \
+volunteers on behalf of non-(c)(3) entities. This includes \
+501(c)(4) advocacy groups, PACs, donor-advised bundlers, and any \
+org whose primary activity is electoral or substantial legislative \
+lobbying. Write in the third person about the org's model \
+(*"Channels contributions to community-led ranger patrols,"* \
+*"Runs lobby days at state legislatures"*), not in the imperative \
+(*"Donate to fund X,"* *"Your gift buys Y,"* *"Join us to lobby \
+Congress,"* *"Sign up to campaign for…"*). Avoid framings that \
+imply Terramedic vouches for tax-deductibility, endorses giving, \
+or recruits for any specific campaign — we list these orgs so \
+users can make their own call. Applies equally to the general \
+``org_metadata.description`` when the org's primary pathway is \
+donate or volunteer."""
 
 
 # Length, voice, and filler rules for any public-facing description —
