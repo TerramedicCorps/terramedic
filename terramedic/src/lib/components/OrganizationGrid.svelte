@@ -2,6 +2,7 @@
   import OrganizationCard from '$lib/components/OrganizationCard.svelte';
   import OrganizationGridSkeleton from '$lib/components/OrganizationGridSkeleton.svelte';
   import {
+    DEFAULT_ORG_ACTION_TEXT,
     ORG_CARD_WRAPPER_CLASS,
     ORG_GRID_CONTAINER_CLASS
   } from '$lib/components/organizationGrid.styles';
@@ -12,10 +13,13 @@
   // / error states and attaches analytics to a wrapper that's present
   // in every branch so section_view fires regardless of outcome.
   //
-  // Each card's CTA comes from org.action_text — the backend
-  // guarantees a non-empty value for category-filtered responses via
-  // the Category.default_action_text fallback, so the frontend
-  // trusts it.
+  // For category-filtered responses the backend populates
+  // org.action_text (via Category.default_action_text fallback). For
+  // unfiltered and /nearby responses the API returns "" because no
+  // single pathway applies — we fall back to DEFAULT_ORG_ACTION_TEXT
+  // so the card doesn't render a blank CTA. (Svelte's default-prop
+  // syntax only fires on undefined, not "", so the fallback has to
+  // be explicit here.)
   export let promise;
   export let tagColor;
   export let buttonColor;
@@ -40,7 +44,7 @@
               websiteUrl={org.website_url}
               imageUrl={org.image_url}
               tags={org.tags}
-              actionText={org.action_text}
+              actionText={org.action_text || DEFAULT_ORG_ACTION_TEXT}
               {tagColor}
               {buttonColor}
             />

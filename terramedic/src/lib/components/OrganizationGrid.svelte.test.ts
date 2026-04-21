@@ -81,6 +81,22 @@ describe('OrganizationGrid', () => {
     expect(screen.getByRole('link', { name: 'Give' })).toBeInTheDocument();
   });
 
+  test('falls back to default CTA when action_text is empty', async () => {
+    // Unfiltered and /nearby responses return action_text="" because
+    // no single pathway applies. The grid must fall back to a sensible
+    // default — Svelte prop defaults only fire on undefined, not "",
+    // so without an explicit fallback the card would render a blank
+    // button.
+    const orgs = [makeOrg({ id: 1, name: 'Unfiltered Org', action_text: '' })];
+    const promise = Promise.resolve(orgs);
+    render(OrganizationGrid, { props: { ...baseProps, promise } });
+
+    await waitFor(() => {
+      expect(screen.getByText('Unfiltered Org')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('link', { name: 'Visit Website' })).toBeInTheDocument();
+  });
+
   test('shows refresh-to-retry message when the promise rejects', async () => {
     const promise = Promise.reject(new Error('API down'));
     // Suppress the unhandled-rejection warning from the test runner.
