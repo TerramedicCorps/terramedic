@@ -91,15 +91,15 @@ ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = "terramedic.organizations.models"
-disable_error_code = ["var-annotated", "no-any-return"]
+disable_error_code = ["var-annotated", "no-any-return", "django-manager-missing"]
 
 [[tool.mypy.overrides]]
 module = "terramedic.organizations.models.*"
-disable_error_code = ["var-annotated", "no-any-return"]
+disable_error_code = ["var-annotated", "no-any-return", "django-manager-missing"]
 
 [[tool.mypy.overrides]]
 module = "terramedic.nominations.models"
-disable_error_code = ["var-annotated", "no-any-return"]
+disable_error_code = ["var-annotated", "no-any-return", "django-manager-missing"]
 
 [tool.django-stubs]
 django_settings_module = "terramedic.core.settings"

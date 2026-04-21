@@ -145,8 +145,10 @@ class OrganizationAdmin(TranslatableAdmin):
         return ", ".join(slugs) if slugs else "—"
 
     def get_urls(self) -> list[URLPattern]:
-        urls = super().get_urls()
-        custom = [
+        # TranslatableAdmin.get_urls is untyped in django-stubs, so
+        # pin the list type locally before concatenating.
+        urls: list[URLPattern] = super().get_urls()
+        custom: list[URLPattern] = [
             path(
                 "<int:object_id>/generate-descriptions/",
                 self.admin_site.admin_view(

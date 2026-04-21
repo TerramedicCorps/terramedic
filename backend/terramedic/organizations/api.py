@@ -24,7 +24,10 @@ def _find_category_entry(
     org: Organization, category_slug: str,
 ) -> OrganizationCategory | None:
     """Return the prefetched through row for *category_slug*, if any."""
-    for entry in org.category_entries.all():  # type: ignore[attr-defined]
+    entries: list[OrganizationCategory] = list(
+        org.category_entries.all(),  # type: ignore[attr-defined]
+    )
+    for entry in entries:
         if entry.category_id == category_slug:
             return entry
     return None
