@@ -163,15 +163,23 @@ class TestSyncPreservesExistingCopy:
     def test_adding_a_new_slug_applies_ai_copy_if_present(self) -> None:
         """If category_copy has an entry for a newly-added slug, the
         sync writes that copy to the new through row."""
+        # AI initially proposed only donate (so only donate's through
+        # row exists after create), but category_copy carries a
+        # volunteer entry too — e.g., the AI drafted copy for a slug
+        # the reviewer only later opted in to.
         data = _eval_data(
             accessibility={"categories": ["donate"]},
         )
-        # AI initially proposed only donate; category_copy has only donate.
         data["category_copy"] = [
             {
                 "slug": "donate",
                 "description": "Fund bipartisan climate lobbying.",
                 "action_text": "Donate to CCL",
+            },
+            {
+                "slug": "volunteer",
+                "description": "Join a local lobby day.",
+                "action_text": "Find a chapter",
             },
         ]
         ev = OrganizationEvaluation.objects.create(evaluation_data=data)
@@ -179,8 +187,8 @@ class TestSyncPreservesExistingCopy:
         ev.organization = org
         ev.save()
 
-        # Curator adds volunteer. Since AI didn't draft it, the
-        # through row stays blank.
+        # Reviewer adds volunteer. Sync should create the through row
+        # and populate it from category_copy.
         ev.reviewer_categories = ["donate", "volunteer"]
         ev.save()
         sync_org_categories_from_evaluation(ev)
@@ -188,7 +196,9 @@ class TestSyncPreservesExistingCopy:
         volunteer = OrganizationCategory.objects.get(
             organization=org, category__slug="volunteer",
         )
-        assert volunteer.translations.count() == 0  # type: ignore[attr-defined]
+        volunteer.set_current_language("en")
+        assert volunteer.description == "Join a local lobby day."
+        assert volunteer.action_text == "Find a chapter"
 
     def test_noop_when_no_organization_linked(self) -> None:
         ev = OrganizationEvaluation.objects.create(
