@@ -16,6 +16,7 @@ _PROGRAMMATIC_FIELDS = (
     "evaluated_at",
     "evaluated_by",
     "prompt_version",
+    "duration_ms",
     "evaluation_history",
 )
 
