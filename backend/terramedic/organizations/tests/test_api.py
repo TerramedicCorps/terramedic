@@ -395,6 +395,70 @@ class TestPerCategoryDescriptionAndActionText:
         data = response.json()
         assert data[0]["description"] == "General description for fallback."
 
+    def test_per_category_copy_honors_accept_language(
+        self, client: Client,
+    ) -> None:
+        """Per-category description/action_text should honor the
+        Accept-Language header when a translation for that language
+        exists on the through row."""
+        org = Organization(
+            name="Bilingual Org",
+            website_url="https://example.org/",
+        )
+        org.set_current_language("en")
+        org.description = "General."
+        org.save()
+        entry = OrganizationCategory.objects.create(
+            organization=org,
+            category=Category.objects.get(slug="donate"),
+        )
+        entry.set_current_language("en")
+        entry.description = "Fund our work."
+        entry.action_text = "Donate"
+        entry.set_current_language("fr")
+        entry.description = "Financez notre travail."
+        entry.action_text = "Faire un don"
+        entry.save()
+
+        response = client.get(
+            "/api/organizations/?category=donate",
+            headers={"Accept-Language": "fr"},
+        )
+        data = response.json()
+        assert data[0]["description"] == "Financez notre travail."
+        assert data[0]["action_text"] == "Faire un don"
+
+    def test_per_category_copy_falls_back_to_english_for_missing_lang(
+        self, client: Client,
+    ) -> None:
+        """When the through row has no translation for the requested
+        language, the per-category copy falls back to English rather
+        than returning blank — matches the behavior of the general
+        org description (see TestTranslationViaAcceptLanguage)."""
+        org = Organization(
+            name="EN-only Org",
+            website_url="https://example.org/",
+        )
+        org.set_current_language("en")
+        org.description = "General."
+        org.save()
+        entry = OrganizationCategory.objects.create(
+            organization=org,
+            category=Category.objects.get(slug="donate"),
+        )
+        entry.set_current_language("en")
+        entry.description = "Fund our work."
+        entry.action_text = "Donate"
+        entry.save()
+
+        response = client.get(
+            "/api/organizations/?category=donate",
+            headers={"Accept-Language": "ja"},
+        )
+        data = response.json()
+        assert data[0]["description"] == "Fund our work."
+        assert data[0]["action_text"] == "Donate"
+
 
 @pytest.mark.django_db
 class TestTranslationViaAcceptLanguage:

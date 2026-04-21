@@ -134,6 +134,31 @@ class TestDraftForCategory:
         assert isinstance(system, list)
         assert system[0].get("cache_control") == {"type": "ephemeral"}
 
+    def test_parses_markdown_fenced_json(
+        self, org: Organization,
+    ) -> None:
+        """Some models wrap JSON in ```json fences despite the
+        system-prompt instruction. The parser strips the fence and
+        recovers the object."""
+        client = MagicMock()
+        block = MagicMock()
+        block.type = "text"
+        block.text = (
+            "```json\n"
+            '{"description": "Fenced pitch.",'
+            ' "action_text": "Donate"}\n'
+            "```"
+        )
+        message = MagicMock()
+        message.content = [block]
+        client.messages.create.return_value = message
+
+        result = draft_for_category(
+            org, Category.objects.get(slug="donate"), client=client,
+        )
+        assert result.description == "Fenced pitch."
+        assert result.action_text == "Donate"
+
     def test_user_content_includes_org_name_and_category_slug(
         self, org: Organization,
     ) -> None:
