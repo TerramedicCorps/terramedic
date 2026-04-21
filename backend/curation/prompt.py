@@ -1,13 +1,66 @@
-"""System prompt for the Terramedic curation pipeline."""
+"""System prompt for the Terramedic curation pipeline.
+
+This module is also the single source of truth for the voice and
+style rules governing per-category org copy. The admin fallback
+service (``organizations/services/ai_descriptions.py``) imports
+``PER_CATEGORY_COPY_GUIDANCE``, ``DESCRIPTION_STYLE_RULES``, and
+``CTA_LABEL_RULES`` so the two prompts can't silently drift apart.
+Any change to those constants or to ``SYSTEM_PROMPT`` needs a
+``PROMPT_VERSION`` bump.
+"""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-# Bump this version whenever SYSTEM_PROMPT is modified.
+# Bump this version whenever SYSTEM_PROMPT or any of the shared
+# prompt constants below is modified.
 # Format: YYYY.MM.N where N resets to 1 each month.
-PROMPT_VERSION: str = "2026.04.13"
+PROMPT_VERSION: str = "2026.04.14"
+
+
+# -- Shared constants --------------------------------------------------
+# These are re-used by the admin fallback service. Edit them here;
+# both callers pick up the change, and the test suite asserts both
+# prompts still embed them verbatim.
+
+# Reader-per-pathway framing. Names all five canonical slugs.
+PER_CATEGORY_COPY_GUIDANCE: str = """\
+Each pathway draws a different reader; speak directly to the one \
+arriving on each pathway's page:
+
+- **donate** — theory of change, where the money goes.
+- **volunteer** — what the person will actually do.
+- **resource** — the artifact they'll come away with.
+- **everyday** — the action they can take today.
+- **career** — who the org serves, what they'll find (jobs, \
+fellowships, community)."""
+
+
+# Length, voice, and filler rules for any public-facing description —
+# the general ``org_metadata.description`` and every per-category
+# pitch follow the same shape.
+DESCRIPTION_STYLE_RULES: str = """\
+- Write **one to two sentences**, roughly **120-180 characters \
+total**. Treat 200 as a hard ceiling.
+- Lead with **what the org does for the reader on this pathway**, \
+not what the org is. Prefer *"Protects old-growth rainforest by \
+funding Indigenous-led land stewardship in Borneo"* over *"A \
+501(c)(3) nonprofit dedicated to rainforest conservation."*
+- Drop filler phrases like *"is an organization that"*, *"founded \
+in..."*, or *"mission is to..."* — they eat characters without \
+adding information.
+- Don't pad short orgs to hit the target; concision beats filler. \
+Don't truncate mid-thought to fit either — rewrite instead."""
+
+
+# CTA label rules. Used both in the curation pipeline's
+# ``action_text`` guidance and by the admin fallback service.
+CTA_LABEL_RULES: str = """\
+CTA labels stay under 30 characters and action-oriented: \
+*"Donate"*, *"Volunteer"*, *"Browse guides"*, *"See openings"*. \
+Avoid *"Learn more"* unless nothing more specific fits."""
 
 # Fields injected programmatically by evaluate.py after the model responds.
 # They are stripped from the schema before embedding in the prompt so the
@@ -50,7 +103,7 @@ def _build_output_schema() -> str:
     return json.dumps(schema, separators=(",", ":"))
 
 
-_CRITERIA_AND_GUIDELINES: str = """\
+_CRITERIA_AND_GUIDELINES: str = f"""\
 You are an environmental organization evaluator for Terramedic, a platform that \
 connects people with vetted environmental organizations. Your task is to research \
 and evaluate a candidate organization for inclusion in the Terramedic database.
@@ -84,41 +137,25 @@ Each entry contains:
 
 - ``slug`` — matches one of ``accessibility.categories`` (not \
 ``other``).
-- ``description`` — a **pathway-specific pitch**, 120–180 characters, \
-2–3 sentences. Speak directly to the reader arriving on that \
-pathway. For ``donate``, lead with theory of change and where money \
-goes. For ``volunteer``, lead with what the person will actually do. \
-For ``resource``, lead with the artifact they'll come away with. For \
-``everyday``, lead with the action they can take today. For \
-``career``, lead with who the org serves and what they'll find \
-(jobs, fellowships, community).
+- ``description`` — a **pathway-specific pitch** following the style \
+rules below.
 - ``action_text`` — the CTA label on the card for that pathway. \
-Overrides ``Category.default_action_text``. Stay under 30 characters \
-and action-oriented: *"Donate"*, *"Volunteer"*, *"Browse guides"*, \
-*"See openings"*. Avoid *"Learn more"* unless nothing more specific \
-fits.
+Overrides ``Category.default_action_text``.
+
+{PER_CATEGORY_COPY_GUIDANCE}
 
 Keep the general ``org_metadata.description`` itself **generic** — \
 don't let it drift toward the strongest single pathway. It's the \
 fallback for every other context.
 
-## Description guidelines
+## Description style
 
-The ``org_metadata.description`` field is rendered verbatim on \
-Terramedic's public listing cards, side by side with other orgs. \
-Uneven lengths make the grid look jittery, so aim for consistency:
+The ``org_metadata.description`` field and every ``category_copy`` \
+description are rendered verbatim on Terramedic's public listing \
+cards, side by side with other orgs. Uneven lengths make the grid \
+look jittery, so aim for consistency:
 
-- **Write one to two sentences, roughly 120-180 characters total.** \
-Treat 200 as a hard ceiling.
-- Lead with **what the org does**, not what it is. Prefer *"Protects \
-old-growth rainforest by funding Indigenous-led land stewardship in \
-Borneo"* over *"A 501(c)(3) nonprofit dedicated to rainforest \
-conservation."*
-- Drop filler phrases like *"is an organization that"*, *"founded \
-in..."*, or *"mission is to..."* — they eat characters without \
-adding information.
-- Don't pad short orgs to hit the target; concision beats filler. \
-Don't truncate mid-thought to fit either — rewrite instead.
+{DESCRIPTION_STYLE_RULES}
 - **Describe what was nominated, not the parent site.** If the URL \
 points to a subpage (e.g. ``/solutions/``, ``/chapters/denver``, a \
 specific program landing page), the description must cover that \
@@ -130,6 +167,10 @@ journalism operation. If the nominated subpage links out to \
 deeper pages (e.g. individual guides under a hub, upcoming \
 events on a chapter page), follow those links when they help you \
 characterize the subpage's actual scope and activities.
+
+## CTA label style
+
+{CTA_LABEL_RULES}
 
 ## Nomination categories
 

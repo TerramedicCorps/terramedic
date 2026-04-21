@@ -1393,8 +1393,8 @@ class TestDescriptionLengthGuidance:
     visual variation.
     """
 
-    def test_prompt_has_description_guidelines_section(self) -> None:
-        assert "Description guidelines" in SYSTEM_PROMPT
+    def test_prompt_has_description_style_section(self) -> None:
+        assert "Description style" in SYSTEM_PROMPT
 
     def test_prompt_asks_for_one_to_two_sentences(self) -> None:
         assert "one to two sentences" in SYSTEM_PROMPT

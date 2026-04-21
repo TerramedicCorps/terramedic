@@ -19,6 +19,11 @@ import os
 from dataclasses import dataclass
 from typing import Any
 
+from curation.prompt import (
+    CTA_LABEL_RULES,
+    DESCRIPTION_STYLE_RULES,
+    PER_CATEGORY_COPY_GUIDANCE,
+)
 from terramedic.core.secrets import resolve_secret
 from terramedic.organizations.models import Category, Organization
 
@@ -28,41 +33,34 @@ logger = logging.getLogger(__name__)
 _MODEL = "claude-sonnet-4-20250514"
 _MAX_TOKENS = 512
 
-# Voice guidance mirrors curation/prompt.py's description rules but
-# stays short — the org is already approved; we're just drafting copy.
-_SYSTEM_PROMPT = """\
+# Composed from the shared voice rules so curation/prompt.py and this
+# service stay in lockstep on length, filler, pathway-reader framing,
+# and CTA style. Only the framing ("one approved org, one pathway")
+# is local.
+_SYSTEM_PROMPT = f"""\
 You write per-category copy for Terramedic, a platform that connects \
-people with vetted environmental organizations.
+people with vetted environmental organizations. Given one approved \
+organization and one pathway, produce a pathway-specific description \
+and a CTA label for the card on that pathway's page.
 
-Each pathway (donate, volunteer, resource, everyday, career) draws a \
-different reader. Your job: given an approved organization and one \
-pathway, produce a pathway-specific description and a CTA label for \
-the card on that pathway's page.
+## Pathway reader
 
-## Voice
+{PER_CATEGORY_COPY_GUIDANCE}
 
-- Lead with **what the org does for the reader on this pathway**, \
-not what the org is.
-- 2-3 sentences, roughly 120-180 characters total. Treat 200 as a \
-hard ceiling.
-- Drop filler like *"is an organization that"*, *"founded in..."*, \
-*"our mission is to..."*.
-- Speak directly to the reader of that pathway:
-  - **donate** - theory of change, where the money goes.
-  - **volunteer** - what the person will actually do.
-  - **resource** - the artifact they'll come away with.
-  - **everyday** - the action they can take today.
-  - **career** - who the org serves, what they'll find.
-- CTA labels stay under 30 characters and action-oriented \
-(*"Donate"*, *"Volunteer"*, *"Browse guides"*, *"See openings"*). \
-Avoid *"Learn more"* unless nothing more specific fits.
+## Description style
+
+{DESCRIPTION_STYLE_RULES}
+
+## CTA label
+
+{CTA_LABEL_RULES}
 
 ## Output
 
-Return a single raw JSON object with this shape - no markdown, no \
+Return a single raw JSON object with this shape — no markdown, no \
 prose around it:
 
-{"description": "...", "action_text": "..."}
+{{"description": "...", "action_text": "..."}}
 """
 
 
