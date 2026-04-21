@@ -7,9 +7,8 @@ This is the local-only half of the re-evaluation workflow:
    ``zappa manage <env> "list_reevaluation_candidates" > urls.txt``
 2. Evaluate locally via the authenticated ``claude`` CLI (this
    command) — writes ``out.json``, no DB access needed.
-3. Ship the fixture back (``zappa update`` to package it, or copy
-   to S3 / the Zappa working tree) and load with
-   ``zappa manage <env> "loaddata out.json"``.
+3. Load the fixture into the remote environment with
+   ``python manage.py zappa_loaddata <stage> out.json``.
 
 Requires the shell to be logged into Claude Code (``claude auth``).
 """
