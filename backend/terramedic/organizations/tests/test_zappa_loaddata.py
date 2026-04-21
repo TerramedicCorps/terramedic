@@ -95,7 +95,8 @@ class TestZappaLoaddata:
             call_command("zappa_loaddata", "dev", str(fixture))
 
         argv = mock_run.call_args.args[0]
-        # The snippet is the payload arg after --raw.
+        # argv is ["zappa", "invoke", stage, snippet, "--raw"] — the
+        # snippet sits before --raw, so match it by content.
         snippet = next(
             arg for arg in argv
             if isinstance(arg, str) and "base64" in arg
