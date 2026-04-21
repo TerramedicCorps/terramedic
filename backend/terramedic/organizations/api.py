@@ -20,19 +20,6 @@ from terramedic.organizations.schemas import OrganizationOut
 router = Router()
 
 
-def _find_category_entry(
-    org: Organization, category_slug: str,
-) -> OrganizationCategory | None:
-    """Return the prefetched through row for *category_slug*, if any."""
-    entries: list[OrganizationCategory] = list(
-        org.category_entries.all(),  # type: ignore[attr-defined]
-    )
-    for entry in entries:
-        if entry.category_id == category_slug:
-            return entry
-    return None
-
-
 def _translated(
     entry: OrganizationCategory, field: str,
 ) -> str:
@@ -72,12 +59,18 @@ def _serialize_org(
     nearby map or unfiltered listing), the general
     ``org.description`` is returned and ``action_text`` stays empty.
     """
+    entries: list[OrganizationCategory] = list(
+        org.category_entries.all(),  # type: ignore[attr-defined]
+    )
     description = org.description
     action_text = ""
     sort_order = org.sort_order
 
     if category_slug:
-        entry = _find_category_entry(org, category_slug)
+        entry = next(
+            (e for e in entries if e.category_id == category_slug),
+            None,
+        )
         if entry is not None:
             per_cat_desc = _translated(entry, "description")
             if per_cat_desc:
@@ -94,9 +87,7 @@ def _serialize_org(
         "action_text": action_text,
         "website_url": org.website_url,
         "image_url": org.image_url,
-        "categories": sorted(
-            entry.category_id for entry in org.category_entries.all()  # type: ignore[attr-defined]
-        ),
+        "categories": sorted(e.category_id for e in entries),
         "tags": list(org.tags.order_by("name").values_list("name", flat=True)),
         "sort_order": sort_order,
     }
