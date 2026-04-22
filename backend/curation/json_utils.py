@@ -1,11 +1,4 @@
-"""Shared JSON extraction for model responses.
-
-Both the curation pipeline (``curation.evaluate``) and the admin
-fallback service (``organizations.services.ai_descriptions``) parse
-JSON objects out of free-form model output. They share this helper
-so a fix to the extraction logic (e.g. the depth-aware brace
-matcher below) lands in one place.
-"""
+"""JSON extraction for free-form model responses."""
 
 from __future__ import annotations
 
