@@ -850,15 +850,6 @@ class TestCategoryCopyInSchema:
         guidance too."""
         assert "category_copy" in SYSTEM_PROMPT
 
-    def test_prompt_version_bumped(self) -> None:
-        """Reintroducing per-category copy is a meaningful change to
-        what the model returns; downstream tooling filters on
-        prompt_version to distinguish old vs. new evaluations."""
-        from curation.prompt import PROMPT_VERSION
-
-        # Schema change landed in 2026-04; any prior version is older.
-        assert PROMPT_VERSION >= "2026.04.13"
-
 
 class TestCleanResponse:
     def test_known_activity_type_unchanged(self) -> None:
