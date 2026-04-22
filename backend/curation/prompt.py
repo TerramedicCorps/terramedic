@@ -17,7 +17,7 @@ from pathlib import Path
 # Bump this version whenever SYSTEM_PROMPT or any of the shared
 # prompt constants below is modified.
 # Format: YYYY.MM.N where N resets to 1 each month.
-PROMPT_VERSION: str = "2026.04.15"
+PROMPT_VERSION: str = "2026.04.16"
 
 
 # -- Shared constants --------------------------------------------------
@@ -29,10 +29,11 @@ PROMPT_VERSION: str = "2026.04.15"
 #
 # The donate and volunteer rules carry a compliance constraint:
 # Terramedic is a 501(c)(3) and must not appear to solicit donations
-# or recruit volunteers on behalf of non-(c)(3) entities (501(c)(4)
-# advocacy groups, PACs, bundlers). The guidance keeps both tones
+# or recruit volunteers on behalf of orgs whose primary activities
+# aren't c3-equivalent — electoral, partisan, or substantial-lobbying
+# groups, regardless of country. The guidance keeps both tones
 # informational rather than directive so the listing stays neutral
-# regardless of the listed org's tax status.
+# regardless of the listed org's structure.
 PER_CATEGORY_COPY_GUIDANCE: str = """\
 Each pathway draws a different reader; speak directly to the one \
 arriving on each pathway's page:
@@ -51,11 +52,15 @@ campaigning — describe these as activities the org organizes.
 fellowships, community).
 
 **Compliance note — donate and volunteer pathways.** Terramedic is \
-a 501(c)(3) and must not appear to solicit donations or recruit \
-volunteers on behalf of non-(c)(3) entities. This includes \
-501(c)(4) advocacy groups, PACs, donor-advised bundlers, and any \
-org whose primary activity is electoral or substantial legislative \
-lobbying. Write in the third person about the org's model \
+a US 501(c)(3) and must not appear to solicit donations or recruit \
+volunteers on behalf of orgs whose primary activities aren't \
+c3-equivalent — electoral, partisan, or substantial-lobbying groups \
+regardless of country. This includes 501(c)(4) advocacy groups, \
+PACs, political parties, donor-advised bundlers, their foreign \
+equivalents, and any org whose primary activity is electoral or \
+substantial legislative lobbying. Foreign charities doing \
+conservation, education, or scientific work are c3-equivalent and \
+not covered. Write in the third person about the org's model \
 (*"Channels contributions to community-led ranger patrols,"* \
 *"Runs lobby days at state legislatures"*), not in the imperative \
 (*"Donate to fund X,"* *"Your gift buys Y,"* *"Join us to lobby \
@@ -93,9 +98,18 @@ Don't truncate mid-thought to fit either — rewrite instead."""
 # CTA label rules. Used both in the curation pipeline's
 # ``action_text`` guidance and by the admin fallback service.
 CTA_LABEL_RULES: str = """\
-CTA labels stay under 30 characters and action-oriented: \
-*"Donate"*, *"Volunteer"*, *"Browse guides"*, *"See openings"*. \
-Avoid *"Learn more"* unless nothing more specific fits."""
+CTA labels stay under 30 characters and action-oriented. Tailor to \
+what the reader will see or find at the org — *"Read the reports"*, \
+*"Find a climate job"*, *"Find a local chapter"*, *"Fund research"* \
+beat generic pathway verbs when the org has a distinctive offer. \
+Fall back to the generic verb (*"Donate"*, *"Volunteer"*, \
+*"Browse guides"*, *"See openings"*) only when no specific offer \
+fits.
+
+On donate and volunteer pathways for any org covered by the \
+compliance note above, use a neutral *"Learn more"* or *"Visit \
+site"* instead — *"Donate"*, *"Volunteer"*, and customizations like \
+*"Fund lobby days"* all read as Terramedic-driven solicitation."""
 
 # Fields injected programmatically by evaluate.py after the model responds.
 # They are stripped from the schema before embedding in the prompt so the
