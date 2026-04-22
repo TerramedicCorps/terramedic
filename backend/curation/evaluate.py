@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from curation.json_utils import extract_json
 from curation.prompt import PROMPT_VERSION, SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
@@ -183,69 +184,6 @@ def _fetch_page_text(url: str) -> str | None:
     except (httpx.HTTPError, httpx.InvalidURL):
         return None
     return _html_to_text(resp.text)
-
-
-def _find_json_end(text: str, start: int) -> int | None:
-    """Find the closing brace of a top-level JSON object.
-
-    Returns the index of the closing ``}`` or ``None`` if not found.
-    """
-    depth = 0
-    in_string = False
-    escape = False
-    for i in range(start, len(text)):
-        ch = text[i]
-        if escape:
-            escape = False
-            continue
-        if ch == "\\":
-            escape = True
-            continue
-        if ch == '"':
-            in_string = not in_string
-            continue
-        if in_string:
-            continue
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                return i
-    return None
-
-
-def _extract_json(text: str) -> dict[str, Any]:
-    """Extract a JSON object from model response text.
-
-    Handles plain JSON, markdown-fenced JSON, and JSON embedded
-    in surrounding prose (common with web-search-enabled responses).
-    """
-    text = text.strip()
-    if text.startswith("```"):
-        lines = text.split("\n")
-        text = "\n".join(lines[1:-1])
-
-    # Try parsing the full text first.
-    try:
-        result: dict[str, Any] = json.loads(text)
-        return result
-    except json.JSONDecodeError:
-        pass
-
-    # Find the first top-level JSON object in the text.
-    start = text.find("{")
-    if start != -1:
-        end = _find_json_end(text, start)
-        if end is not None:
-            try:
-                result = json.loads(text[start:end + 1])
-                return result
-            except json.JSONDecodeError:
-                pass
-
-    msg = "Failed to parse JSON from model response: no valid JSON found"
-    raise ValueError(msg)
 
 
 def _enum_from_schema(
@@ -501,7 +439,7 @@ def evaluate_org(
         msg = "No text block found in model response"
         raise ValueError(msg)
 
-    result = _extract_json(text_block.text)  # type: ignore[union-attr]
+    result = extract_json(text_block.text)  # type: ignore[union-attr]
 
     _clean_response(result)
 
@@ -626,7 +564,7 @@ def evaluate_org_via_claude_code(
         cmd, timeout=timeout, url=url, pages_fetched=pages_fetched,
     )
 
-    data = _extract_json(text)
+    data = extract_json(text)
     _clean_response(data)
     data["evaluated_at"] = (
         datetime.datetime.now(datetime.UTC).isoformat()

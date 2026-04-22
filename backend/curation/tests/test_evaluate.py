@@ -17,7 +17,6 @@ from curation.evaluate import (
     _build_arg_parser,
     _build_user_message,
     _clean_response,
-    _extract_json,
     _extract_subpage_urls,
     _html_to_text,
     _load_schema,
@@ -945,37 +944,6 @@ class TestCleanResponse:
         assert "year_founded" not in data["org_metadata"]
         assert "region" not in data["org_metadata"]
         assert data["org_metadata"]["name"] == "Test"
-
-
-class TestExtractJson:
-    def test_plain_json(self) -> None:
-        result = _extract_json('{"name": "test"}')
-        assert result == {"name": "test"}
-
-    def test_markdown_fenced_json(self) -> None:
-        result = _extract_json('```json\n{"name": "test"}\n```')
-        assert result == {"name": "test"}
-
-    def test_json_with_preamble_text(self) -> None:
-        text = (
-            "Based on my research, here is the evaluation:\n\n"
-            '{"name": "test", "score": 4}'
-        )
-        result = _extract_json(text)
-        assert result == {"name": "test", "score": 4}
-
-    def test_json_with_preamble_and_trailing_text(self) -> None:
-        text = (
-            "Here is my evaluation:\n\n"
-            '{"name": "test"}\n\n'
-            "Let me know if you need anything else."
-        )
-        result = _extract_json(text)
-        assert result == {"name": "test"}
-
-    def test_no_json_raises(self) -> None:
-        with pytest.raises(ValueError, match="JSON"):
-            _extract_json("This has no JSON at all")
 
 
 class TestHtmlToText:

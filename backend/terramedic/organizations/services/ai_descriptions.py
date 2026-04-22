@@ -13,12 +13,12 @@ Invoked by ``OrganizationAdmin``'s "Generate descriptions" button
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 from dataclasses import dataclass
 from typing import Any
 
+from curation.json_utils import extract_json
 from curation.prompt import (
     CTA_LABEL_RULES,
     DESCRIPTION_STYLE_RULES,
@@ -125,29 +125,11 @@ def _build_user_content(
 
 
 def _parse_response(text: str) -> DraftedCopy:
-    text = text.strip()
-    if text.startswith("```"):
-        lines = text.split("\n")
-        text = "\n".join(lines[1:-1])
     try:
-        data = json.loads(text)
-    except json.JSONDecodeError:
-        # Fallback: model wrapped the object in prose despite the
-        # system-prompt instruction. Extract between the first { and
-        # last }.
-        start = text.find("{")
-        end = text.rfind("}")
-        if start == -1 or end == -1 or end < start:
-            msg = (
-                f"AI response did not contain a JSON object: "
-                f"{text[:200]!r}"
-            )
-            raise AIDescriptionError(msg) from None
-        try:
-            data = json.loads(text[start:end + 1])
-        except json.JSONDecodeError as exc:
-            msg = f"AI response was not valid JSON: {exc}"
-            raise AIDescriptionError(msg) from exc
+        data = extract_json(text)
+    except ValueError as exc:
+        msg = f"AI response was not valid JSON: {exc}"
+        raise AIDescriptionError(msg) from exc
     description = str(data.get("description") or "").strip()
     action_text = str(data.get("action_text") or "").strip()
     if not description:
