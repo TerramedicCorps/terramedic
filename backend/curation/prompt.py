@@ -83,7 +83,7 @@ adding information.
 - Keep the reading level accessible to a general reader. \
 Movement-specific terms (*"carbon pricing"*, *"lobby days"*, \
 *"canvassing"*) are fine when they're the precise word, but avoid \
-policy jargon.
+jargon.
 - Prefer **two short sentences** over one long clause-stacked \
 sentence.
 - Don't pad short orgs to hit the target; concision beats filler. \
