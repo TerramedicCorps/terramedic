@@ -2,37 +2,113 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.conf import settings
 from django.contrib.gis.db.models.functions import Distance
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import D
+from django.db.models import Prefetch
 from django.http import HttpRequest
+from django.utils.translation import get_language
 from ninja import Query, Router
 from ninja.errors import HttpError
 
-from terramedic.organizations.models import Organization
+from terramedic.organizations.models import (
+    Organization,
+    OrganizationCategory,
+)
 from terramedic.organizations.schemas import OrganizationOut
 
 router = Router()
 
 
+def _translated(
+    entry: OrganizationCategory, field: str,
+) -> str:
+    """Pull a translated field off the prefetched through row.
+
+    Prefers the active language (django-parler honors
+    ``Accept-Language`` via middleware); falls back to the project's
+    ``LANGUAGE_CODE`` when absent so default-language content isn't
+    silently dropped for non-matching requests. Following
+    ``settings.LANGUAGE_CODE`` (rather than a hardcoded ``"en"``)
+    means if the project's default language ever changes, this
+    follows along without a code edit.
+    """
+    active = get_language() or settings.LANGUAGE_CODE
+    fallback = settings.LANGUAGE_CODE
+    translations = list(entry.translations.all())  # type: ignore[attr-defined]
+    for translation in translations:
+        if translation.language_code == active:
+            return str(getattr(translation, field, "") or "")
+    if fallback != active:
+        for translation in translations:
+            if translation.language_code == fallback:
+                return str(getattr(translation, field, "") or "")
+    return ""
+
+
 def _serialize_org(
     org: Organization,
+    category_slug: str | None = None,
 ) -> dict[str, Any]:
-    # Manual serialization needed because the django-parler translated
-    # description field requires accessing the active language on the
-    # model instance; django-ninja's ModelSchema cannot resolve it.
+    """Serialize an org to the public schema shape.
+
+    When *category_slug* is provided, prefer the per-(org, category)
+    translated description and action_text. Effective action_text
+    precedence:
+
+      1. ``OrganizationCategory.action_text`` (translated).
+      2. ``Category.default_action_text``.
+      3. empty string — frontend decides.
+
+    When *category_slug* is ``None`` (multi-category contexts like the
+    nearby map or unfiltered listing), the general
+    ``org.description`` is returned and ``action_text`` stays empty.
+    """
+    entries: list[OrganizationCategory] = list(
+        org.category_entries.all(),  # type: ignore[attr-defined]
+    )
+    description = org.description
+    action_text = ""
+    sort_order = org.sort_order
+
+    if category_slug:
+        entry = next(
+            (e for e in entries if e.category_id == category_slug),
+            None,
+        )
+        if entry is not None:
+            per_cat_desc = _translated(entry, "description")
+            if per_cat_desc:
+                description = per_cat_desc
+            action_text = _translated(entry, "action_text")
+            if not action_text:
+                action_text = entry.category.default_action_text
+            sort_order = entry.sort_order
+
     return {
         "id": org.pk,
         "name": org.name,
-        "description": org.description,
+        "description": description,
+        "action_text": action_text,
         "website_url": org.website_url,
         "image_url": org.image_url,
-        "categories": list(
-            org.categories.order_by("slug").values_list("slug", flat=True),
-        ),
+        "categories": sorted(e.category_id for e in entries),
         "tags": list(org.tags.order_by("name").values_list("name", flat=True)),
-        "sort_order": org.sort_order,
+        "sort_order": sort_order,
     }
+
+
+def _prefetch_category_entries() -> Prefetch:
+    """Prefetch through rows with translations + category so
+    ``_serialize_org`` resolves per-category copy and the
+    default_action_text fallback without N+1 queries."""
+    return Prefetch(
+        "category_entries",
+        queryset=OrganizationCategory.objects.select_related(
+            "category",
+        ).prefetch_related("translations"),
+    )
 
 
 @router.get("/", response=list[OrganizationOut], auth=None)
@@ -42,15 +118,16 @@ def list_organizations(
 ) -> list[dict[str, Any]]:
     qs = Organization.objects.filter(
         is_active=True,
-    ).prefetch_related("tags", "categories")
+    ).prefetch_related("tags", _prefetch_category_entries())
 
     if category:
-        # Filter across the M2M and deduplicate. An org that belongs to the
-        # requested category only appears once in the result, even though
-        # the join on the M2M table could otherwise produce duplicates.
-        qs = qs.filter(categories__slug=category).distinct()
+        # (organization, category) is unique_together on the through
+        # model, so the filtered JOIN yields at most one row per org —
+        # no .distinct() needed, and the ordering stays deterministic.
+        qs = qs.filter(category_entries__category_id=category)
+        qs = qs.order_by("category_entries__sort_order", "sort_order", "name")
 
-    return [_serialize_org(org) for org in qs]
+    return [_serialize_org(org, category_slug=category) for org in qs]
 
 
 @router.get("/nearby/", response=list[OrganizationOut], auth=None)
@@ -69,7 +146,7 @@ def nearby_organizations(
             location__distance_lte=(point, D(km=radius)),
         )
         .annotate(distance=Distance("location", point))
-        .prefetch_related("tags", "categories")
+        .prefetch_related("tags", _prefetch_category_entries())
         .order_by("distance")
     )
 
@@ -80,14 +157,15 @@ def nearby_organizations(
 def get_organization(
     request: HttpRequest,
     org_id: int,
+    category: str | None = Query(None),  # noqa: B008
 ) -> dict[str, Any]:
     try:
         org = (
             Organization.objects.filter(is_active=True)
-            .prefetch_related("tags", "categories")
+            .prefetch_related("tags", _prefetch_category_entries())
             .get(pk=org_id)
         )
     except Organization.DoesNotExist as exc:
         raise HttpError(404, "Organization not found") from exc
 
-    return _serialize_org(org)
+    return _serialize_org(org, category_slug=category)

@@ -6,6 +6,7 @@ export interface Organization {
   id: number;
   name: string;
   description: string;
+  action_text: string;
   website_url: string;
   image_url: string;
   categories: string[];

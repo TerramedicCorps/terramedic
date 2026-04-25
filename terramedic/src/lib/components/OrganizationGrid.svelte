@@ -12,13 +12,20 @@
   // stream an organization list via {#await}. Handles skeleton / empty
   // / error states and attaches analytics to a wrapper that's present
   // in every branch so section_view fires regardless of outcome.
+  //
+  // For category-filtered responses the backend populates
+  // org.action_text (via Category.default_action_text fallback). For
+  // unfiltered and /nearby responses the API returns "" because no
+  // single pathway applies — we fall back to DEFAULT_ORG_ACTION_TEXT
+  // so the card doesn't render a blank CTA. (Svelte's default-prop
+  // syntax only fires on undefined, not "", so the fallback has to
+  // be explicit here.)
   export let promise;
   export let tagColor;
   export let buttonColor;
   export let emptyText;
   export let analyticsSection;
   export let analyticsPage;
-  export let actionText = DEFAULT_ORG_ACTION_TEXT;
 </script>
 
 <div use:trackSectionView={{ section: analyticsSection, page: analyticsPage }}>
@@ -37,9 +44,9 @@
               websiteUrl={org.website_url}
               imageUrl={org.image_url}
               tags={org.tags}
+              actionText={org.action_text || DEFAULT_ORG_ACTION_TEXT}
               {tagColor}
               {buttonColor}
-              {actionText}
             />
           </div>
         {/each}

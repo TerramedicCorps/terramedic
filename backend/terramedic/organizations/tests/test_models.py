@@ -139,6 +139,54 @@ class TestCategoryModel:
         with pytest.raises(IntegrityError):
             Category.objects.create(slug="donate", label="Duplicate")
 
+    def test_default_action_text_field_seeded_for_canonical_slugs(
+        self,
+    ) -> None:
+        """Every canonical category ships with a non-empty fallback CTA
+        so un-drafted OrganizationCategory rows still render a button."""
+        expected = {
+            "donate": "Learn more",
+            "volunteer": "Volunteer",
+            "resource": "Explore resources",
+            "everyday": "Take action",
+            "career": "Browse jobs",
+        }
+        for slug, text in expected.items():
+            category = Category.objects.get(slug=slug)
+            assert category.default_action_text == text, (
+                f"{slug} default_action_text was "
+                f"{category.default_action_text!r}, expected {text!r}"
+            )
+
+
+@pytest.mark.django_db
+class TestOrganizationCategoryThrough:
+    """Design decisions we own on the OrganizationCategory through
+    model (Django's own tests cover M2M/parler/unique_together)."""
+
+    def test_deleting_category_is_protected_by_through_rows(
+        self,
+    ) -> None:
+        """Categories are seeded by migration and shouldn't vanish
+        from under existing organizations. PROTECT (not CASCADE) is
+        our deliberate choice on OrganizationCategory.category —
+        deleting a seeded Category out from under approved orgs
+        should raise, not silently wipe rows."""
+        from django.db.models.deletion import ProtectedError
+
+        org = Organization(
+            name="Two-Pathway Org",
+            website_url="https://example.org/",
+        )
+        org.set_current_language("en")
+        org.description = "General description."
+        org.save()
+        donate = Category.objects.get(slug="donate")
+        org.categories.add(donate)
+
+        with pytest.raises(ProtectedError):
+            donate.delete()
+
 
 @pytest.mark.django_db
 class TestOrganizationCategoriesM2M:

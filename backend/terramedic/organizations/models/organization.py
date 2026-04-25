@@ -16,6 +16,7 @@ class Organization(TranslatableModel):
     image_url = models.URLField(blank=True, default="")
     categories = models.ManyToManyField(
         Category,
+        through="OrganizationCategory",
         related_name="organizations",
         blank=True,
     )

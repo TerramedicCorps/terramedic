@@ -17,7 +17,6 @@ from curation.evaluate import (
     _build_arg_parser,
     _build_user_message,
     _clean_response,
-    _extract_json,
     _extract_subpage_urls,
     _html_to_text,
     _load_schema,
@@ -95,6 +94,7 @@ def _make_valid_evaluation() -> dict[str, Any]:
             {"activity": "Tree planting", "type": "conservation"},
         ],
         "accessibility": {},
+        "category_copy": [],
         "evidence_score": {"score": 3, "rationale": "Moderate evidence"},
         "curator_notes": {"recommendation": "include", "confidence": 85},
         "evaluated_at": "2026-04-04T12:00:00+00:00",
@@ -802,6 +802,54 @@ class TestValidateAgainstSchema:
             _validate_against_schema({}, source="Output")
 
 
+class TestCategoryCopyInSchema:
+    """``category_copy`` is a top-level required field. Per-category
+    description + action_text come from the same AI pass that proposes
+    ``accessibility.categories``, so the common path never needs a
+    second round-trip to generate per-category copy."""
+
+    def test_category_copy_is_top_level_required(self) -> None:
+        schema = _load_schema()
+        assert "category_copy" in schema["required"]
+
+    def test_category_copy_item_requires_slug_description_action_text(
+        self,
+    ) -> None:
+        schema = _load_schema()
+        item_schema = schema["properties"]["category_copy"]["items"]
+        assert set(item_schema["required"]) == {
+            "slug", "description", "action_text",
+        }
+
+    def test_category_copy_slug_matches_canonical_categories(self) -> None:
+        """category_copy slugs are the five canonical pathways (no
+        ``other`` — it's an escape hatch that doesn't map to a
+        Terramedic Category row)."""
+        schema = _load_schema()
+        slug_enum = set(
+            schema["properties"]["category_copy"]["items"]
+            ["properties"]["slug"]["enum"],
+        )
+        assert slug_enum == {
+            "donate", "volunteer", "resource", "everyday", "career",
+        }
+
+    def test_action_text_has_max_length(self) -> None:
+        """Card CTAs are tight — enforce a reasonable ceiling so the
+        model can't return a paragraph."""
+        schema = _load_schema()
+        at_schema = schema["properties"]["category_copy"]["items"][
+            "properties"
+        ]["action_text"]
+        assert at_schema["maxLength"] <= 80
+
+    def test_prompt_instructs_model_on_category_copy(self) -> None:
+        """The model has to know to produce category_copy; embedding
+        the schema alone isn't enough — the prompt gives it voice
+        guidance too."""
+        assert "category_copy" in SYSTEM_PROMPT
+
+
 class TestCleanResponse:
     def test_known_activity_type_unchanged(self) -> None:
         data = {"evidence_of_work": [{"activity": "x", "type": "conservation"}]}
@@ -896,37 +944,6 @@ class TestCleanResponse:
         assert "year_founded" not in data["org_metadata"]
         assert "region" not in data["org_metadata"]
         assert data["org_metadata"]["name"] == "Test"
-
-
-class TestExtractJson:
-    def test_plain_json(self) -> None:
-        result = _extract_json('{"name": "test"}')
-        assert result == {"name": "test"}
-
-    def test_markdown_fenced_json(self) -> None:
-        result = _extract_json('```json\n{"name": "test"}\n```')
-        assert result == {"name": "test"}
-
-    def test_json_with_preamble_text(self) -> None:
-        text = (
-            "Based on my research, here is the evaluation:\n\n"
-            '{"name": "test", "score": 4}'
-        )
-        result = _extract_json(text)
-        assert result == {"name": "test", "score": 4}
-
-    def test_json_with_preamble_and_trailing_text(self) -> None:
-        text = (
-            "Here is my evaluation:\n\n"
-            '{"name": "test"}\n\n'
-            "Let me know if you need anything else."
-        )
-        result = _extract_json(text)
-        assert result == {"name": "test"}
-
-    def test_no_json_raises(self) -> None:
-        with pytest.raises(ValueError, match="JSON"):
-            _extract_json("This has no JSON at all")
 
 
 class TestHtmlToText:
@@ -1335,8 +1352,8 @@ class TestDescriptionLengthGuidance:
     visual variation.
     """
 
-    def test_prompt_has_description_guidelines_section(self) -> None:
-        assert "Description guidelines" in SYSTEM_PROMPT
+    def test_prompt_has_description_style_section(self) -> None:
+        assert "Description style" in SYSTEM_PROMPT
 
     def test_prompt_asks_for_one_to_two_sentences(self) -> None:
         assert "one to two sentences" in SYSTEM_PROMPT
