@@ -177,6 +177,32 @@ class TestParseNominationsCsvErrors:
         assert len(result.rows) == 0
         assert len(result.errors) == 1
 
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "http://localhost/",
+            "http://127.0.0.1/",
+            "http://10.0.0.1/",
+            "http://192.168.1.1/",
+            "http://169.254.169.254/",  # AWS IMDS
+            "http://224.0.0.1/",  # multicast
+            "http://[::1]/",
+            "http://[ff02::1]/",  # multicast (IPv6)
+            "http://0.0.0.0/",  # unspecified
+        ],
+    )
+    def test_private_or_internal_url_rejected(self, url: str) -> None:
+        """The admin CSV path must apply the same private-IP filter as
+        the public form. Otherwise a curator's mistyped row could
+        steer the worker's later httpx fetch at IMDS or an internal
+        host."""
+        result = _parse([
+            "url,category",
+            f"{url},volunteer",
+        ])
+        assert len(result.rows) == 0, f"{url} should be rejected"
+        assert len(result.errors) == 1
+
     def test_case_insensitive_headers(self) -> None:
         result = _parse([
             "URL,Category",

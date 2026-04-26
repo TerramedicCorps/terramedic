@@ -4,9 +4,9 @@ import csv
 import io
 from dataclasses import dataclass, field
 from typing import TypedDict
-from urllib.parse import urlparse
 
 from terramedic.nominations.models import Nomination
+from terramedic.nominations.schemas import is_safe_http_url
 
 
 class ParsedRow(TypedDict):
@@ -31,11 +31,7 @@ MAX_ROWS = 500
 
 
 def _is_valid_url(url: str) -> bool:
-    try:
-        parsed = urlparse(url)
-        return parsed.scheme in ("http", "https") and bool(parsed.netloc)
-    except Exception:
-        return False
+    return is_safe_http_url(url)
 
 
 def _validate_row(
