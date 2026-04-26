@@ -37,13 +37,17 @@ def _hash_ip(ip: str) -> str:
 def _get_client_ip(request: HttpRequest) -> str:
     """Extract client IP from request, respecting X-Forwarded-For.
 
-    Assumes the app is behind a trusted reverse proxy (AWS API Gateway)
-    that sets X-Forwarded-For. If accessed directly, this header can be
-    spoofed to bypass rate limiting.
+    AWS API Gateway *appends* the source IP to any client-supplied
+    X-Forwarded-For header, so the rightmost hop is the one set by the
+    trusted proxy. Reading the leftmost would let a client rotate
+    spoofed values to bypass rate limiting. If the header is absent,
+    fall back to REMOTE_ADDR.
     """
     xff: str | None = request.META.get("HTTP_X_FORWARDED_FOR")
     if xff:
-        return xff.split(",")[0].strip()
+        hops = [hop.strip() for hop in xff.split(",") if hop.strip()]
+        if hops:
+            return hops[-1]
     addr: str = request.META.get("REMOTE_ADDR", "")
     return addr
 

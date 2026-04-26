@@ -293,6 +293,40 @@ class TestCreateNomination:
         data = response.json()
         assert data["detail"] == "Rate limit exceeded. Try again later."
 
+    def test_rate_limit_uses_rightmost_xff_hop(self, client: Client) -> None:
+        """A client cannot bypass the rate limit by spoofing the leftmost
+        X-Forwarded-For value.
+
+        AWS API Gateway appends the source IP to any client-supplied
+        X-Forwarded-For header, so the rightmost hop is the trustworthy one.
+        Five submissions with rotating leftmost values but a constant
+        rightmost hop must all count toward the same bucket.
+        """
+        gateway_hop = "203.0.113.42"
+        for i in range(5):
+            response = client.post(
+                "/api/nominations/",
+                data={
+                    "url": f"https://example{i}.org/",
+                    "categories": ["volunteer"],
+                },
+                content_type="application/json",
+                HTTP_X_FORWARDED_FOR=f"198.51.100.{i}, {gateway_hop}",
+            )
+            assert response.status_code == 201
+
+        # 6th request — different spoofed leftmost, same rightmost hop
+        response = client.post(
+            "/api/nominations/",
+            data={
+                "url": "https://example99.org/",
+                "categories": ["volunteer"],
+            },
+            content_type="application/json",
+            HTTP_X_FORWARDED_FOR=f"198.51.100.99, {gateway_hop}",
+        )
+        assert response.status_code == 429
+
     def test_rate_limit_includes_retry_after_header(self, client: Client) -> None:
         for i in range(5):
             client.post(
