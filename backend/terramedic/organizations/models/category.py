@@ -5,7 +5,7 @@ class Category(models.Model):
     """A Terramedic engagement pathway an organization can fit into.
 
     The five canonical slugs (donate, volunteer, resource, everyday, career)
-    are seeded by migration 0006; new categories should be added via
+    are seeded by migration 0003; new categories should be added via
     migrations rather than at runtime so the curation schema and frontend
     routes stay in sync.
     """
