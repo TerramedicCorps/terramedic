@@ -94,7 +94,10 @@ def _serialize_org(
         "website_url": org.website_url,
         "image_url": org.image_url,
         "categories": sorted(e.category_id for e in entries),
-        "tags": list(org.tags.order_by("name").values_list("name", flat=True)),
+        # Sort the prefetched cache in Python rather than calling
+        # order_by() — order_by re-queries because it builds a fresh
+        # queryset that bypasses the prefetch_related result.
+        "tags": sorted(tag.name for tag in org.tags.all()),
         "sort_order": sort_order,
     }
 

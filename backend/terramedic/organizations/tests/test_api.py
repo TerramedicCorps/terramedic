@@ -164,6 +164,49 @@ class TestListOrganizations:
         assert "Citizens' Climate Lobby" in volunteer_names
         assert "Environmental Voter Project" in volunteer_names
 
+    def test_listing_does_not_emit_n_plus_one_tag_queries(
+        self,
+        client: Client,
+        tags: list[Tag],
+    ) -> None:
+        """The listing prefetches ``tags``, but ``_serialize_org`` used
+        to call ``org.tags.order_by(...)`` which bypasses the
+        prefetch cache and re-queries per row. With SSR rendering
+        listings on every request, that's O(N) DB chatter per page
+        load. Assert the per-org tag query count is constant."""
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        # Build several orgs each with multiple tags so a regression
+        # would inflate the query count noticeably.
+        for i in range(5):
+            org = Organization(
+                name=f"Org {i}",
+                website_url=f"https://example{i}.org/",
+                sort_order=i,
+            )
+            org.set_current_language("en")
+            org.description = f"Org {i} description."
+            org.save()
+            org.tags.add(*tags)
+            org.categories.add(Category.objects.get(slug="donate"))
+
+        with CaptureQueriesContext(connection) as ctx:
+            response = client.get("/api/organizations/")
+        assert response.status_code == 200
+        assert len(response.json()) == 5
+
+        tag_queries = [
+            q for q in ctx.captured_queries
+            if "organizations_tag" in q["sql"].lower()
+        ]
+        # Pre-fix: 1 prefetch + 5 per-row order_by queries = 6.
+        # Post-fix: 1 prefetch only.
+        assert len(tag_queries) <= 2, (
+            f"Expected ≤2 tag queries, got {len(tag_queries)}:\n"
+            + "\n".join(q["sql"] for q in tag_queries)
+        )
+
     def test_response_fields(
         self,
         client: Client,
