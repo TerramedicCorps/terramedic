@@ -133,7 +133,9 @@ def _build_invoke_snippet(fixture_bytes: bytes) -> str:
     ``loaddata`` reads from ``sys.stdin`` directly when given the ``-``
     fixture label; ``call_command``'s ``stdin`` kwarg is ignored by
     ``BaseCommand.execute``, so the snippet reassigns ``sys.stdin``
-    in-place to push the decoded fixture in.
+    in-place to push the decoded fixture in. The reassignment is
+    wrapped in ``try``/``finally`` so a Lambda warm-container reuse
+    doesn't leave a closed ``StringIO`` as ``sys.stdin``.
     """
     encoded = base64.b64encode(fixture_bytes).decode("ascii")
     return (
@@ -142,6 +144,10 @@ def _build_invoke_snippet(fixture_bytes: bytes) -> str:
         "from io import StringIO\n"
         "from django.core.management import call_command\n"
         f"data = base64.b64decode('{encoded}').decode('utf-8')\n"
+        "_original_stdin = sys.stdin\n"
         "sys.stdin = StringIO(data)\n"
-        "call_command('loaddata', '--format=json', '-')\n"
+        "try:\n"
+        "    call_command('loaddata', '--format=json', '-')\n"
+        "finally:\n"
+        "    sys.stdin = _original_stdin\n"
     )

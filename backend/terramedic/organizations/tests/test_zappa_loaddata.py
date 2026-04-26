@@ -131,6 +131,41 @@ class TestZappaLoaddata:
         )
         assert "sys.stdin" in snippet
 
+    def test_snippet_restores_sys_stdin_after_loaddata(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        """Lambda warm-containers reuse interpreter state. The snippet
+        reassigns ``sys.stdin`` to a ``StringIO`` so ``loaddata`` can
+        read the fixture; if it never restores the original, a later
+        invocation in the same warm container reads from a closed
+        ``StringIO``. The snippet must run ``loaddata`` inside a
+        ``try``/``finally`` that restores ``sys.stdin``."""
+        fixture_bytes = _valid_fixture_bytes()
+        fixture = tmp_path / "reeval.json"
+        fixture.write_bytes(fixture_bytes)
+
+        with patch(
+            f"{_CMD_MODULE}.subprocess.run",
+            return_value=_mock_run_ok(),
+        ) as mock_run:
+            call_command("zappa_loaddata", "dev", str(fixture))
+
+        argv = mock_run.call_args.args[0]
+        snippet = next(
+            arg for arg in argv
+            if isinstance(arg, str) and "loaddata" in arg
+        )
+        assert "try:" in snippet
+        assert "finally:" in snippet
+        # The original stdin must be saved before reassignment and
+        # restored in the finally block.
+        assert "sys.stdin = " in snippet
+        # The snippet should reference an "original" or saved stdin
+        # variable that gets restored after loaddata.
+        finally_segment = snippet.split("finally:", 1)[1]
+        assert "sys.stdin" in finally_segment
+
     def test_passes_stage_argument_through_to_zappa(
         self,
         tmp_path: Path,
