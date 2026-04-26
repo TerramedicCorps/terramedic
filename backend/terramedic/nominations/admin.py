@@ -159,6 +159,23 @@ class NominationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
             )
             for row in result.rows
         ]
+        # Validate each row through Model.clean() before bulk_create —
+        # bulk_create skips full_clean, so without this an invalid row
+        # (e.g., a category deleted between parse and create) would
+        # land in the DB unchecked.
+        from django.core.exceptions import ValidationError
+
+        validation_errors: list[str] = []
+        for row_num, nomination in enumerate(nominations, start=2):
+            try:
+                nomination.full_clean(exclude={"ip_hash"})
+            except ValidationError as exc:
+                validation_errors.append(
+                    f"Row {row_num}: {exc.message_dict}",
+                )
+        if validation_errors:
+            return self._render_with_errors(request, validation_errors)
+
         Nomination.objects.bulk_create(nominations)
 
         messages.success(

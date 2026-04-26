@@ -1,5 +1,8 @@
+from unittest.mock import patch
+
 import pytest
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client
 
@@ -206,6 +209,42 @@ class TestUploadCsvViewPost:
         assert "already exists" in content.lower()
         # Should not create a duplicate
         assert Nomination.objects.count() == 1
+
+    def test_full_clean_failure_aborts_import(
+        self, admin_client: Client,
+    ) -> None:
+        """Each row must pass Nomination.full_clean() before
+        bulk_create. If a row would be invalid (e.g., a category was
+        deleted between parse and create), the import is rejected
+        rather than silently bypassing model validation via
+        bulk_create.
+        """
+        csv_content = (
+            "url,category\nhttps://example.org/,volunteer\n"
+        )
+
+        original_full_clean = Nomination.full_clean
+
+        def _failing_full_clean(
+            self: Nomination, *args: object, **kwargs: object,
+        ) -> None:
+            original_full_clean(self, *args, **kwargs)  # type: ignore[arg-type]
+            raise ValidationError(
+                {"categories": "Invalid (simulated post-parse drift)."},
+            )
+
+        with patch.object(
+            Nomination, "full_clean", _failing_full_clean,
+        ):
+            response = admin_client.post(
+                UPLOAD_URL,
+                {"csv_file": _csv_file(csv_content)},
+            )
+
+        assert response.status_code == 200
+        assert Nomination.objects.count() == 0
+        content = response.content.decode()
+        assert "error" in content.lower()
 
     def test_success_message_shows_count(self, admin_client: Client) -> None:
         csv_content = "url,category\nhttps://a.org/,volunteer\nhttps://b.org/,donate\n"
