@@ -27,7 +27,11 @@ from typing import Any
 from urllib.parse import urljoin, urlparse
 
 from curation.json_utils import extract_json
-from curation.prompt import PROMPT_VERSION, SYSTEM_PROMPT
+from curation.prompt import (
+    PROMPT_VERSION,
+    SYSTEM_PROMPT,
+    build_model_output_schema_json,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -324,34 +328,6 @@ def _enum_from_schema(
 
 
 _SCHEMA = _load_schema()
-
-# Fields the curation layer stamps onto the response after the model
-# replies. The model has no way to produce them correctly, so they're
-# stripped from ``required`` in the schema we hand to the CLI's
-# ``--json-schema`` flag — otherwise the CLI would reject every valid
-# response for missing them.
-_PROGRAMMATIC_FIELDS: frozenset[str] = frozenset({
-    "evaluated_at", "evaluated_by", "prompt_version",
-    "duration_ms", "evaluation_history",
-})
-
-
-@functools.cache
-def _model_output_schema_json() -> str:
-    """Return the JSON Schema string passed to ``claude --json-schema``.
-
-    Drops fields the curation layer injects post-call from ``required``
-    so the CLI's structured-output validator only enforces what the
-    model can actually produce. Compact form to keep the embedded
-    string under any CLI argv length limits.
-    """
-    schema = json.loads(json.dumps(_SCHEMA))
-    schema["required"] = [
-        r for r in schema.get("required", [])
-        if r not in _PROGRAMMATIC_FIELDS
-    ]
-    return json.dumps(schema, separators=(",", ":"))
-
 
 _VALID_ACTIVITY_TYPES: frozenset[str] = _enum_from_schema(
     _SCHEMA,
@@ -733,7 +709,7 @@ def _build_claude_cli_cmd(
         "--output-format", "json",
         "--permission-mode", "dontAsk",
         "--model", model,
-        "--json-schema", _model_output_schema_json(),
+        "--json-schema", build_model_output_schema_json(),
     ]
     if effort:
         cmd.extend(["--effort", effort])

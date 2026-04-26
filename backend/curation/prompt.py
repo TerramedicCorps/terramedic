@@ -11,6 +11,7 @@ Any change to those constants or to ``SYSTEM_PROMPT`` needs a
 
 from __future__ import annotations
 
+import functools
 import json
 from pathlib import Path
 
@@ -112,9 +113,12 @@ site"* instead — *"Donate"*, *"Volunteer"*, and customizations like \
 *"Fund lobby days"* all read as Terramedic-driven solicitation."""
 
 # Fields injected programmatically by evaluate.py after the model responds.
-# They are stripped from the schema before embedding in the prompt so the
-# model doesn't try to produce them.
-_PROGRAMMATIC_FIELDS = (
+# They are stripped from the schema (both ``properties`` and ``required``)
+# everywhere it's exposed to the model — both in the schema embedded in
+# this prompt and in the schema handed to ``claude --json-schema``. Single
+# source of truth so the prompt and CLI views can't drift apart and
+# reintroduce avoidable validation failures.
+PROGRAMMATIC_FIELDS: tuple[str, ...] = (
     "evaluated_at",
     "evaluated_by",
     "prompt_version",
@@ -123,32 +127,35 @@ _PROGRAMMATIC_FIELDS = (
 )
 
 
-def _build_output_schema() -> str:
-    """Load schema.json and return a prompt-ready version.
+@functools.cache
+def build_model_output_schema_json() -> str:
+    """Return ``schema.json`` as a compact JSON string with programmatic
+    fields stripped from both ``required`` and ``properties``.
 
-    Removes fields that are injected programmatically and filters the
-    top-level ``required`` list to exclude those fields (since the model
-    shouldn't worry about which fields the *pipeline* adds).
+    The model has no way to produce those fields correctly, so they're
+    omitted entirely from the schema view it sees. Used by
+    ``_build_output_instructions`` (embeds the schema in the prompt) and
+    by ``curation/evaluate.py`` (passes the same schema to
+    ``claude --json-schema``).
+
+    Compact form (no indent) saves ~30% on tokens. The model parses
+    indented and compact JSON identically.
     """
     schema_path = Path(__file__).parent / "schema.json"
     with open(schema_path) as f:
         schema: dict[str, object] = json.load(f)
 
-    # Strip programmatic fields
     props = schema.get("properties")
     if isinstance(props, dict):
-        for field in _PROGRAMMATIC_FIELDS:
+        for field in PROGRAMMATIC_FIELDS:
             props.pop(field, None)
 
-    # Update the required list to exclude programmatic fields
     required = schema.get("required")
     if isinstance(required, list):
         schema["required"] = [
-            r for r in required if r not in _PROGRAMMATIC_FIELDS
+            r for r in required if r not in PROGRAMMATIC_FIELDS
         ]
 
-    # Compact form (no indent) saves ~30% on tokens. The model parses
-    # indented and compact JSON identically.
     return json.dumps(schema, separators=(",", ":"))
 
 
@@ -497,13 +504,13 @@ note that orgs with only `other` categories are unlikely to be included."""
 
 def _build_output_instructions() -> str:
     """Build the output format section with the schema and field exclusions."""
-    field_list = ", ".join(f"`{f}`" for f in _PROGRAMMATIC_FIELDS)
+    field_list = ", ".join(f"`{f}`" for f in PROGRAMMATIC_FIELDS)
     return (
         "\n\n## Output format\n\n"
         "Return your evaluation as a single JSON object conforming to the "
         f"schema below. Do NOT include {field_list} fields — those are added "
         "programmatically.\n\n"
-        f"```json\n{_build_output_schema()}\n```\n\n"
+        f"```json\n{build_model_output_schema_json()}\n```\n\n"
         "Return ONLY the raw JSON object. Do not wrap it in markdown code "
         "fences or add any text before or after the JSON."
     )

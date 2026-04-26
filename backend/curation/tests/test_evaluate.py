@@ -575,12 +575,17 @@ class TestEvaluateOrgViaClaudeCode:
         schema_idx = captured_cmd.index("--json-schema")
         schema_json = captured_cmd[schema_idx + 1]
         schema = json.loads(schema_json)
-        # Programmatic fields must not be required of the model.
+        # Programmatic fields must be stripped from BOTH ``required`` and
+        # ``properties``. JSON Schema validates a property if it's
+        # present, so leaving e.g. ``evaluated_at`` in ``properties``
+        # with ``format: date-time`` would let the CLI reject otherwise
+        # valid output if the model emitted a non-ISO value there.
         programmatic = {
             "evaluated_at", "evaluated_by", "prompt_version",
             "duration_ms", "evaluation_history",
         }
         assert programmatic.isdisjoint(schema.get("required", []))
+        assert programmatic.isdisjoint(schema.get("properties", {}).keys())
         # But the core required fields must still be enforced — these
         # are exactly the ones we saw the model omit in prod runs.
         assert "evidence_score" in schema["required"]
