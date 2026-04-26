@@ -62,23 +62,54 @@ class TestClaimNominations:
         result = list(claim_nominations(limit=10))
         assert len(result) == 0
 
-    @patch(
-        "terramedic.nominations.claim.should_skip_url",
-        return_value=True,
-    )
-    def test_skips_skipworthy_url_and_reverts(self, mock_skip: object) -> None:  # noqa: ARG002
+    def test_skips_skipworthy_url_and_reverts(self) -> None:
         nom = make_queued_nomination("https://example.org")
 
-        result = list(claim_nominations(limit=10))
+        with patch(
+            "terramedic.nominations.claim.build_skip_urls",
+            return_value={"https://example.org"},
+        ):
+            result = list(claim_nominations(limit=10))
 
         assert len(result) == 0
         nom.refresh_from_db()
+        # Skipworthy QUEUED rows are transitioned to PENDING (without
+        # being claimed first), so they exit the active QUEUED pool.
         assert nom.status == NominationStatus.PENDING
         assert nom.evaluation_attempts == 0
 
     def test_empty_queue(self) -> None:
         result = list(claim_nominations(limit=10))
         assert len(result) == 0
+
+    def test_skip_check_uses_constant_query_count(self) -> None:
+        """Skip-checking N rows must not issue O(N) queries.
+
+        The previous implementation called should_skip_url() per row,
+        which fans out to 3 queries each (active eval + existing org +
+        rejection cooldown). Switching to a single batched
+        build_skip_urls call collapses that to a constant 3 queries
+        regardless of batch size.
+        """
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        for i in range(5):
+            make_queued_nomination(f"https://example{i}.org")
+
+        with CaptureQueriesContext(connection) as ctx:
+            list(claim_nominations(limit=10))
+
+        # Skip-check should be O(1) batched queries, not O(N) per-row.
+        # Total includes the candidate listing (1) + skip-set snapshot
+        # (3) + per-row claim UPDATE + refresh (2 × N), so for 5 rows
+        # we expect ≈14. Pre-fix this was ≈26 (3 × 5 = 15 just for
+        # skip checks). The bound catches a regression to the per-row
+        # pattern.
+        assert len(ctx.captured_queries) <= 16, (
+            f"Expected O(1) skip queries, got {len(ctx.captured_queries)}: "
+            + "\n".join(q["sql"] for q in ctx.captured_queries)
+        )
 
     def test_sets_claimed_at(self) -> None:
         nom = make_queued_nomination()
@@ -129,24 +160,28 @@ class TestClaimNominations:
         nom.refresh_from_db()
         assert nom.status == NominationStatus.EVALUATING
 
-    @patch(
-        "terramedic.nominations.claim.should_skip_url",
-        return_value=True,
-    )
-    def test_from_status_pending_reverts_skipworthy_to_pending(
-        self, mock_skip: object,  # noqa: ARG002
+    def test_from_status_pending_skipworthy_stays_pending(
+        self,
     ) -> None:
-        """On skip, always revert to PENDING regardless of from_status."""
+        """A skipworthy PENDING row stays PENDING (it was never
+        claimed, so there's nothing to revert)."""
         nom = make_pending_nomination()
 
-        result = list(
-            claim_nominations(
-                limit=10,
-                from_status=NominationStatus.PENDING,
-            ),
-        )
+        with patch(
+            "terramedic.nominations.claim.build_skip_urls",
+            return_value={nom.url},
+        ):
+            result = list(
+                claim_nominations(
+                    limit=10,
+                    from_status=NominationStatus.PENDING,
+                ),
+            )
 
         assert len(result) == 0
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.PENDING
+        assert nom.evaluation_attempts == 0
         nom.refresh_from_db()
         assert nom.status == NominationStatus.PENDING
         assert nom.evaluation_attempts == 0

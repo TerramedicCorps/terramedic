@@ -9,7 +9,7 @@ from django.db.models import F, Q
 from django.utils import timezone
 
 from terramedic.nominations.models import Nomination, NominationStatus
-from terramedic.nominations.skip_checks import should_skip_url
+from terramedic.nominations.skip_checks import build_skip_urls
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +86,28 @@ def claim_nominations(
         ).order_by("submitted_at")[:limit],
     )
 
+    # Snapshot the skip set once for the whole batch — three
+    # batched queries instead of three per row. The race window
+    # between this snapshot and each atomic claim is microseconds;
+    # any row that becomes skipworthy in that window is caught on
+    # the next sweep, which is fine.
+    skip_urls = build_skip_urls({n.url for n in nominations})
+
     for nomination in nominations:
+        if nomination.url in skip_urls:
+            # Skipworthy rows must exit the active QUEUED pool so the
+            # worker stops re-encountering them on every dispatch.
+            # PENDING is the resting state for skipworthy rows: the
+            # pre-filter in any subsequent run will exclude them
+            # again. Conditional UPDATE on the source status keeps
+            # this safe against concurrent transitions.
+            if from_status != NominationStatus.PENDING:
+                Nomination.objects.filter(
+                    pk=nomination.pk,
+                    status=from_status,
+                ).update(status=NominationStatus.PENDING)
+            continue
+
         # Atomic claim: only proceed if still in the source status
         # (prevents duplicate processing by concurrent workers).
         claimed = Nomination.objects.filter(
@@ -100,19 +121,5 @@ def claim_nominations(
         if not claimed:
             continue
         nomination.refresh_from_db()
-
-        if should_skip_url(nomination.url):
-            # Always revert to PENDING so skipworthy rows exit the
-            # active queue. For QUEUED → this breaks the worker's
-            # claim-skip-revert loop. For PENDING → the local command
-            # pre-filters via build_skip_urls so this path is a rare
-            # race fallback; staying in PENDING is fine because the
-            # pre-filter will exclude it again on the next run.
-            nomination.status = NominationStatus.PENDING
-            nomination.evaluation_attempts -= 1
-            nomination.save(
-                update_fields=["status", "evaluation_attempts"],
-            )
-            continue
 
         yield nomination
