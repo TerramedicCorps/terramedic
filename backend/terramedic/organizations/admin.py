@@ -3,7 +3,7 @@ from typing import Any
 
 from django import forms
 from django.contrib import admin, messages
-from django.db import connection
+from django.db import connection, transaction
 from django.db.models import Count, Q, QuerySet
 from django.db.models.functions import TruncMonth
 from django.http import HttpRequest, HttpResponse
@@ -799,34 +799,39 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         evaluation later reactivates the same org rather than creating
         a duplicate.
         """
-        if change and "status" in form.changed_data:
-            obj.reviewer = request.user  # type: ignore[assignment]
-            obj.reviewed_at = timezone.now()
-            if (
-                obj.status != ReviewStatus.APPROVED
-                and obj.organization is not None
-                and obj.organization.is_active
-            ):
-                obj.organization.is_active = False
-                obj.organization.save(update_fields=["is_active"])
-        super().save_model(request, obj, form, change)
+        # Wrap status flip + super().save_model() + category resync in
+        # one atomic block so a failure in the resync doesn't leave the
+        # evaluation in its new status while the org is half-updated.
+        with transaction.atomic():
+            if change and "status" in form.changed_data:
+                obj.reviewer = request.user  # type: ignore[assignment]
+                obj.reviewed_at = timezone.now()
+                if (
+                    obj.status != ReviewStatus.APPROVED
+                    and obj.organization is not None
+                    and obj.organization.is_active
+                ):
+                    obj.organization.is_active = False
+                    obj.organization.save(update_fields=["is_active"])
+            super().save_model(request, obj, form, change)
 
-        # Admin form saves are authoritative: whenever the reviewer
-        # submits the change form for an approved, linked evaluation,
-        # align the org's categories with the evaluation's resolved
-        # set. This covers every relevant case — explicit category
-        # edits, no-op saves (sync is idempotent), and
-        # APPROVED→PENDING→APPROVED cycles where the signal only
-        # reactivates is_active. The alternative — triggering on
-        # form.changed_data — misses the NULL-preservation path from
-        # clean_reviewer_categories (which surfaces the cleaned
-        # value, while has_changed works off raw form data).
-        if (
-            change
-            and obj.status == ReviewStatus.APPROVED
-            and obj.organization is not None
-        ):
-            sync_org_categories_from_evaluation(obj)
+            # Admin form saves are authoritative: whenever the
+            # reviewer submits the change form for an approved, linked
+            # evaluation, align the org's categories with the
+            # evaluation's resolved set. This covers every relevant
+            # case — explicit category edits, no-op saves (sync is
+            # idempotent), and APPROVED→PENDING→APPROVED cycles where
+            # the signal only reactivates is_active. The alternative
+            # — triggering on form.changed_data — misses the
+            # NULL-preservation path from clean_reviewer_categories
+            # (which surfaces the cleaned value, while has_changed
+            # works off raw form data).
+            if (
+                change
+                and obj.status == ReviewStatus.APPROVED
+                and obj.organization is not None
+            ):
+                sync_org_categories_from_evaluation(obj)
 
     @admin.action(description="Approve selected evaluations")
     def approve_evaluations(
@@ -834,21 +839,43 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         request: HttpRequest,
         queryset: QuerySet[OrganizationEvaluation],
     ) -> None:
-        # Transition status only; post_save signal handles org
-        # creation and nomination-status sync.
+        # Per-row save inside its own atomic block so a single failure
+        # (e.g., a downstream signal-handler error) doesn't leave a
+        # row half-updated, but also doesn't roll back already-approved
+        # rows. Errors are accumulated and surfaced to the curator.
         now = timezone.now()
         approved_count = 0
+        failure_count = 0
         for evaluation in queryset.exclude(status=ReviewStatus.APPROVED):
-            evaluation.status = ReviewStatus.APPROVED
-            evaluation.reviewer = request.user  # type: ignore[assignment]
-            evaluation.reviewed_at = now
-            evaluation.save()
+            try:
+                with transaction.atomic():
+                    evaluation.status = ReviewStatus.APPROVED
+                    evaluation.reviewer = request.user  # type: ignore[assignment]
+                    evaluation.reviewed_at = now
+                    evaluation.save()
+            except Exception:  # noqa: BLE001
+                logger.exception(
+                    "Failed to approve evaluation %s",
+                    evaluation.pk,
+                )
+                failure_count += 1
+                continue
             approved_count += 1
-        self.message_user(
-            request,
-            f"Approved {approved_count} evaluation(s).",
-            messages.SUCCESS,
-        )
+        if failure_count:
+            self.message_user(
+                request,
+                (
+                    f"Approved {approved_count} evaluation(s); "
+                    f"{failure_count} failed (see server log)."
+                ),
+                messages.WARNING,
+            )
+        else:
+            self.message_user(
+                request,
+                f"Approved {approved_count} evaluation(s).",
+                messages.SUCCESS,
+            )
 
     @admin.action(description="Reject selected evaluations")
     def reject_evaluations(
@@ -858,14 +885,30 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     ) -> None:
         now = timezone.now()
         rejected_count = 0
-        for evaluation in queryset.filter(status=ReviewStatus.PENDING):
+        skipped_count = 0
+        for evaluation in queryset:
+            if evaluation.status != ReviewStatus.PENDING:
+                skipped_count += 1
+                continue
             evaluation.status = ReviewStatus.REJECTED
             evaluation.reviewer = request.user  # type: ignore[assignment]
             evaluation.reviewed_at = now
             evaluation.save()
             rejected_count += 1
-        self.message_user(
-            request,
-            f"Rejected {rejected_count} evaluation(s).",
-            messages.SUCCESS,
-        )
+        if skipped_count:
+            self.message_user(
+                request,
+                (
+                    f"Rejected {rejected_count} evaluation(s); "
+                    f"skipped {skipped_count} non-pending row(s) — "
+                    "use the change form to reject approved rows so "
+                    "the linked organization is also deactivated."
+                ),
+                messages.WARNING,
+            )
+        else:
+            self.message_user(
+                request,
+                f"Rejected {rejected_count} evaluation(s).",
+                messages.SUCCESS,
+            )

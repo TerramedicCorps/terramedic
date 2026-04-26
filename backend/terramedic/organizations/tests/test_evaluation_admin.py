@@ -370,6 +370,45 @@ class TestRejectAction:
         pending_evaluation.refresh_from_db()
         assert pending_evaluation.reviewer == admin_user
 
+    def test_reject_reports_skipped_non_pending_rows(
+        self,
+        admin_client: Client,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        """Selecting an already-APPROVED evaluation in the bulk reject
+        action used to silently no-op. Surface the skipped count so a
+        curator who expected the org to be deactivated knows to use the
+        change form instead."""
+        # Move the fixture into APPROVED state via the bulk action so
+        # all DB-level invariants (organization, reviewer) are in
+        # place.
+        admin_client.post(
+            "/admin/organizations/organizationevaluation/",
+            {
+                "action": "approve_evaluations",
+                "_selected_action": [pending_evaluation.pk],
+            },
+        )
+        pending_evaluation.refresh_from_db()
+        assert pending_evaluation.status == ReviewStatus.APPROVED
+
+        response = admin_client.post(
+            "/admin/organizations/organizationevaluation/",
+            {
+                "action": "reject_evaluations",
+                "_selected_action": [pending_evaluation.pk],
+            },
+            follow=True,
+        )
+        # Status unchanged (the bulk action filters non-pending rows
+        # to preserve org-deactivation semantics).
+        pending_evaluation.refresh_from_db()
+        assert pending_evaluation.status == ReviewStatus.APPROVED
+        # And the message must surface the skip so the curator knows
+        # to use the change form.
+        content = response.content.decode().lower()
+        assert "skipped 1" in content
+
 
 @pytest.mark.django_db
 class TestReviewerReasoning:
