@@ -54,10 +54,19 @@ class Command(BaseCommand):
                 "(default: sonnet)."
             ),
         )
+        parser.add_argument(
+            "--effort",
+            default=None,
+            help=(
+                "Claude Code effort level (low, medium, high, xhigh, "
+                "max). Defaults to the CLI's own default when omitted."
+            ),
+        )
 
     def handle(self, *_args: Any, **options: Any) -> None:
         limit: int = options["limit"]
         model: str = options["model"]
+        effort: str | None = options["effort"]
 
         self._report_skips(limit)
 
@@ -68,7 +77,7 @@ class Command(BaseCommand):
             limit, from_status=NominationStatus.PENDING,
         ):
             self.stdout.write(f"Evaluating {nomination.url} ...")
-            outcome = self._process_one(nomination, model)
+            outcome = self._process_one(nomination, model, effort)
             if outcome == "ok":
                 processed += 1
             elif outcome == "failed":
@@ -82,6 +91,7 @@ class Command(BaseCommand):
 
     def _process_one(
         self, nomination: Nomination, model: str,
+        effort: str | None = None,
     ) -> str:
         """Evaluate one claimed nomination. Returns outcome label.
 
@@ -94,6 +104,7 @@ class Command(BaseCommand):
                 url=nomination.url,
                 model=model,
                 categories=nomination.categories or None,
+                effort=effort,
             )
         except subprocess.TimeoutExpired:
             return self._handle_timeout(nomination)

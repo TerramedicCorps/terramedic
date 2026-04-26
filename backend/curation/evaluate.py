@@ -32,6 +32,50 @@ _SCHEMA_PATH = Path(__file__).parent / "schema.json"
 _MAX_PAGE_CHARS = 12000
 _FETCH_TIMEOUT = 15
 _CLAUDE_CLI_TIMEOUT = 600
+_CLAUDE_SETTINGS_PATH = Path.home() / ".claude" / "settings.json"
+
+
+def _resolve_effort(explicit: str | None) -> str:
+    """Return the effort level for metadata stamping.
+
+    Priority: ``--effort`` arg > ``effortLevel`` from the user's
+    ``~/.claude/settings.json`` > ``"default"`` sentinel. The CLI
+    envelope doesn't surface the resolved effort, so we re-derive it
+    from the same source the CLI does — close enough for provenance.
+    """
+    if explicit:
+        return explicit
+    try:
+        with open(_CLAUDE_SETTINGS_PATH) as f:
+            settings = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return "default"
+    level = settings.get("effortLevel")
+    return level if isinstance(level, str) and level else "default"
+
+
+def _resolve_model(envelope: dict[str, Any], fallback: str) -> str:
+    """Return the resolved model ID from a CLI envelope.
+
+    Claude Code uses a small orchestrator model (Haiku) for routing
+    before handing off to the requested model, so ``modelUsage``
+    typically contains multiple entries. The metadata stamp picks the
+    one with the highest ``outputTokens`` — the model that actually
+    produced the response — so long Opus runs aren't misattributed to
+    the orchestrator. Falls back to the input alias when an older CLI
+    omits ``modelUsage`` or all entries lack ``outputTokens``.
+    """
+    usage = envelope.get("modelUsage")
+    if not isinstance(usage, dict) or not usage:
+        return fallback
+
+    def _output_tokens(entry: Any) -> int:
+        if not isinstance(entry, dict):
+            return 0
+        tokens = entry.get("outputTokens")
+        return tokens if isinstance(tokens, int) else 0
+
+    return max(usage, key=lambda model_id: _output_tokens(usage[model_id]))
 
 
 def _build_arg_parser() -> argparse.ArgumentParser:
@@ -461,17 +505,21 @@ def evaluate_org(
 
 
 def _invoke_claude_cli(
-    cmd: list[str], timeout: int, url: str, pages_fetched: int = 0,
-) -> tuple[str, int | None]:
-    """Run the ``claude`` CLI and return ``(text, duration_ms)``.
+    cmd: list[str],
+    timeout: int,
+    url: str,
+    pages_fetched: int = 0,
+    model_fallback: str = "",
+) -> tuple[str, int | None, str]:
+    """Run the ``claude`` CLI and return ``(text, duration_ms, model)``.
 
     ``duration_ms`` is wall-clock for the whole call including tool
-    turns, lifted from the CLI envelope so callers can persist it on
-    the evaluation record without re-measuring. Handles exit code,
-    JSON envelope parsing, ``is_error`` handling, and per-call usage
-    logging. Raises ``RuntimeError`` on non-zero exit or
-    ``is_error: true``; ``ValueError`` on malformed stdout or missing
-    ``result`` field.
+    turns. ``model`` is the resolved model ID from ``modelUsage``,
+    falling back to ``model_fallback`` (the input alias) when an older
+    CLI omits the field. Handles exit code, JSON envelope parsing,
+    ``is_error`` handling, and per-call usage logging. Raises
+    ``RuntimeError`` on non-zero exit or ``is_error: true``;
+    ``ValueError`` on malformed stdout or missing ``result`` field.
     """
     proc = subprocess.run(
         cmd,
@@ -526,7 +574,11 @@ def _invoke_claude_cli(
         tool_use.get("web_fetch_requests"),
     )
     duration_ms = envelope.get("duration_ms")
-    return text, duration_ms if isinstance(duration_ms, int) else None
+    return (
+        text,
+        duration_ms if isinstance(duration_ms, int) else None,
+        _resolve_model(envelope, model_fallback),
+    )
 
 
 def evaluate_org_via_claude_code(
@@ -534,6 +586,7 @@ def evaluate_org_via_claude_code(
     model: str = "sonnet",
     categories: list[str] | None = None,
     timeout: int = _CLAUDE_CLI_TIMEOUT,
+    effort: str | None = None,
 ) -> dict[str, Any]:
     """Evaluate an organization by shelling out to the ``claude`` CLI.
 
@@ -560,8 +613,14 @@ def evaluate_org_via_claude_code(
         "--permission-mode", "dontAsk",
         "--model", model,
     ]
-    text, duration_ms = _invoke_claude_cli(
-        cmd, timeout=timeout, url=url, pages_fetched=pages_fetched,
+    if effort:
+        cmd.extend(["--effort", effort])
+    text, duration_ms, resolved_model = _invoke_claude_cli(
+        cmd,
+        timeout=timeout,
+        url=url,
+        pages_fetched=pages_fetched,
+        model_fallback=model,
     )
 
     data = extract_json(text)
@@ -569,7 +628,9 @@ def evaluate_org_via_claude_code(
     data["evaluated_at"] = (
         datetime.datetime.now(datetime.UTC).isoformat()
     )
-    data["evaluated_by"] = f"claude-code:{model}"
+    data["evaluated_by"] = (
+        f"claude-code:{resolved_model}@{_resolve_effort(effort)}"
+    )
     data["prompt_version"] = PROMPT_VERSION
     if duration_ms is not None:
         data["duration_ms"] = duration_ms

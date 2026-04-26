@@ -466,8 +466,9 @@ class TestEvaluateOrgViaClaudeCode:
         payload: dict[str, Any],
         returncode: int = 0,
         is_error: bool = False,
+        model_usage: dict[str, Any] | None = None,
     ) -> MagicMock:
-        envelope = {
+        envelope: dict[str, Any] = {
             "type": "result",
             "subtype": "success",
             "is_error": is_error,
@@ -484,6 +485,8 @@ class TestEvaluateOrgViaClaudeCode:
                 },
             },
         }
+        if model_usage is not None:
+            envelope["modelUsage"] = model_usage
         result = MagicMock()
         result.returncode = returncode
         result.stdout = json.dumps(envelope)
@@ -559,6 +562,245 @@ class TestEvaluateOrgViaClaudeCode:
         )
 
         assert result["org_metadata"]["name"] == "Test Org"
+
+    def test_passes_effort_when_provided(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        eval_payload = _make_valid_evaluation()
+        del eval_payload["evaluated_at"]
+        del eval_payload["evaluated_by"]
+
+        captured_cmd: list[str] = []
+
+        def fake_run(cmd: list[str], **_kw: Any) -> MagicMock:
+            captured_cmd.extend(cmd)
+            return self._fake_subprocess_result(eval_payload)
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        evaluate_org_via_claude_code(
+            "https://example.org",
+            model="opus",
+            effort="high",
+        )
+
+        effort_idx = captured_cmd.index("--effort")
+        assert captured_cmd[effort_idx + 1] == "high"
+
+    def test_omits_effort_when_not_provided(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        eval_payload = _make_valid_evaluation()
+        del eval_payload["evaluated_at"]
+        del eval_payload["evaluated_by"]
+
+        captured_cmd: list[str] = []
+
+        def fake_run(cmd: list[str], **_kw: Any) -> MagicMock:
+            captured_cmd.extend(cmd)
+            return self._fake_subprocess_result(eval_payload)
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        evaluate_org_via_claude_code(
+            "https://example.org",
+            model="opus",
+        )
+
+        assert "--effort" not in captured_cmd
+
+    def test_stamps_resolved_model_version_from_envelope(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """``modelUsage`` keys hold the resolved model ID — the alias the
+        operator passed (``opus``) shouldn't survive into the metadata,
+        so stored evaluations are unambiguous about which Opus version
+        they were produced with."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        eval_payload = _make_valid_evaluation()
+        del eval_payload["evaluated_at"]
+        del eval_payload["evaluated_by"]
+
+        monkeypatch.setattr(
+            "subprocess.run",
+            lambda *_a, **_kw: self._fake_subprocess_result(
+                eval_payload,
+                model_usage={"claude-opus-4-7": {"outputTokens": 6}},
+            ),
+        )
+
+        result = evaluate_org_via_claude_code(
+            "https://example.org",
+            model="opus",
+            effort="xhigh",
+        )
+
+        assert result["evaluated_by"] == "claude-code:claude-opus-4-7@xhigh"
+
+    def test_picks_model_with_highest_output_tokens(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Claude Code uses Haiku for routing/orchestration before
+        handing off to the requested model — both end up in
+        ``modelUsage``. The metadata stamp must reflect the model that
+        actually did the heavy lifting (highest output tokens), not the
+        first key, otherwise long Opus runs get attributed to Haiku."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        eval_payload = _make_valid_evaluation()
+        del eval_payload["evaluated_at"]
+        del eval_payload["evaluated_by"]
+
+        monkeypatch.setattr(
+            "subprocess.run",
+            lambda *_a, **_kw: self._fake_subprocess_result(
+                eval_payload,
+                # Haiku appears first (orchestrator), Opus did the work.
+                model_usage={
+                    "claude-haiku-4-5-20251001": {"outputTokens": 8},
+                    "claude-opus-4-7": {"outputTokens": 1500},
+                },
+            ),
+        )
+
+        result = evaluate_org_via_claude_code(
+            "https://example.org",
+            model="opus",
+            effort="high",
+        )
+
+        assert result["evaluated_by"] == "claude-code:claude-opus-4-7@high"
+
+    def test_falls_back_to_input_model_when_envelope_lacks_model_usage(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        eval_payload = _make_valid_evaluation()
+        del eval_payload["evaluated_at"]
+        del eval_payload["evaluated_by"]
+
+        monkeypatch.setattr(
+            "subprocess.run",
+            lambda *_a, **_kw: self._fake_subprocess_result(eval_payload),
+        )
+
+        result = evaluate_org_via_claude_code(
+            "https://example.org",
+            model="opus",
+            effort="high",
+        )
+
+        # No modelUsage in envelope → fall back to the input alias.
+        assert result["evaluated_by"].startswith("claude-code:opus@")
+
+    def test_resolves_effort_from_settings_when_not_passed(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        """When ``--effort`` isn't passed, the stamp must reflect the
+        actual effort the CLI used (from the user's settings.json), not
+        a placeholder like ``default``."""
+        from curation import evaluate as evaluate_mod
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        settings_file = tmp_path / "settings.json"
+        settings_file.write_text(json.dumps({"effortLevel": "max"}))
+        monkeypatch.setattr(
+            evaluate_mod, "_CLAUDE_SETTINGS_PATH", settings_file,
+        )
+
+        self._patch_build_user_message(monkeypatch)
+        eval_payload = _make_valid_evaluation()
+        del eval_payload["evaluated_at"]
+        del eval_payload["evaluated_by"]
+
+        monkeypatch.setattr(
+            "subprocess.run",
+            lambda *_a, **_kw: self._fake_subprocess_result(eval_payload),
+        )
+
+        result = evaluate_org_via_claude_code(
+            "https://example.org",
+            model="opus",
+        )
+
+        assert result["evaluated_by"] == "claude-code:opus@max"
+
+    def test_falls_back_to_default_effort_when_settings_unreadable(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        from curation import evaluate as evaluate_mod
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        # Point at a non-existent file.
+        monkeypatch.setattr(
+            evaluate_mod,
+            "_CLAUDE_SETTINGS_PATH",
+            tmp_path / "missing.json",
+        )
+
+        self._patch_build_user_message(monkeypatch)
+        eval_payload = _make_valid_evaluation()
+        del eval_payload["evaluated_at"]
+        del eval_payload["evaluated_by"]
+
+        monkeypatch.setattr(
+            "subprocess.run",
+            lambda *_a, **_kw: self._fake_subprocess_result(eval_payload),
+        )
+
+        result = evaluate_org_via_claude_code(
+            "https://example.org",
+            model="opus",
+        )
+
+        assert result["evaluated_by"] == "claude-code:opus@default"
+
+    def test_explicit_effort_overrides_settings(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        from curation import evaluate as evaluate_mod
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        settings_file = tmp_path / "settings.json"
+        settings_file.write_text(json.dumps({"effortLevel": "low"}))
+        monkeypatch.setattr(
+            evaluate_mod, "_CLAUDE_SETTINGS_PATH", settings_file,
+        )
+
+        self._patch_build_user_message(monkeypatch)
+        eval_payload = _make_valid_evaluation()
+        del eval_payload["evaluated_at"]
+        del eval_payload["evaluated_by"]
+
+        monkeypatch.setattr(
+            "subprocess.run",
+            lambda *_a, **_kw: self._fake_subprocess_result(eval_payload),
+        )
+
+        result = evaluate_org_via_claude_code(
+            "https://example.org",
+            model="opus",
+            effort="max",
+        )
+
+        assert result["evaluated_by"] == "claude-code:opus@max"
 
     def test_stamps_duration_ms_from_envelope(
         self, monkeypatch: pytest.MonkeyPatch,

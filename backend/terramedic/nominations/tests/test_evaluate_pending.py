@@ -143,6 +143,19 @@ class TestEvaluatePending:
 
         assert mock_eval.call_count == 2
 
+    @patch(_EVAL_VIA_CC_PATH, return_value=EVAL_RESULT)
+    def test_passes_effort_to_claude_code(self, mock_eval: Any) -> None:
+        make_pending_nomination()
+        call_command(_COMMAND, "--effort", "high")
+        assert mock_eval.call_args.kwargs.get("effort") == "high"
+
+    @patch(_EVAL_VIA_CC_PATH, return_value=EVAL_RESULT)
+    def test_omits_effort_by_default(self, mock_eval: Any) -> None:
+        make_pending_nomination()
+        call_command(_COMMAND)
+        # Default: don't pass effort — let the CLI use its own default.
+        assert mock_eval.call_args.kwargs.get("effort") is None
+
 
 @pytest.mark.django_db
 class TestSkipBehavior:
