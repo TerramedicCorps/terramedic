@@ -93,7 +93,19 @@ def claim_nominations(
     # the next sweep, which is fine.
     skip_urls = build_skip_urls({n.url for n in nominations})
 
+    # In-batch dedup: two pending rows for the same URL would both
+    # pass the skip check (no eval/org exists yet for either) and
+    # both get evaluated, wasting Claude budget and creating
+    # duplicate OrganizationEvaluation rows. Track URLs already
+    # claimed in this batch and skip repeats — they stay in the
+    # source status; the next dispatch's build_skip_urls will catch
+    # them once the first row's evaluation lands.
+    claimed_urls: set[str] = set()
+
     for nomination in nominations:
+        if nomination.url in claimed_urls:
+            continue
+
         if nomination.url in skip_urls:
             # Skipworthy rows must exit the active QUEUED pool so the
             # worker stops re-encountering them on every dispatch.
@@ -122,4 +134,5 @@ def claim_nominations(
             continue
         nomination.refresh_from_db()
 
+        claimed_urls.add(nomination.url)
         yield nomination

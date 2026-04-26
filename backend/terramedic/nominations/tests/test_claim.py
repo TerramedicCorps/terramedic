@@ -82,6 +82,29 @@ class TestClaimNominations:
         result = list(claim_nominations(limit=10))
         assert len(result) == 0
 
+    def test_dedups_same_url_within_a_batch(self) -> None:
+        """Two pending nominations for the same URL must not both be
+        evaluated — the skip set is empty until an evaluation/org
+        actually lands, so the duplicate has to be caught inside the
+        loop. The first row claims; the second is skipped without
+        being claimed."""
+        nom_a = make_queued_nomination("https://shared.org")
+        nom_b = make_queued_nomination("https://shared.org")
+
+        result = list(claim_nominations(limit=10))
+
+        assert len(result) == 1
+        assert result[0].pk == nom_a.pk
+
+        nom_a.refresh_from_db()
+        nom_b.refresh_from_db()
+        assert nom_a.status == NominationStatus.EVALUATING
+        # The duplicate stays in its source status — once nom_a's
+        # evaluation lands, the next batch's build_skip_urls will
+        # transition it via the existing skipworthy path.
+        assert nom_b.status == NominationStatus.QUEUED
+        assert nom_b.evaluation_attempts == 0
+
     def test_skip_check_uses_constant_query_count(self) -> None:
         """Skip-checking N rows must not issue O(N) queries.
 
