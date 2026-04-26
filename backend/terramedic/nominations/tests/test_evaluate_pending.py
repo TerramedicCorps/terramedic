@@ -75,6 +75,8 @@ class TestEvaluatePending:
 
         Unlike FAILED (permanent), a timeout is likely transient —
         curator can re-run the command and the row will be re-claimed.
+        Attempts is preserved so a hard-timing-out URL eventually
+        crosses the timeout-attempt threshold and gets marked FAILED.
         """
         import subprocess as _subprocess
 
@@ -88,8 +90,37 @@ class TestEvaluatePending:
 
         nom.refresh_from_db()
         assert nom.status == NominationStatus.PENDING
-        # Claim incremented attempts to 1; revert decrements back to 0.
-        assert nom.evaluation_attempts == 0
+        # Claim incremented attempts to 1; the timeout-revert preserves
+        # it so repeat timeouts can be detected and bounded.
+        assert nom.evaluation_attempts == 1
+
+    def test_timeout_marks_failed_after_max_attempts(self) -> None:
+        """A hard-timing-out URL is bounded — after the
+        MAX_TIMEOUT_ATTEMPTS-th claim+timeout, the row is marked
+        FAILED instead of reverting to PENDING. Otherwise a single
+        problem URL can be re-claimed forever, burning Claude Max
+        minutes on every run.
+        """
+        import subprocess as _subprocess
+
+        from terramedic.nominations.management.commands import (
+            evaluate_pending as cmd_module,
+        )
+
+        nom = make_pending_nomination()
+        # Pre-set attempts so the next claim crosses the threshold.
+        nom.evaluation_attempts = cmd_module.MAX_TIMEOUT_ATTEMPTS - 1
+        nom.save(update_fields=["evaluation_attempts"])
+
+        with patch(
+            _EVAL_VIA_CC_PATH,
+            side_effect=_subprocess.TimeoutExpired(cmd="claude", timeout=1),
+        ):
+            call_command(_COMMAND)
+
+        nom.refresh_from_db()
+        assert nom.status == NominationStatus.FAILED
+        assert nom.evaluation_attempts == cmd_module.MAX_TIMEOUT_ATTEMPTS
 
     def test_failure_skips_cas_when_row_changed(self) -> None:
         """Concurrent change between claim and FAILED update → no-op."""

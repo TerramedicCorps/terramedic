@@ -22,7 +22,6 @@ import subprocess
 from typing import Any
 
 from django.core.management.base import BaseCommand
-from django.db.models import F
 
 from curation.evaluate import evaluate_org_via_claude_code
 from terramedic.nominations.claim import claim_nominations
@@ -31,6 +30,11 @@ from terramedic.nominations.skip_checks import build_skip_urls
 from terramedic.organizations.models import OrganizationEvaluation
 
 logger = logging.getLogger(__name__)
+
+# A row that times out this many times in a row is treated as a hard
+# failure so it stops being re-claimed and burning Max minutes. The
+# AWS path uses the analogous _MAX_RETRY_ATTEMPTS in worker.py.
+MAX_TIMEOUT_ATTEMPTS = 3
 
 
 class Command(BaseCommand):
@@ -130,15 +134,42 @@ class Command(BaseCommand):
         return "ok"
 
     def _handle_timeout(self, nomination: Nomination) -> str:
-        """Revert EVALUATING → PENDING on CLI timeout via CAS."""
+        """Handle CLI timeout via CAS.
+
+        After ``MAX_TIMEOUT_ATTEMPTS`` consecutive timeouts the row is
+        marked FAILED so a hard-timing-out URL stops re-entering the
+        claim loop. Below the threshold, revert to PENDING so a
+        transient timeout can be retried; ``evaluation_attempts``
+        stays at the post-claim value so attempts accumulate across
+        runs.
+        """
+        if nomination.evaluation_attempts >= MAX_TIMEOUT_ATTEMPTS:
+            updated = Nomination.objects.filter(
+                pk=nomination.pk,
+                status=NominationStatus.EVALUATING,
+                evaluation_attempts=nomination.evaluation_attempts,
+            ).update(status=NominationStatus.FAILED)
+            if updated == 0:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"  timeout FAIL skipped for {nomination.url}: "
+                        "row changed concurrently",
+                    ),
+                )
+                return "raced"
+            self.stdout.write(
+                self.style.ERROR(
+                    f"  TIMED OUT {MAX_TIMEOUT_ATTEMPTS}× — marked"
+                    f" FAILED: {nomination.url}",
+                ),
+            )
+            return "failed"
+
         reverted = Nomination.objects.filter(
             pk=nomination.pk,
             status=NominationStatus.EVALUATING,
             evaluation_attempts=nomination.evaluation_attempts,
-        ).update(
-            status=NominationStatus.PENDING,
-            evaluation_attempts=F("evaluation_attempts") - 1,
-        )
+        ).update(status=NominationStatus.PENDING)
         if reverted == 0:
             self.stdout.write(
                 self.style.WARNING(
