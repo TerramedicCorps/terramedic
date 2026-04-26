@@ -31,13 +31,25 @@ def process_evaluation_queue(
     event: dict[str, Any] | None = None,
     context: Any = None,
 ) -> dict[str, Any]:
-    """Route to dispatch or results handler based on event source."""
+    """Route to dispatch or results handler based on event source.
+
+    All records must come from the same source — a mixed batch (which
+    Lambda's event-source mappings should never produce) is treated
+    as an error rather than silently dispatching the whole batch
+    based on the first record's eventSource.
+    """
     event = event or {}
 
-    if "Records" in event and event["Records"]:
-        source = event["Records"][0].get("eventSource", "")
-        if source == "aws:sqs":
+    records = event.get("Records") or []
+    if records:
+        sources = {r.get("eventSource", "") for r in records}
+        if sources == {"aws:sqs"}:
             return _handle_results(event)
+        if sources - {"aws:sqs"}:
+            logger.warning(
+                "Refusing to route mixed/unknown event sources: %s",
+                sorted(sources),
+            )
 
     return _handle_dispatch(event)
 

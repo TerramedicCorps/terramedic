@@ -91,10 +91,13 @@ def parse_nominations_csv(
 
     for row_num, row in enumerate(reader, start=2):
         if row_num - 1 > MAX_ROWS:
-            result.errors.append(
-                f"CSV exceeds the maximum of {MAX_ROWS} rows.",
-            )
+            # Drop accumulated row/errors so the caller sees a single,
+            # unambiguous "too many rows" message rather than a mix of
+            # this and per-row issues from earlier in the same upload.
             result.rows.clear()
+            result.errors = [
+                f"CSV exceeds the maximum of {MAX_ROWS} rows.",
+            ]
             return result
 
         url = (row.get(url_col) or "").strip()

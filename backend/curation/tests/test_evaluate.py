@@ -715,6 +715,7 @@ class TestEvaluateOrgViaClaudeCode:
         from curation import evaluate as evaluate_mod
         from curation.evaluate import evaluate_org_via_claude_code
 
+        evaluate_mod._read_settings_effort.cache_clear()
         settings_file = tmp_path / "settings.json"
         settings_file.write_text(json.dumps({"effortLevel": "max"}))
         monkeypatch.setattr(
@@ -746,6 +747,7 @@ class TestEvaluateOrgViaClaudeCode:
         from curation import evaluate as evaluate_mod
         from curation.evaluate import evaluate_org_via_claude_code
 
+        evaluate_mod._read_settings_effort.cache_clear()
         # Point at a non-existent file.
         monkeypatch.setattr(
             evaluate_mod,

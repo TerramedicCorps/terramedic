@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import functools
 import ipaddress
 import json
 import logging
@@ -79,6 +80,21 @@ def _url_resolves_to_public(url: str) -> bool:
     return True
 
 
+@functools.cache
+def _read_settings_effort() -> str:
+    """Read ``effortLevel`` from the user's ``~/.claude/settings.json``
+    once per process. Batch runs (e.g. ``evaluate_urls_to_fixtures``
+    with N URLs) hit this on every call; the file changes only when
+    the user re-runs ``claude config``."""
+    try:
+        with open(_CLAUDE_SETTINGS_PATH) as f:
+            settings = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return "default"
+    level = settings.get("effortLevel")
+    return level if isinstance(level, str) and level else "default"
+
+
 def _resolve_effort(explicit: str | None) -> str:
     """Return the effort level for metadata stamping.
 
@@ -89,13 +105,7 @@ def _resolve_effort(explicit: str | None) -> str:
     """
     if explicit:
         return explicit
-    try:
-        with open(_CLAUDE_SETTINGS_PATH) as f:
-            settings = json.load(f)
-    except (OSError, json.JSONDecodeError):
-        return "default"
-    level = settings.get("effortLevel")
-    return level if isinstance(level, str) and level else "default"
+    return _read_settings_effort()
 
 
 def _resolve_model(envelope: dict[str, Any], fallback: str) -> str:

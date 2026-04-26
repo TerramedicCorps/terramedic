@@ -29,6 +29,10 @@ def seed_categories(apps, schema_editor):
 
 
 def unseed_categories(apps, schema_editor):
+    # Reverse migrations on a populated DB will fail with
+    # ProtectedError — OrganizationCategory.category uses
+    # on_delete=PROTECT. This migration is forward-only in practice;
+    # the reverse path exists only for empty-DB / fresh-test rollback.
     Category = apps.get_model("organizations", "Category")
     Category.objects.filter(
         slug__in=[slug for slug, _, _ in CANONICAL_CATEGORIES],
