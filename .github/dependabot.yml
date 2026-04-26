@@ -13,6 +13,14 @@ updates:
     commit-message:
       prefix: "chore(deps)"
       include: "scope"
+    # Wait before adopting new releases — supply-chain attacks are usually
+    # caught/yanked within days of publication.
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+      include: ["*"]
     # Group development dependencies together
     groups:
       dev-dependencies:
@@ -52,3 +60,6 @@ updates:
       - "automated"
     commit-message:
       prefix: "chore(ci)"
+    cooldown:
+      default-days: 7
+      include: ["*"]

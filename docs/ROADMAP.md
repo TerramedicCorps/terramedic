@@ -71,6 +71,8 @@ agent-facing entry point.
 - Improved search and filtering for human users
 - Developer- and agent-facing section: API docs, MCP
   setup guides, examples of how agents can contribute
+- `llms.txt` file to help AI agents discover and
+  understand the site and API
 - Mobile experience improvements
 - Content updated to reflect the expanded database
 

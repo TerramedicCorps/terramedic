@@ -41,8 +41,6 @@ individuals and communities caring for the Earth.
 - [Tailwind CSS](https://tailwindcss.com/) v4
 - [Flowbite Svelte](https://flowbite-svelte.com/)
   component library
-- [Storybook](https://storybook.js.org/) for component
-  development
 - Hosted on [Netlify](https://www.netlify.com/)
 
 **Backend:**
@@ -104,7 +102,6 @@ poetry run python manage.py runserver
 | `yarn test` | Run all tests |
 | `yarn lint` | Check linting |
 | `yarn format` | Format code |
-| `yarn storybook` | Launch Storybook |
 
 **Backend** (run from `backend/`):
 
@@ -128,7 +125,6 @@ terramedic/
 │   │       └── utils/       # Client utilities
 │   ├── e2e/             # Playwright end-to-end tests
 │   ├── tests/           # Vitest unit tests
-│   └── .storybook/      # Storybook configuration
 ├── backend/             # Django REST API
 │   └── terramedic/
 │       ├── core/        # Settings, URL routing, API config

@@ -233,6 +233,17 @@ resource "aws_iam_policy" "zappa_deployment" {
           "iam:PassRole"
         ]
         Resource = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.prefix}-*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage",
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+          "sqs:GetQueueUrl"
+        ]
+        Resource = "arn:aws:sqs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${var.prefix}-evaluation-*"
       }
     ]
   })
@@ -290,4 +301,108 @@ resource "aws_iam_role_policy_attachment" "lambda_vpc_access" {
 
   role       = aws_iam_role.zappa_deployment.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+}
+
+locals {
+  worker_function_name    = "${var.prefix}-worker"
+  evaluator_function_name = "${var.prefix}-evaluator"
+}
+
+# EventBridge scheduled rule to trigger the worker Lambda
+resource "aws_cloudwatch_event_rule" "worker_schedule" {
+  count = var.worker_schedule_expression != "" ? 1 : 0
+
+  name                = "${var.prefix}-worker-schedule"
+  description         = "Triggers the evaluation worker Lambda on a schedule"
+  schedule_expression = var.worker_schedule_expression
+
+  tags = var.tags
+}
+
+resource "aws_cloudwatch_event_target" "worker_lambda" {
+  count = var.worker_schedule_expression != "" ? 1 : 0
+
+  rule      = aws_cloudwatch_event_rule.worker_schedule[0].name
+  target_id = local.worker_function_name
+  arn       = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${local.worker_function_name}"
+
+  input = jsonencode({
+    command = "terramedic.nominations.worker.process_evaluation_queue"
+    limit   = 50
+  })
+}
+
+resource "aws_lambda_permission" "eventbridge_worker" {
+  count = var.worker_schedule_expression != "" ? 1 : 0
+
+  statement_id  = "AllowEventBridgeInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = local.worker_function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.worker_schedule[0].arn
+}
+
+# ── SQS queues for worker ↔ evaluator communication ─────────────
+
+resource "aws_sqs_queue" "evaluation_requests_dlq" {
+  count = var.worker_schedule_expression != "" ? 1 : 0
+
+  name                      = "${var.prefix}-evaluation-requests-dlq"
+  message_retention_seconds = 604800 # 7 days
+  tags                      = var.tags
+}
+
+resource "aws_sqs_queue" "evaluation_requests" {
+  count = var.worker_schedule_expression != "" ? 1 : 0
+
+  name                       = "${var.prefix}-evaluation-requests"
+  visibility_timeout_seconds = 360 # > evaluator Lambda timeout (300s)
+  message_retention_seconds  = 86400
+  tags                       = var.tags
+
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.evaluation_requests_dlq[0].arn
+    maxReceiveCount     = 2 # Low: each attempt calls the Anthropic API (~$)
+  })
+}
+
+resource "aws_sqs_queue" "evaluation_results_dlq" {
+  count = var.worker_schedule_expression != "" ? 1 : 0
+
+  name                      = "${var.prefix}-evaluation-results-dlq"
+  message_retention_seconds = 604800 # 7 days
+  tags                      = var.tags
+}
+
+resource "aws_sqs_queue" "evaluation_results" {
+  count = var.worker_schedule_expression != "" ? 1 : 0
+
+  name                       = "${var.prefix}-evaluation-results"
+  visibility_timeout_seconds = 360 # > worker Lambda timeout (300s)
+  message_retention_seconds  = 86400
+  tags                       = var.tags
+
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.evaluation_results_dlq[0].arn
+    maxReceiveCount     = 3 # Higher: worker retries are cheap (DB writes only)
+  })
+}
+
+# SQS → Lambda event source mappings
+resource "aws_lambda_event_source_mapping" "evaluator_sqs_trigger" {
+  count = var.worker_schedule_expression != "" ? 1 : 0
+
+  event_source_arn = aws_sqs_queue.evaluation_requests[0].arn
+  function_name    = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${local.evaluator_function_name}"
+  batch_size       = 1 # One evaluation at a time (each takes ~30s)
+  enabled          = true
+}
+
+resource "aws_lambda_event_source_mapping" "worker_results_sqs_trigger" {
+  count = var.worker_schedule_expression != "" ? 1 : 0
+
+  event_source_arn = aws_sqs_queue.evaluation_results[0].arn
+  function_name    = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${local.worker_function_name}"
+  batch_size       = 10
+  enabled          = true
 }

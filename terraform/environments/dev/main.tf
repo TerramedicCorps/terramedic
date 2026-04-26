@@ -115,8 +115,11 @@ module "zappa" {
   secret_arns = [
     module.secrets.db_url_secret_arn,
     module.secrets.secret_key_secret_arn,
+    module.secrets.anthropic_api_key_secret_arn,
   ]
   secrets_kms_key_arn = module.secrets.secrets_kms_key_arn
+
+  worker_schedule_expression = var.worker_schedule_expression
 
   tags = var.tags
 }

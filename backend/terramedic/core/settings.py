@@ -24,7 +24,6 @@ IS_LAMBDA = bool(os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
 
 # SECURITY WARNING: keep the secret key used in production secret!
-_is_testing = "pytest" in sys.modules or os.getenv("PYTEST_CURRENT_TEST")
 _raw_secret_key = os.getenv("SECRET_KEY", "")
 if IS_LAMBDA and _raw_secret_key:
     from terramedic.core.secrets import resolve_secret
@@ -32,10 +31,17 @@ if IS_LAMBDA and _raw_secret_key:
     SECRET_KEY = resolve_secret(_raw_secret_key, "key")
 elif _raw_secret_key:
     SECRET_KEY = _raw_secret_key
-elif DEBUG or _is_testing:
-    SECRET_KEY = "django-insecure-terramedic-dev-key-change-in-production"
+elif IS_LAMBDA:
+    raise ValueError(
+        "SECRET_KEY environment variable is required when running on Lambda",
+    )
+elif not DEBUG and "pytest" not in sys.modules:
+    raise ValueError(
+        "SECRET_KEY environment variable is required when DEBUG is false",
+    )
 else:
-    raise ValueError("SECRET_KEY environment variable is required in production")
+    # Allow a fixed key only for local development and test contexts.
+    SECRET_KEY = "django-insecure-terramedic-dev-key-change-in-production"
 
 # Parse ALLOWED_HOSTS from environment variable (comma-separated)
 allowed_hosts_env = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1")
@@ -72,6 +78,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "parler",
     "terramedic.organizations",
+    "terramedic.nominations",
 ]
 
 MIDDLEWARE = [
@@ -277,6 +284,14 @@ LOGGING = {
             "handlers": ["console"],
             "level": "INFO",
             "propagate": False,
+        },
+        "curation": {
+            # Propagate to root (which has the console handler) rather
+            # than attaching our own. This keeps pytest's caplog
+            # working — caplog attaches to root, so propagate=False
+            # would make log capture tests silently drop records.
+            "level": "INFO",
+            "propagate": True,
         },
     },
 }

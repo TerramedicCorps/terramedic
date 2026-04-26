@@ -14,6 +14,7 @@ RUN pip install --no-cache-dir poetry==2.1.3 && \
 
 # Copy application code
 COPY terramedic/ ./terramedic/
+COPY curation/ ./curation/
 COPY manage.py ./
 COPY handler.py ./
 

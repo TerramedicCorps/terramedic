@@ -29,7 +29,7 @@ jobs:
       DEPLOY_ENV: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'prod') || 'dev' }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Validate required variables
         run: |
@@ -45,17 +45,17 @@ jobs:
           fi
 
       - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v5
+        uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5
         with:
           role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/github-actions-${{ env.DEPLOY_ENV }}
           aws-region: us-east-1
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@f2e9fc6c2b355c1890b65e6f6f0e2ac3e6e22f78 # v2
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.14"
 
@@ -83,9 +83,13 @@ jobs:
           ZAPPA_ROLE_NAME: ${{ vars.ZAPPA_ROLE_NAME }}
           DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
           ACM_CERTIFICATE_ARN: ${{ vars.ACM_CERTIFICATE_ARN }}
+          ANTHROPIC_SECRET_ARN: ${{ secrets.ANTHROPIC_SECRET_ARN }}
+          EVALUATION_REQUESTS_QUEUE_URL: ${{ vars.EVALUATION_REQUESTS_QUEUE_URL }}
+          EVALUATION_RESULTS_QUEUE_URL: ${{ vars.EVALUATION_RESULTS_QUEUE_URL }}
         run: |
           poetry run python scripts/configure_zappa.py
           poetry run zappa save-python-settings-file ${{ env.DEPLOY_ENV }}
+          poetry run python scripts/inject_event_mapping.py
 
       - name: Build and push Docker image
         working-directory: ./backend
@@ -132,18 +136,30 @@ jobs:
             poetry run zappa deploy ${{ env.DEPLOY_ENV }} --docker-image-uri "$IMAGE_URI"
           fi
 
+      - name: Deploy worker and evaluator Lambdas
+        working-directory: ./backend
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          IMAGE_URI="${ECR_REGISTRY}/terramedic-${{ env.DEPLOY_ENV }}:latest"
+          for ROLE in worker evaluator; do
+            STAGE="${{ env.DEPLOY_ENV }}-${ROLE}"
+            FUNCTION_NAME="terramedic-${STAGE}"
+
+            if aws lambda get-function --function-name "$FUNCTION_NAME" 2>/dev/null; then
+              echo "Updating ${ROLE} Lambda..."
+              aws lambda wait function-updated --function-name "$FUNCTION_NAME"
+              poetry run zappa update "$STAGE" --docker-image-uri "$IMAGE_URI"
+            else
+              echo "Creating ${ROLE} Lambda..."
+              poetry run zappa deploy "$STAGE" --docker-image-uri "$IMAGE_URI"
+            fi
+          done
+
       - name: Run database migrations
         working-directory: ./backend
         run: |
           poetry run zappa manage ${{ env.DEPLOY_ENV }} "migrate --noinput"
-
-      # TODO: Remove this step once we are actively adding records via the
-      # admin interface. Running loaddata on every deploy overwrites manual
-      # edits and may break if fixture assumptions drift.
-      - name: Load seed data
-        working-directory: ./backend
-        run: |
-          poetry run zappa manage ${{ env.DEPLOY_ENV }} "loaddata seed_data"
 
       - name: Configure API custom domain
         working-directory: ./backend

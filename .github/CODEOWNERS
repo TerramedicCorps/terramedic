@@ -1,0 +1,4 @@
+# Default owner for everything in the repo. GitHub uses the last
+# matching line, so adding more specific paths above this line
+# will override the default for those paths.
+*       @lhadjchikh

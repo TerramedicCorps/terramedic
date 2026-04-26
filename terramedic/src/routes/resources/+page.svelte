@@ -1,8 +1,7 @@
 <script>
   import NavBar from '$lib/components/NavBar.svelte';
   import Footer from '$lib/components/Footer.svelte';
-  import OrganizationCard from '$lib/components/OrganizationCard.svelte';
-  import { trackSectionView } from '$lib/utils/analytics';
+  import OrganizationGrid from '$lib/components/OrganizationGrid.svelte';
 
   export let data;
   export let form;
@@ -40,23 +39,14 @@
         Tools, research, and support for those already engaged in advocacy work.
       </p>
 
-      <div
-        class="mx-auto mb-12 grid max-w-4xl gap-8 px-4 sm:px-6 md:grid-cols-2"
-        use:trackSectionView={{ section: 'organizations', page: 'resources' }}
-      >
-        {#each data.organizations as org (org.id)}
-          <OrganizationCard
-            name={org.name}
-            description={org.description}
-            websiteUrl={org.website_url}
-            imageUrl={org.image_url}
-            actionText={org.action_text}
-            tags={org.tags}
-            tagColor="blue"
-            buttonColor="blue"
-          />
-        {/each}
-      </div>
+      <OrganizationGrid
+        promise={data.organizations}
+        tagColor="blue"
+        buttonColor="blue"
+        emptyText="No advocate resources yet — check back soon."
+        analyticsSection="organizations"
+        analyticsPage="resources"
+      />
     </div>
   </main>
 

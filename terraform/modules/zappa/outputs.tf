@@ -22,3 +22,18 @@ output "zappa_deployment_role_name" {
   description = "Name of the IAM role for Zappa deployments"
   value       = aws_iam_role.zappa_deployment.name
 }
+
+output "worker_schedule_rule_arn" {
+  description = "ARN of the EventBridge rule that triggers the worker Lambda (null if not configured)"
+  value       = length(aws_cloudwatch_event_rule.worker_schedule) > 0 ? aws_cloudwatch_event_rule.worker_schedule[0].arn : null
+}
+
+output "evaluation_requests_queue_url" {
+  description = "URL of the SQS queue for evaluation requests (null if not configured)"
+  value       = length(aws_sqs_queue.evaluation_requests) > 0 ? aws_sqs_queue.evaluation_requests[0].url : null
+}
+
+output "evaluation_results_queue_url" {
+  description = "URL of the SQS queue for evaluation results (null if not configured)"
+  value       = length(aws_sqs_queue.evaluation_results) > 0 ? aws_sqs_queue.evaluation_results[0].url : null
+}

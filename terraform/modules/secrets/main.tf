@@ -80,6 +80,28 @@ resource "aws_secretsmanager_secret" "site_password_secret" {
   }
 }
 
+# Anthropic API Key Secret
+resource "aws_secretsmanager_secret" "anthropic_api_key" {
+  name        = "${var.prefix}/anthropic-api-key"
+  description = "Anthropic API key for AI evaluations"
+  kms_key_id  = aws_kms_key.secrets.arn
+
+  tags = {
+    Name = "${var.prefix}-anthropic-api-key"
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "anthropic_api_key" {
+  secret_id     = aws_secretsmanager_secret.anthropic_api_key.id
+  secret_string = jsonencode({ key = "dummy-value-to-be-changed" })
+
+  lifecycle {
+    ignore_changes = [
+      secret_string
+    ]
+  }
+}
+
 resource "aws_secretsmanager_secret_version" "site_password_secret" {
   secret_id = aws_secretsmanager_secret.site_password_secret.id
   secret_string = jsonencode({
