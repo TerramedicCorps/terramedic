@@ -1237,13 +1237,13 @@ class TestCategoryCopyInSchema:
         schema = _load_schema()
         assert "category_copy" in schema["required"]
 
-    def test_category_copy_item_requires_slug_description_action_text(
+    def test_category_copy_item_requires_slug_description_action_text_and_url(
         self,
     ) -> None:
         schema = _load_schema()
         item_schema = schema["properties"]["category_copy"]["items"]
         assert set(item_schema["required"]) == {
-            "slug", "description", "action_text",
+            "slug", "description", "action_text", "action_url",
         }
 
     def test_category_copy_slug_matches_canonical_categories(self) -> None:
@@ -1267,6 +1267,26 @@ class TestCategoryCopyInSchema:
             "properties"
         ]["action_text"]
         assert at_schema["maxLength"] <= 80
+
+    def test_action_url_is_required(self) -> None:
+        """Each category_copy entry must point to a specific page that
+        supports its action_text — otherwise the CTA card has nowhere
+        to send the reader."""
+        schema = _load_schema()
+        item_schema = schema["properties"]["category_copy"]["items"]
+        assert "action_url" in item_schema["required"]
+        assert "action_url" in item_schema["properties"]
+
+    def test_action_url_format_is_uri(self) -> None:
+        """Models love to return labels or partial paths — enforce
+        ``format: uri`` so schema validation catches anything that
+        isn't a fully-qualified URL."""
+        schema = _load_schema()
+        au_schema = schema["properties"]["category_copy"]["items"][
+            "properties"
+        ]["action_url"]
+        assert au_schema["type"] == "string"
+        assert au_schema["format"] == "uri"
 
     def test_prompt_instructs_model_on_category_copy(self) -> None:
         """The model has to know to produce category_copy; embedding
@@ -1369,6 +1389,134 @@ class TestCleanResponse:
         assert "year_founded" not in data["org_metadata"]
         assert "region" not in data["org_metadata"]
         assert data["org_metadata"]["name"] == "Test"
+
+    def test_donate_action_url_overridden_to_homepage(self) -> None:
+        """501(c)(3) compliance: Terramedic must not deep-link into
+        another org's donation flow because that functionally
+        constitutes solicitation. The donate slug's action_url is
+        unconditionally rewritten to the org's homepage regardless of
+        what the model returned."""
+        data: dict[str, Any] = {
+            "org_metadata": {
+                "name": "Test",
+                "website_url": "https://example.org",
+            },
+            "category_copy": [
+                {
+                    "slug": "donate",
+                    "description": "Funds X",
+                    "action_text": "Donate",
+                    "action_url": "https://example.org/donate/give-now",
+                },
+            ],
+            "evidence_of_work": [],
+        }
+        _clean_response(data)
+        assert (
+            data["category_copy"][0]["action_url"]
+            == "https://example.org"
+        )
+
+    def test_donate_action_url_set_when_model_omitted_it(self) -> None:
+        """If the model returned a donate entry without action_url,
+        the override still fills it with the homepage so the schema
+        validator post-clean doesn't reject the response."""
+        data: dict[str, Any] = {
+            "org_metadata": {
+                "name": "Test",
+                "website_url": "https://example.org",
+            },
+            "category_copy": [
+                {
+                    "slug": "donate",
+                    "description": "Funds X",
+                    "action_text": "Donate",
+                },
+            ],
+            "evidence_of_work": [],
+        }
+        _clean_response(data)
+        assert (
+            data["category_copy"][0]["action_url"]
+            == "https://example.org"
+        )
+
+    def test_non_donate_action_url_preserved(self) -> None:
+        """Volunteer/career/etc. action_urls come from the model and
+        should land on a specific subpage. Don't normalize them."""
+        data: dict[str, Any] = {
+            "org_metadata": {
+                "name": "Test",
+                "website_url": "https://example.org",
+            },
+            "category_copy": [
+                {
+                    "slug": "volunteer",
+                    "description": "Sign up",
+                    "action_text": "Volunteer",
+                    "action_url": "https://example.org/volunteer/signup",
+                },
+                {
+                    "slug": "career",
+                    "description": "Find roles",
+                    "action_text": "Browse jobs",
+                    "action_url": "https://example.org/jobs",
+                },
+            ],
+            "evidence_of_work": [],
+        }
+        _clean_response(data)
+        assert (
+            data["category_copy"][0]["action_url"]
+            == "https://example.org/volunteer/signup"
+        )
+        assert (
+            data["category_copy"][1]["action_url"]
+            == "https://example.org/jobs"
+        )
+
+    def test_donate_override_skipped_when_homepage_missing(
+        self, caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """If org_metadata.website_url is missing, leave the donate
+        entry untouched and log a warning. The downstream schema
+        validation will fail (action_url is required + format=uri),
+        which is the correct outcome — better to fail loudly than to
+        publish an unverified deep link or silently invent one."""
+        data: dict[str, Any] = {
+            "org_metadata": {"name": "Test"},
+            "category_copy": [
+                {
+                    "slug": "donate",
+                    "description": "Funds X",
+                    "action_text": "Donate",
+                    "action_url": "https://elsewhere.example/give",
+                },
+            ],
+            "evidence_of_work": [],
+        }
+        with caplog.at_level(logging.WARNING):
+            _clean_response(data)
+        # Original action_url preserved (no homepage to substitute).
+        assert (
+            data["category_copy"][0]["action_url"]
+            == "https://elsewhere.example/give"
+        )
+        assert any(
+            "donate" in rec.message.lower()
+            and "homepage" in rec.message.lower()
+            for rec in caplog.records
+        )
+
+    def test_clean_response_handles_missing_category_copy(self) -> None:
+        """``category_copy`` is required by the schema, but
+        ``_clean_response`` runs *before* validation and must not
+        crash on a partial response."""
+        data: dict[str, Any] = {
+            "org_metadata": {"website_url": "https://example.org"},
+            "evidence_of_work": [],
+        }
+        _clean_response(data)  # should not raise
 
 
 class TestHtmlToText:

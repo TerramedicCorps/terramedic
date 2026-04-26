@@ -54,22 +54,30 @@ def _serialize_org(
     """Serialize an org to the public schema shape.
 
     When *category_slug* is provided, prefer the per-(org, category)
-    translated description and action_text. Effective action_text
-    precedence:
+    translated description, action_text, and action_url. Effective
+    action_text precedence:
 
       1. ``OrganizationCategory.action_text`` (translated).
       2. ``Category.default_action_text``.
       3. empty string — frontend decides.
 
+    ``action_url`` falls back to ``org.website_url`` when the
+    per-category row is blank, so cards always have somewhere to send
+    the reader. The donate slug is enforced (in curation + admin
+    ``clean()``) to be the homepage already, so the fallback
+    coincides with the compliance rule.
+
     When *category_slug* is ``None`` (multi-category contexts like the
     nearby map or unfiltered listing), the general
-    ``org.description`` is returned and ``action_text`` stays empty.
+    ``org.description`` is returned and ``action_text`` /
+    ``action_url`` stay empty.
     """
     entries: list[OrganizationCategory] = list(
         org.category_entries.all(),  # type: ignore[attr-defined]
     )
     description = org.description
     action_text = ""
+    action_url = ""
     sort_order = org.sort_order
 
     if category_slug:
@@ -84,6 +92,9 @@ def _serialize_org(
             action_text = _translated(entry, "action_text")
             if not action_text:
                 action_text = entry.category.default_action_text
+            action_url = _translated(entry, "action_url")
+            if not action_url:
+                action_url = org.website_url
             sort_order = entry.sort_order
 
     return {
@@ -91,6 +102,7 @@ def _serialize_org(
         "name": org.name,
         "description": description,
         "action_text": action_text,
+        "action_url": action_url,
         "website_url": org.website_url,
         "image_url": org.image_url,
         "categories": sorted(e.category_id for e in entries),

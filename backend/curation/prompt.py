@@ -17,7 +17,7 @@ from pathlib import Path
 # Bump this version whenever SYSTEM_PROMPT or any of the shared
 # prompt constants below is modified.
 # Format: YYYY.MM.N where N resets to 1 each month.
-PROMPT_VERSION: str = "2026.04.16"
+PROMPT_VERSION: str = "2026.04.26"
 
 
 # -- Shared constants --------------------------------------------------
@@ -190,6 +190,19 @@ Each entry contains:
 rules below.
 - ``action_text`` — the CTA label on the card for that pathway. \
 Overrides ``Category.default_action_text``.
+- ``action_url`` — the page the CTA links to. Use the **most specific \
+page on the org's site** that supports ``action_text``: a volunteer \
+signup page for "Volunteer," a jobs board for "Browse jobs," a \
+specific toolkit or guide page for "Read the report." If the most \
+fitting page is the homepage itself (some orgs route every CTA \
+there), use the homepage. **Only return URLs you have actually seen** \
+in the page content provided or via WebFetch — do not guess paths. \
+**Exception — slug ``donate``:** return the org's homepage \
+(``org_metadata.website_url``). The curation layer overrides this \
+unconditionally regardless of what you return, because Terramedic is \
+a US 501(c)(3) and must not deep-link into another org's donation \
+flow. Returning the homepage matches the override and keeps your \
+output consistent.
 
 {PER_CATEGORY_COPY_GUIDANCE}
 

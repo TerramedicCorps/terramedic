@@ -379,9 +379,49 @@ def _clean_response(data: dict[str, Any]) -> None:
             for c in accessibility["categories"]
         ]
 
+    _normalize_donate_action_url(data)
+
     # Remove null values for optional fields — the schema uses
     # type-specific validation, so null isn't valid; omission is.
     _strip_nulls(data)
+
+
+def _normalize_donate_action_url(data: dict[str, Any]) -> None:
+    """Force ``donate`` slug ``action_url`` to the org's homepage.
+
+    501(c)(3) compliance: Terramedic must not appear to solicit
+    donations on behalf of nominee orgs. Deep-linking into another
+    org's donation flow (Stripe checkout, GoFundMe, campaign-specific
+    landing page) functionally constitutes fundraising for them, with
+    tax/legal implications. Routing the donate CTA to the homepage
+    means the visitor self-directs to whatever giving channel the org
+    runs — Terramedic is making the org *findable*, not running a
+    fundraiser for them.
+
+    Applied unconditionally to whatever the model returned. If the
+    homepage is missing from ``org_metadata.website_url`` the entry is
+    left untouched and a warning is logged — schema validation will
+    then reject the response, which is the correct outcome (better to
+    fail loudly than to publish an unverified deep link).
+    """
+    entries = data.get("category_copy") or []
+    if not isinstance(entries, list):
+        return
+    homepage = (
+        data.get("org_metadata", {}).get("website_url")
+        if isinstance(data.get("org_metadata"), dict)
+        else None
+    )
+    for entry in entries:
+        if not isinstance(entry, dict) or entry.get("slug") != "donate":
+            continue
+        if not homepage:
+            logger.warning(
+                "Cannot rewrite donate action_url to homepage: "
+                "org_metadata.website_url is missing",
+            )
+            continue
+        entry["action_url"] = homepage
 
 
 def _strip_nulls(obj: Any) -> None:

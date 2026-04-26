@@ -187,6 +187,98 @@ class TestOrganizationCategoryThrough:
         with pytest.raises(ProtectedError):
             donate.delete()
 
+    def test_clean_rejects_donate_action_url_other_than_homepage(
+        self,
+    ) -> None:
+        """501(c)(3) compliance: the donate CTA must land on the org's
+        homepage. Defense in depth on top of the curation-layer
+        override — admin saves go through ``full_clean``, so a
+        hand-edited deep donation link is rejected before it reaches
+        the database."""
+        from django.core.exceptions import ValidationError
+
+        from terramedic.organizations.models import OrganizationCategory
+
+        org = Organization(
+            name="Test Org",
+            website_url="https://example.org",
+        )
+        org.set_current_language("en")
+        org.description = "..."
+        org.save()
+        donate = Category.objects.get(slug="donate")
+        through = OrganizationCategory.objects.create(
+            organization=org, category=donate,
+        )
+        through.set_current_language("en")
+        through.action_url = "https://example.org/donate/give-now"
+
+        with pytest.raises(ValidationError, match="donate"):
+            through.full_clean()
+
+    def test_clean_accepts_donate_action_url_matching_homepage(
+        self,
+    ) -> None:
+        """Same scheme/path as ``organization.website_url`` passes —
+        this is the compliant path."""
+        from terramedic.organizations.models import OrganizationCategory
+
+        org = Organization(
+            name="Test Org",
+            website_url="https://example.org",
+        )
+        org.set_current_language("en")
+        org.description = "..."
+        org.save()
+        donate = Category.objects.get(slug="donate")
+        through = OrganizationCategory.objects.create(
+            organization=org, category=donate,
+        )
+        through.set_current_language("en")
+        through.action_url = "https://example.org"
+        through.full_clean()  # must not raise
+
+    def test_clean_accepts_blank_donate_action_url(self) -> None:
+        """A blank action_url falls back to the org homepage at the
+        serializer layer, which is also compliant — so the model
+        should accept it."""
+        from terramedic.organizations.models import OrganizationCategory
+
+        org = Organization(
+            name="Test Org",
+            website_url="https://example.org",
+        )
+        org.set_current_language("en")
+        org.description = "..."
+        org.save()
+        donate = Category.objects.get(slug="donate")
+        through = OrganizationCategory.objects.create(
+            organization=org, category=donate,
+        )
+        through.set_current_language("en")
+        through.action_url = ""
+        through.full_clean()  # must not raise
+
+    def test_clean_allows_deep_link_for_non_donate_slugs(self) -> None:
+        """Volunteer/career/etc. CTAs are *supposed* to deep-link.
+        The compliance rule applies strictly to ``donate``."""
+        from terramedic.organizations.models import OrganizationCategory
+
+        org = Organization(
+            name="Test Org",
+            website_url="https://example.org",
+        )
+        org.set_current_language("en")
+        org.description = "..."
+        org.save()
+        volunteer = Category.objects.get(slug="volunteer")
+        through = OrganizationCategory.objects.create(
+            organization=org, category=volunteer,
+        )
+        through.set_current_language("en")
+        through.action_url = "https://example.org/volunteer/signup"
+        through.full_clean()  # must not raise
+
 
 @pytest.mark.django_db
 class TestOrganizationCategoriesM2M:

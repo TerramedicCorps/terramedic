@@ -41,11 +41,15 @@ def _eval_data(**overrides: Any) -> dict[str, Any]:
                 "slug": "donate",
                 "description": "Fund bipartisan climate lobbying.",
                 "action_text": "Donate to CCL",
+                "action_url": "https://citizensclimatelobby.org/",
             },
             {
                 "slug": "volunteer",
                 "description": "Join a local lobby day.",
                 "action_text": "Find a chapter",
+                "action_url": (
+                    "https://citizensclimatelobby.org/chapters/"
+                ),
             },
         ],
         "evidence_score": {"score": 4, "rationale": "Strong"},
@@ -80,6 +84,29 @@ class TestCreateOrgPopulatesCategoryCopy:
         volunteer.set_current_language("en")
         assert volunteer.description == "Join a local lobby day."
         assert volunteer.action_text == "Find a chapter"
+
+    def test_through_rows_carry_action_url(self) -> None:
+        """``action_url`` from ``category_copy`` lands on the through
+        row so the API can render a working CTA link."""
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=_eval_data(),
+        )
+
+        org = create_org_from_evaluation(ev)
+
+        donate = OrganizationCategory.objects.get(
+            organization=org, category__slug="donate",
+        )
+        donate.set_current_language("en")
+        assert donate.action_url == "https://citizensclimatelobby.org/"
+
+        volunteer = OrganizationCategory.objects.get(
+            organization=org, category__slug="volunteer",
+        )
+        volunteer.set_current_language("en")
+        assert volunteer.action_url == (
+            "https://citizensclimatelobby.org/chapters/"
+        )
 
     def test_slug_without_category_copy_entry_starts_blank(self) -> None:
         """Reviewers can add an extra category via reviewer_categories
