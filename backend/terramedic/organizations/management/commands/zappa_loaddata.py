@@ -129,14 +129,19 @@ def _build_invoke_snippet(fixture_bytes: bytes) -> str:
     Base64-encoded content + single-quoted string literal keeps the
     snippet safe from shell quoting issues and from any combination
     of characters that might appear inside the fixture JSON.
+
+    ``loaddata`` reads from ``sys.stdin`` directly when given the ``-``
+    fixture label; ``call_command``'s ``stdin`` kwarg is ignored by
+    ``BaseCommand.execute``, so the snippet reassigns ``sys.stdin``
+    in-place to push the decoded fixture in.
     """
     encoded = base64.b64encode(fixture_bytes).decode("ascii")
     return (
         "import base64\n"
+        "import sys\n"
         "from io import StringIO\n"
         "from django.core.management import call_command\n"
         f"data = base64.b64decode('{encoded}').decode('utf-8')\n"
-        "call_command("
-        "'loaddata', '--format=json', '-', stdin=StringIO(data)"
-        ")\n"
+        "sys.stdin = StringIO(data)\n"
+        "call_command('loaddata', '--format=json', '-')\n"
     )

@@ -104,6 +104,33 @@ class TestZappaLoaddata:
         assert expected_b64 in snippet
         assert "loaddata" in snippet
 
+    def test_snippet_redirects_sys_stdin_for_loaddata(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        """Django's ``loaddata`` reads from ``sys.stdin`` directly —
+        ``call_command(..., stdin=...)`` does not redirect it (the
+        kwarg is ignored by ``BaseCommand.execute``). The snippet
+        must therefore reassign ``sys.stdin`` before calling
+        ``loaddata``, otherwise the fixture is silently dropped and
+        zappa reports loading 0 objects."""
+        fixture_bytes = _valid_fixture_bytes()
+        fixture = tmp_path / "reeval.json"
+        fixture.write_bytes(fixture_bytes)
+
+        with patch(
+            f"{_CMD_MODULE}.subprocess.run",
+            return_value=_mock_run_ok(),
+        ) as mock_run:
+            call_command("zappa_loaddata", "dev", str(fixture))
+
+        argv = mock_run.call_args.args[0]
+        snippet = next(
+            arg for arg in argv
+            if isinstance(arg, str) and "loaddata" in arg
+        )
+        assert "sys.stdin" in snippet
+
     def test_passes_stage_argument_through_to_zappa(
         self,
         tmp_path: Path,
