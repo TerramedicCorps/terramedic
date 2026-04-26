@@ -16,6 +16,7 @@ from typing import Any
 
 import boto3
 from django.db import transaction
+from django.db.models import F
 
 from terramedic.nominations.claim import claim_nominations, sweep_stuck_claims
 from terramedic.nominations.models import Nomination, NominationStatus
@@ -70,11 +71,25 @@ def _handle_dispatch(event: dict[str, Any]) -> dict[str, Any]:
                 "Failed to dispatch nomination %s to SQS.",
                 nomination.pk,
             )
-            nomination.status = NominationStatus.QUEUED
-            nomination.evaluation_attempts -= 1
-            nomination.save(
-                update_fields=["status", "evaluation_attempts"],
+            # CAS revert: only flip back to QUEUED if the row is still
+            # in the EVALUATING state we set during claim. A concurrent
+            # transition (sweep_stuck_claims marking FAILED, admin
+            # edit, or another worker invocation) would otherwise be
+            # silently overwritten.
+            reverted = Nomination.objects.filter(
+                pk=nomination.pk,
+                status=NominationStatus.EVALUATING,
+                evaluation_attempts=nomination.evaluation_attempts,
+            ).update(
+                status=NominationStatus.QUEUED,
+                evaluation_attempts=F("evaluation_attempts") - 1,
             )
+            if not reverted:
+                logger.warning(
+                    "Skipped dispatch revert for nomination %s: "
+                    "row changed concurrently.",
+                    nomination.pk,
+                )
             continue
         dispatched += 1
 

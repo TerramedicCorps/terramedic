@@ -199,6 +199,45 @@ class TestHandleDispatch:
         assert nom.status == NominationStatus.QUEUED
         assert nom.evaluation_attempts == 0
 
+    @patch(f"{_WORKER_MODULE}.boto3")
+    def test_sqs_send_failure_does_not_stomp_concurrent_state_change(
+        self, mock_boto3: Any, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """If the row was transitioned out of EVALUATING by another
+        actor (e.g. sweep_stuck_claims marking it FAILED) while
+        dispatch was in-flight, the dispatch-failure handler must not
+        unconditionally save status=QUEUED on top of that. Use a CAS
+        update so a stomp doesn't revive an already-failed row.
+        """
+        from terramedic.nominations.models import Nomination
+        from terramedic.nominations.worker import _handle_dispatch
+
+        monkeypatch.setenv(
+            "EVALUATION_REQUESTS_QUEUE_URL", "https://sqs.test/queue",
+        )
+        mock_sqs = MagicMock()
+
+        nom = make_queued_nomination()
+
+        def stomp_then_fail(**_kw: Any) -> None:
+            # Simulate sweep_stuck_claims (or admin edit) transitioning
+            # the row to FAILED while we were mid-send.
+            Nomination.objects.filter(pk=nom.pk).update(
+                status=NominationStatus.FAILED,
+            )
+            msg = "SQS throttle"
+            raise RuntimeError(msg)
+
+        mock_sqs.send_message.side_effect = stomp_then_fail
+        mock_boto3.client.return_value = mock_sqs
+
+        _handle_dispatch(_make_eventbridge_event())
+
+        nom.refresh_from_db()
+        # Concurrent FAILED state must survive — dispatch-failure
+        # handler's CAS sees no EVALUATING row and skips the revert.
+        assert nom.status == NominationStatus.FAILED
+
     def test_raises_when_queue_url_missing(
         self, monkeypatch: pytest.MonkeyPatch,
     ) -> None:
