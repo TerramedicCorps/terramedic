@@ -36,7 +36,18 @@ class NominationIn(Schema):
             raise ValueError(msg)
         try:
             addr = ipaddress.ip_address(hostname)
-            if addr.is_private or addr.is_loopback or addr.is_link_local:
+            # CPython's ``is_global`` returns True for multicast
+            # addresses (224.0.0.0/4, ff00::/8), so we can't rely on
+            # ``not is_global`` alone. Reject every non-public range
+            # the evaluator should never fetch.
+            if (
+                addr.is_private
+                or addr.is_loopback
+                or addr.is_link_local
+                or addr.is_unspecified
+                or addr.is_multicast
+                or addr.is_reserved
+            ):
                 msg = "Private or internal URLs are not allowed."
                 raise ValueError(msg)
         except ValueError as exc:

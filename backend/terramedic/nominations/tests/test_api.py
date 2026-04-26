@@ -166,6 +166,27 @@ class TestCreateNomination:
             )
             assert response.status_code == 422, f"{url} should be rejected"
 
+    def test_non_global_ip_url_rejected(self, client: Client) -> None:
+        # Beyond private/loopback/link-local: also reject unspecified,
+        # multicast, reserved, and broadcast ranges so the evaluator's
+        # later URL fetch can't be steered at internal/unsafe targets.
+        for url in [
+            "http://0.0.0.0/",  # unspecified
+            "http://224.0.0.1/",  # multicast (IPv4)
+            "http://240.0.0.1/",  # reserved (IPv4)
+            "http://[ff02::1]/",  # multicast (IPv6)
+            "http://[::]/",  # unspecified (IPv6)
+        ]:
+            response = client.post(
+                "/api/nominations/",
+                data={
+                    "url": url,
+                    "categories": ["volunteer"],
+                },
+                content_type="application/json",
+            )
+            assert response.status_code == 422, f"{url} should be rejected"
+
     def test_long_notes_rejected(self, client: Client) -> None:
         response = client.post(
             "/api/nominations/",
