@@ -43,3 +43,21 @@ class TestExtractJson:
     def test_no_json_raises(self) -> None:
         with pytest.raises(ValueError, match="JSON"):
             extract_json("This has no JSON at all")
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            '[{"a": 1}]',  # array at top level
+            '"just a string"',  # bare string
+            "42",  # bare int
+            "true",  # bare bool
+            "null",  # null
+        ],
+    )
+    def test_non_object_top_level_raises(self, text: str) -> None:
+        """The function is annotated -> dict[str, Any]; if the model
+        emits a JSON array/scalar instead of an object, callers do
+        ``data.get(...)`` and hit AttributeError. Surface it as
+        ValueError so the calling pipeline can handle it cleanly."""
+        with pytest.raises(ValueError, match="JSON"):
+            extract_json(text)
