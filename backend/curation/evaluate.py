@@ -325,6 +325,34 @@ def _enum_from_schema(
 
 _SCHEMA = _load_schema()
 
+# Fields the curation layer stamps onto the response after the model
+# replies. The model has no way to produce them correctly, so they're
+# stripped from ``required`` in the schema we hand to the CLI's
+# ``--json-schema`` flag — otherwise the CLI would reject every valid
+# response for missing them.
+_PROGRAMMATIC_FIELDS: frozenset[str] = frozenset({
+    "evaluated_at", "evaluated_by", "prompt_version",
+    "duration_ms", "evaluation_history",
+})
+
+
+@functools.cache
+def _model_output_schema_json() -> str:
+    """Return the JSON Schema string passed to ``claude --json-schema``.
+
+    Drops fields the curation layer injects post-call from ``required``
+    so the CLI's structured-output validator only enforces what the
+    model can actually produce. Compact form to keep the embedded
+    string under any CLI argv length limits.
+    """
+    schema = json.loads(json.dumps(_SCHEMA))
+    schema["required"] = [
+        r for r in schema.get("required", [])
+        if r not in _PROGRAMMATIC_FIELDS
+    ]
+    return json.dumps(schema, separators=(",", ":"))
+
+
 _VALID_ACTIVITY_TYPES: frozenset[str] = _enum_from_schema(
     _SCHEMA,
     "properties", "evidence_of_work", "items",
@@ -654,29 +682,9 @@ def _invoke_claude_cli(
     )
 
 
-def evaluate_org_via_claude_code(
-    url: str,
-    model: str = "sonnet",
-    categories: list[str] | None = None,
-    timeout: int = _CLAUDE_CLI_TIMEOUT,
-    effort: str | None = None,
-) -> dict[str, Any]:
-    """Evaluate an organization by shelling out to the ``claude`` CLI.
-
-    Uses the caller's Claude Code session, so billing hits the Max
-    subscription rather than the per-token Anthropic API. Requires the
-    shell to be logged into Claude Code (``claude auth``). Not usable
-    from Lambda — Claude Code has no service-account mode.
-
-    Returns a schema-validated evaluation dict, just like ``evaluate_org``.
-    ``evaluated_by`` is stamped with a ``claude-code:`` prefix so the two
-    paths are distinguishable in stored records.
-    """
-    _validate_url(url)
-    user_content, pages_fetched = _build_user_message(
-        url, categories=categories,
-    )
-
+def _build_claude_cli_cmd(
+    user_content: str, model: str, effort: str | None,
+) -> list[str]:
     cmd = [
         "claude",
         "-p", user_content,
@@ -685,17 +693,27 @@ def evaluate_org_via_claude_code(
         "--output-format", "json",
         "--permission-mode", "dontAsk",
         "--model", model,
+        "--json-schema", _model_output_schema_json(),
     ]
     if effort:
         cmd.extend(["--effort", effort])
-    text, duration_ms, resolved_model = _invoke_claude_cli(
-        cmd,
-        timeout=timeout,
-        url=url,
-        pages_fetched=pages_fetched,
-        model_fallback=model,
-    )
+    return cmd
 
+
+def _parse_and_stamp_response(
+    text: str,
+    *,
+    url: str,
+    duration_ms: int | None,
+    resolved_model: str,
+    effort: str | None,
+) -> dict[str, Any]:
+    """Extract JSON, clean, stamp programmatic fields, and validate.
+
+    Raises ``ValueError`` from ``extract_json`` or
+    ``_validate_against_schema`` — both are model-output issues that the
+    retry path can recover from by feeding the error back to the model.
+    """
     data = extract_json(text)
     _clean_response(data)
     data["evaluated_at"] = (
@@ -715,6 +733,81 @@ def evaluate_org_via_claude_code(
 
     _validate_against_schema(data, source="Claude Code output")
     return data
+
+
+def evaluate_org_via_claude_code(
+    url: str,
+    model: str = "sonnet",
+    categories: list[str] | None = None,
+    timeout: int = _CLAUDE_CLI_TIMEOUT,
+    effort: str | None = None,
+) -> dict[str, Any]:
+    """Evaluate an organization by shelling out to the ``claude`` CLI.
+
+    Uses the caller's Claude Code session, so billing hits the Max
+    subscription rather than the per-token Anthropic API. Requires the
+    shell to be logged into Claude Code (``claude auth``). Not usable
+    from Lambda — Claude Code has no service-account mode.
+
+    Returns a schema-validated evaluation dict, just like ``evaluate_org``.
+    ``evaluated_by`` is stamped with a ``claude-code:`` prefix so the two
+    paths are distinguishable in stored records.
+
+    On a model-output failure (unparseable JSON or schema validation
+    error) the call is retried once with the validator's error fed back
+    to the model. CLI / network / auth failures (``RuntimeError``,
+    ``TimeoutExpired``) propagate without retry — those are not things
+    the model can fix.
+    """
+    _validate_url(url)
+    user_content, pages_fetched = _build_user_message(
+        url, categories=categories,
+    )
+
+    cmd = _build_claude_cli_cmd(user_content, model, effort)
+    text, duration_ms, resolved_model = _invoke_claude_cli(
+        cmd,
+        timeout=timeout,
+        url=url,
+        pages_fetched=pages_fetched,
+        model_fallback=model,
+    )
+    try:
+        return _parse_and_stamp_response(
+            text,
+            url=url,
+            duration_ms=duration_ms,
+            resolved_model=resolved_model,
+            effort=effort,
+        )
+    except ValueError as exc:
+        logger.warning(
+            "Claude Code output invalid for %s; retrying once: %s",
+            url, exc,
+        )
+        retry_error = str(exc)
+
+    retry_content = (
+        f"{user_content}\n\n## Retry\n\nYour previous response could "
+        f"not be used. Validation error: {retry_error}\n\nReturn ONLY "
+        "a single JSON object that conforms to the schema. No prose, "
+        "no markdown fences, no commentary."
+    )
+    retry_cmd = _build_claude_cli_cmd(retry_content, model, effort)
+    text, duration_ms, resolved_model = _invoke_claude_cli(
+        retry_cmd,
+        timeout=timeout,
+        url=url,
+        pages_fetched=pages_fetched,
+        model_fallback=model,
+    )
+    return _parse_and_stamp_response(
+        text,
+        url=url,
+        duration_ms=duration_ms,
+        resolved_model=resolved_model,
+        effort=effort,
+    )
 
 
 def _save_evaluation(data: dict[str, Any], output_path: str) -> None:

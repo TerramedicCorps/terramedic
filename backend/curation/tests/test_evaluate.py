@@ -541,6 +541,52 @@ class TestEvaluateOrgViaClaudeCode:
         model_idx = captured_cmd.index("--model")
         assert captured_cmd[model_idx + 1] == "sonnet"
 
+    def test_passes_json_schema_to_cli(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """``--json-schema`` constrains the CLI to emit schema-conforming
+        JSON, which fixes the two failure modes seen in production runs:
+        omitted required fields (e.g. ``evidence_score``) and bare prose
+        with no JSON object. The schema must drop fields the curation
+        layer injects post-call (``evaluated_at``, ``evaluated_by``,
+        ``prompt_version``, ``duration_ms``, ``evaluation_history``) so
+        the CLI doesn't reject valid model output for missing them."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        eval_payload = _make_valid_evaluation()
+        del eval_payload["evaluated_at"]
+        del eval_payload["evaluated_by"]
+
+        captured_cmd: list[str] = []
+
+        def fake_run(cmd: list[str], **_kw: Any) -> MagicMock:
+            captured_cmd.extend(cmd)
+            return self._fake_subprocess_result(eval_payload)
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        evaluate_org_via_claude_code(
+            "https://example.org",
+            model="sonnet",
+        )
+
+        assert "--json-schema" in captured_cmd
+        schema_idx = captured_cmd.index("--json-schema")
+        schema_json = captured_cmd[schema_idx + 1]
+        schema = json.loads(schema_json)
+        # Programmatic fields must not be required of the model.
+        programmatic = {
+            "evaluated_at", "evaluated_by", "prompt_version",
+            "duration_ms", "evaluation_history",
+        }
+        assert programmatic.isdisjoint(schema.get("required", []))
+        # But the core required fields must still be enforced — these
+        # are exactly the ones we saw the model omit in prod runs.
+        assert "evidence_score" in schema["required"]
+        assert "curator_notes" in schema["required"]
+        assert "org_metadata" in schema["required"]
+
     def test_extracts_evaluation_from_envelope(
         self, monkeypatch: pytest.MonkeyPatch,
     ) -> None:
@@ -1022,6 +1068,141 @@ class TestEvaluateOrgViaClaudeCode:
                 "https://example.org",
                 model="sonnet",
             )
+
+    def test_retries_once_on_schema_validation_failure(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A first response missing required fields gets one retry with
+        the validation error fed back to the model. Bounded retry —
+        defense in depth on top of ``--json-schema``."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+
+        invalid = {"org_metadata": {"name": "Test"}}  # missing required
+        valid = _make_valid_evaluation()
+        del valid["evaluated_at"]
+        del valid["evaluated_by"]
+
+        responses = iter([
+            self._fake_subprocess_result(invalid),
+            self._fake_subprocess_result(valid),
+        ])
+        captured_prompts: list[str] = []
+
+        def fake_run(cmd: list[str], **_kw: Any) -> MagicMock:
+            # Capture the user prompt (-p arg) to verify retry includes
+            # the validation error as feedback.
+            p_idx = cmd.index("-p")
+            captured_prompts.append(cmd[p_idx + 1])
+            return next(responses)
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        result = evaluate_org_via_claude_code(
+            "https://example.org",
+            model="sonnet",
+        )
+
+        assert result["org_metadata"]["name"] == "Test Org"
+        assert len(captured_prompts) == 2
+        # Retry prompt must include the validator's error message so the
+        # model knows what to fix.
+        assert "previous" in captured_prompts[1].lower()
+
+    def test_retries_once_on_extract_json_failure(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A first response with no parseable JSON gets one retry."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+
+        valid = _make_valid_evaluation()
+        del valid["evaluated_at"]
+        del valid["evaluated_by"]
+
+        # First call returns prose with no JSON object — extract_json
+        # raises ValueError. Second call returns a clean envelope.
+        bad_envelope = {
+            "is_error": False,
+            "result": "Sorry, I cannot evaluate this organization.",
+            "usage": {},
+        }
+        bad_result = MagicMock()
+        bad_result.returncode = 0
+        bad_result.stdout = json.dumps(bad_envelope)
+        bad_result.stderr = ""
+
+        responses = iter([bad_result, self._fake_subprocess_result(valid)])
+
+        monkeypatch.setattr(
+            "subprocess.run",
+            lambda *_a, **_kw: next(responses),
+        )
+
+        result = evaluate_org_via_claude_code(
+            "https://example.org",
+            model="sonnet",
+        )
+
+        assert result["org_metadata"]["name"] == "Test Org"
+
+    def test_raises_after_retry_also_fails(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """If the retry response is also invalid, raise — we don't loop
+        forever burning Max minutes on a stuck model."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        invalid = {"org_metadata": {"name": "Test"}}
+
+        call_count = [0]
+
+        def fake_run(*_a: Any, **_kw: Any) -> MagicMock:
+            call_count[0] += 1
+            return self._fake_subprocess_result(invalid)
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        with pytest.raises(ValueError, match="Claude Code output"):
+            evaluate_org_via_claude_code(
+                "https://example.org",
+                model="sonnet",
+            )
+
+        # Exactly one retry — original call + 1 retry = 2 invocations.
+        assert call_count[0] == 2
+
+    def test_no_retry_on_cli_runtime_error(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Retry is for model output issues only. A CLI/auth/network
+        failure is not something the model can fix, so don't waste a
+        round-trip retrying it."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        eval_payload = _make_valid_evaluation()
+
+        call_count = [0]
+
+        def fake_run(*_a: Any, **_kw: Any) -> MagicMock:
+            call_count[0] += 1
+            return self._fake_subprocess_result(
+                eval_payload, is_error=True,
+            )
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        with pytest.raises(RuntimeError, match="CLI reported error"):
+            evaluate_org_via_claude_code(
+                "https://example.org",
+                model="sonnet",
+            )
+
+        assert call_count[0] == 1
 
 
 class TestValidateAgainstSchema:
