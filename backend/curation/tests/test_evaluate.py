@@ -1282,18 +1282,24 @@ class TestExtractSubpageUrls:
         assert urls.count("https://example.org/volunteer") == 1
 
 
+def _stub_safe_get(monkeypatch: pytest.MonkeyPatch, html: str) -> None:
+    """Stub _safe_get so curation fetches return *html* without
+    touching DNS or HTTP. Used by tests that don't care about the
+    redirect/private-IP guard."""
+    def fake_safe_get(_url: str) -> MagicMock:
+        resp = MagicMock()
+        resp.text = html
+        resp.is_redirect = False
+        return resp
+
+    monkeypatch.setattr(
+        "curation.evaluate._safe_get", fake_safe_get,
+    )
+
+
 class TestBuildUserMessage:
     def test_includes_todays_date(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        import httpx as _httpx
-
-        html = "<html><body>Hello world</body></html>"
-
-        def fake_get(*args: Any, **kwargs: Any) -> MagicMock:
-            resp = MagicMock()
-            resp.text = html
-            return resp
-
-        monkeypatch.setattr(_httpx, "get", fake_get)
+        _stub_safe_get(monkeypatch, "<html><body>Hello world</body></html>")
         message, _ = _build_user_message("https://example.org")
         today = datetime.datetime.now(tz=datetime.UTC).date().isoformat()  # type: ignore[attr-defined]
         assert f"Today's date is {today}" in message
@@ -1301,16 +1307,7 @@ class TestBuildUserMessage:
     def test_includes_categories_hint(
         self, monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        import httpx as _httpx
-
-        html = "<html><body>Hello</body></html>"
-
-        def fake_get(*args: Any, **kwargs: Any) -> MagicMock:
-            resp = MagicMock()
-            resp.text = html
-            return resp
-
-        monkeypatch.setattr(_httpx, "get", fake_get)
+        _stub_safe_get(monkeypatch, "<html><body>Hello</body></html>")
         message, _ = _build_user_message(
             "https://example.org",
             categories=["donate", "resource"],
@@ -1322,18 +1319,92 @@ class TestBuildUserMessage:
     def test_no_categories_no_hint(
         self, monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        import httpx as _httpx
-
-        html = "<html><body>Hello</body></html>"
-
-        def fake_get(*args: Any, **kwargs: Any) -> MagicMock:
-            resp = MagicMock()
-            resp.text = html
-            return resp
-
-        monkeypatch.setattr(_httpx, "get", fake_get)
+        _stub_safe_get(monkeypatch, "<html><body>Hello</body></html>")
         message, _ = _build_user_message("https://example.org")
         assert "nominated" not in message.lower()
+
+
+class TestUrlResolvesToPublic:
+    """The fetch helper must reject hostnames that resolve to private
+    or internal IP ranges (e.g. AWS IMDS via DNS rebinding) before
+    httpx ever connects."""
+
+    def test_public_dns_result_passes(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from curation.evaluate import _url_resolves_to_public
+
+        monkeypatch.setattr(
+            "curation.evaluate.socket.getaddrinfo",
+            lambda *_a, **_k: [(0, 0, 0, "", ("93.184.216.34", 0))],
+        )
+        assert _url_resolves_to_public("https://example.org") is True
+
+    @pytest.mark.parametrize(
+        "ip",
+        [
+            "127.0.0.1",
+            "169.254.169.254",  # AWS IMDS
+            "10.0.0.1",
+            "192.168.1.1",
+            "0.0.0.0",
+            "224.0.0.1",  # multicast
+            "::1",
+        ],
+    )
+    def test_private_dns_result_rejected(
+        self, monkeypatch: pytest.MonkeyPatch, ip: str,
+    ) -> None:
+        from curation.evaluate import _url_resolves_to_public
+
+        monkeypatch.setattr(
+            "curation.evaluate.socket.getaddrinfo",
+            lambda *_a, **_k: [(0, 0, 0, "", (ip, 0))],
+        )
+        assert _url_resolves_to_public("https://attacker.example") is False
+
+    def test_localhost_alias_rejected(self) -> None:
+        from curation.evaluate import _url_resolves_to_public
+
+        # No DNS lookup needed — string match is enough.
+        assert _url_resolves_to_public("http://localhost/") is False
+
+    def test_non_http_scheme_rejected(self) -> None:
+        from curation.evaluate import _url_resolves_to_public
+
+        assert _url_resolves_to_public("file:///etc/passwd") is False
+        assert _url_resolves_to_public("ftp://example.org/") is False
+
+
+class TestSafeGetRedirectGuard:
+    """Manual redirect handling must re-validate every hop's host so a
+    public URL that 302s to AWS IMDS doesn't leak."""
+
+    def test_redirect_to_private_host_rejected(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from curation.evaluate import _safe_get
+
+        # First hop resolves to a public IP and 302s to a private one.
+        first_resp = MagicMock()
+        first_resp.is_redirect = True
+        first_resp.headers = {"location": "http://internal.example/"}
+
+        ips = iter([
+            [(0, 0, 0, "", ("93.184.216.34", 0))],  # first hop OK
+            [(0, 0, 0, "", ("169.254.169.254", 0))],  # redirect → IMDS
+        ])
+        monkeypatch.setattr(
+            "curation.evaluate.socket.getaddrinfo",
+            lambda *_a, **_k: next(ips),
+        )
+
+        import httpx as _httpx
+        monkeypatch.setattr(_httpx, "get", lambda *_a, **_kw: first_resp)
+
+        # _safe_get must refuse to follow the redirect to the private
+        # IP and return None.
+        assert _safe_get("https://example.org") is None
 
 
 class TestSaveEvaluation:

@@ -13,15 +13,17 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import ipaddress
 import json
 import logging
 import os
+import socket
 import subprocess
 import sys
 import time
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 from curation.json_utils import extract_json
 from curation.prompt import PROMPT_VERSION, SYSTEM_PROMPT
@@ -33,6 +35,48 @@ _MAX_PAGE_CHARS = 12000
 _FETCH_TIMEOUT = 15
 _CLAUDE_CLI_TIMEOUT = 600
 _CLAUDE_SETTINGS_PATH = Path.home() / ".claude" / "settings.json"
+_MAX_REDIRECT_HOPS = 5
+
+
+def _url_resolves_to_public(url: str) -> bool:
+    """Return True iff *url* parses to an http(s) scheme and every IP
+    its hostname resolves to is a public address.
+
+    Catches DNS-rebinding-style attacks where a public hostname maps to
+    a private IP at fetch time (AWS IMDS, internal services). Used as a
+    pre-flight check before httpx fetches and re-checked on every
+    redirect hop.
+    """
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return False
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        return False
+    host = parsed.hostname
+    if host == "localhost":
+        return False
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except OSError:
+        return False
+    for info in infos:
+        sockaddr = info[4]
+        ip_str = sockaddr[0]
+        try:
+            addr = ipaddress.ip_address(ip_str)
+        except ValueError:
+            return False
+        if (
+            addr.is_private
+            or addr.is_loopback
+            or addr.is_link_local
+            or addr.is_unspecified
+            or addr.is_multicast
+            or addr.is_reserved
+        ):
+            return False
+    return True
 
 
 def _resolve_effort(explicit: str | None) -> str:
@@ -213,19 +257,48 @@ def _extract_subpage_urls(html: str, base_url: str) -> list[str]:
     return results[:_MAX_SUBPAGES]
 
 
-def _fetch_page_text(url: str) -> str | None:
-    """Fetch a URL and return its text content, or None on failure."""
+def _safe_get(url: str) -> Any:
+    """``httpx.get`` with manual redirect handling that re-validates
+    every hop's hostname against private/internal IP ranges.
+
+    Returns the final ``httpx.Response`` on success, or ``None`` if any
+    hop resolves to a non-public address or the request errors. Raises
+    no exceptions to the caller — the curation pipeline treats fetch
+    failures as missing pages and proceeds.
+    """
     import httpx
 
-    try:
-        resp = httpx.get(
-            url,
-            timeout=_FETCH_TIMEOUT,
-            follow_redirects=True,
-            headers={"User-Agent": "Terramedic-Curator/1.0"},
-        )
-        resp.raise_for_status()
-    except (httpx.HTTPError, httpx.InvalidURL):
+    current = url
+    for _hop in range(_MAX_REDIRECT_HOPS + 1):
+        if not _url_resolves_to_public(current):
+            return None
+        try:
+            resp = httpx.get(
+                current,
+                timeout=_FETCH_TIMEOUT,
+                follow_redirects=False,
+                headers={"User-Agent": "Terramedic-Curator/1.0"},
+            )
+        except (httpx.HTTPError, httpx.InvalidURL):
+            return None
+        if resp.is_redirect:
+            location = resp.headers.get("location")
+            if not location:
+                return None
+            current = urljoin(current, location)
+            continue
+        try:
+            resp.raise_for_status()
+        except httpx.HTTPError:
+            return None
+        return resp
+    return None
+
+
+def _fetch_page_text(url: str) -> str | None:
+    """Fetch a URL and return its text content, or None on failure."""
+    resp = _safe_get(url)
+    if resp is None:
         return None
     return _html_to_text(resp.text)
 
@@ -299,22 +372,12 @@ def _build_user_message(
     distinct from any ``server_tool_use`` web fetches Claude might do
     on top; callers log both.
     """
-    import httpx
-
     print(f"Fetching {url} ...", file=sys.stderr)
     pages_fetched = 1
     homepage_html = None
-    try:
-        resp = httpx.get(
-            url,
-            timeout=_FETCH_TIMEOUT,
-            follow_redirects=True,
-            headers={"User-Agent": "Terramedic-Curator/1.0"},
-        )
-        resp.raise_for_status()
+    resp = _safe_get(url)
+    if resp is not None:
         homepage_html = resp.text
-    except (httpx.HTTPError, httpx.InvalidURL):
-        pass
 
     page_text = _html_to_text(homepage_html) if homepage_html else None
 
