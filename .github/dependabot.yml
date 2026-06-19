@@ -23,15 +23,23 @@ updates:
       include: ["*"]
     # Group development dependencies together
     groups:
+      # Keep the vitest family in lockstep across ALL update types, including
+      # major. vitest, @vitest/browser and @vitest/coverage-v8 must share the
+      # exact same version (the latter two are exact-pinned to vitest in
+      # package.json), so a single-package bump breaks the test runner. Listing
+      # it first and omitting update-types ensures every vitest bump lands as one
+      # coordinated PR instead of separate, coupling-breaking ones.
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
       dev-dependencies:
         patterns:
           - "@storybook/*"
           - "@testing-library/*"
-          - "@vitest/*"
           - "@playwright/*"
           - "eslint*"
           - "prettier*"
-          - "vitest"
           - "playwright"
         update-types:
           - "minor"
