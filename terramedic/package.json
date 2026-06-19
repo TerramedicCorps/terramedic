@@ -17,7 +17,7 @@
     "test:e2e": "playwright test"
   },
   "devDependencies": {
-    "@eslint/compat": "^2.0.0",
+    "@eslint/compat": "^2.1.0",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.60.0",
     "@sveltejs/adapter-auto": "^7.0.1",
