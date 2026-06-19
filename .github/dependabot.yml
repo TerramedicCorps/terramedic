@@ -33,12 +33,23 @@ updates:
         patterns:
           - "vitest"
           - "@vitest/*"
+      # Keep the eslint core in lockstep across ALL update types. eslint and
+      # @eslint/js move together on majors (e.g. 9 -> 10); because the
+      # dev-dependencies group only covered minor/patch — and its "eslint*"
+      # pattern never matched the scoped "@eslint/js" — these arrived as separate
+      # PRs that had to be merged as a coordinated pair (#173 + #174). Grouping
+      # eslint with @eslint/* lands them as one PR.
+      eslint:
+        patterns:
+          - "eslint"
+          - "@eslint/*"
       dev-dependencies:
         patterns:
           - "@storybook/*"
           - "@testing-library/*"
           - "@playwright/*"
-          - "eslint*"
+          - "eslint-config-*"
+          - "eslint-plugin-*"
           - "prettier*"
           - "playwright"
         update-types:
