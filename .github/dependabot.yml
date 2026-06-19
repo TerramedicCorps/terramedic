@@ -23,22 +23,13 @@ updates:
       include: ["*"]
     # Group development dependencies together
     groups:
-      # Keep the vitest family in lockstep across ALL update types, including
-      # major. vitest, @vitest/browser and @vitest/coverage-v8 must share the
-      # exact same version (the latter two are exact-pinned to vitest in
-      # package.json), so a single-package bump breaks the test runner. Listing
-      # it first and omitting update-types ensures every vitest bump lands as one
-      # coordinated PR instead of separate, coupling-breaking ones.
+      # @vitest/* are exact-pinned to vitest, so they must bump together (all
+      # update types).
       vitest:
         patterns:
           - "vitest"
           - "@vitest/*"
-      # Keep the eslint core in lockstep across ALL update types. eslint and
-      # @eslint/js move together on majors (e.g. 9 -> 10); because the
-      # dev-dependencies group only covered minor/patch — and its "eslint*"
-      # pattern never matched the scoped "@eslint/js" — these arrived as separate
-      # PRs that had to be merged as a coordinated pair (#173 + #174). Grouping
-      # eslint with @eslint/* lands them as one PR.
+      # eslint and @eslint/* are version-coupled on majors, so they bump together.
       eslint:
         patterns:
           - "eslint"
