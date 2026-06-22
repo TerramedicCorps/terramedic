@@ -871,10 +871,10 @@
     esbuild "^0.25.4"
     set-cookie-parser "^2.6.0"
 
-"@sveltejs/kit@^2.65.0":
-  version "2.65.0"
-  resolved "https://registry.yarnpkg.com/@sveltejs/kit/-/kit-2.65.0.tgz#5f76424b86ea605ccbf68e07369e4a1ee70ea015"
-  integrity sha512-nUWJ4dSKNo8mIOh+HTL+XyRj8FX9Dyb1ayBxj4q9+WrTJfn4jfTt21p3WUFTnnmdnt9xAXpBKLQ+H9y41x0X7Q==
+"@sveltejs/kit@^2.65.2":
+  version "2.65.2"
+  resolved "https://registry.yarnpkg.com/@sveltejs/kit/-/kit-2.65.2.tgz#676536b9ab6e75a47661eb562c887ebe2197efdb"
+  integrity sha512-ZIkyEmxT1gcq50Opn1ZIIx6vc/yt2zNN0rF5hS6op95gqHtNw8QMKDhjJI+RyjMcbvECRw+FzEeAoBe/MOz9AA==
   dependencies:
     "@standard-schema/spec" "^1.0.0"
     "@sveltejs/acorn-typescript" "^1.0.9"
