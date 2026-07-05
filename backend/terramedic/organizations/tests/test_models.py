@@ -295,6 +295,27 @@ class TestOrganizationCategoryThrough:
         through.action_url = "https://example.org/"
         through.full_clean()  # must not raise
 
+    def test_clean_reports_missing_organization_as_validation_error(
+        self,
+    ) -> None:
+        """A donate row with no organization selected (partial admin
+        form) must fail with a normal ValidationError from field
+        validation — not crash clean() with RelatedObjectDoesNotExist
+        when it dereferences ``self.organization`` for the homepage.
+        ``full_clean`` runs ``clean()`` even when ``clean_fields``
+        already recorded the missing FK."""
+        from django.core.exceptions import ValidationError
+
+        from terramedic.organizations.models import OrganizationCategory
+
+        donate = Category.objects.get(slug="donate")
+        through = OrganizationCategory(category=donate)
+        through.set_current_language("en")
+        through.action_url = "https://example.org/donate/give-now"
+
+        with pytest.raises(ValidationError):
+            through.full_clean()
+
     def test_clean_accepts_blank_donate_action_url(self) -> None:
         """A blank action_url falls back to the org homepage at the
         serializer layer, which is also compliant — so the model

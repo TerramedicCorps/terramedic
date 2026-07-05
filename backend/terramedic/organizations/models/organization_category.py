@@ -76,7 +76,11 @@ class OrganizationCategory(TranslatableModel):
         matching-locale clients.
         """
         super().clean()
-        if self.category_id != "donate":
+        if self.category_id != "donate" or self.organization_id is None:
+            # Without an organization there is no homepage to check;
+            # clean_fields() reports the missing FK as a normal
+            # ValidationError instead of this method crashing with
+            # RelatedObjectDoesNotExist on the dereference below.
             return
         homepage = self.organization.website_url or ""
         for language_code in self.get_available_languages(
