@@ -67,20 +67,33 @@ class OrganizationCategory(TranslatableModel):
         tolerated (``https://x.org`` and ``https://x.org/`` are the same
         page); a genuine donation deep link has a path beyond the domain
         and is still rejected.
+
+        ``action_url`` is translated per language and the API serves
+        every translation, so *all* translations are checked — saved
+        rows and unsaved in-memory edits alike — not just the active
+        language. Otherwise a deep link in a non-active translation
+        would pass validation while still being served to
+        matching-locale clients.
         """
         super().clean()
         if self.category_id != "donate":
             return
-        action_url = self.action_url or ""
-        if not action_url:
-            return
         homepage = self.organization.website_url or ""
-        if action_url.rstrip("/") != homepage.rstrip("/"):
-            raise ValidationError({
-                "action_url": (
-                    "donate CTA must link to the org's homepage, not "
-                    "a deep donation page (Terramedic 501(c)(3) "
-                    f"compliance). Expected {homepage!r}, got "
-                    f"{action_url!r}."
-                ),
-            })
+        for language_code in self.get_available_languages(
+            include_unsaved=True,
+        ):
+            action_url = (
+                self.get_translation(language_code).action_url or ""
+            )
+            if not action_url:
+                continue
+            if action_url.rstrip("/") != homepage.rstrip("/"):
+                raise ValidationError({
+                    "action_url": (
+                        "donate CTA must link to the org's homepage, "
+                        "not a deep donation page (Terramedic "
+                        f"501(c)(3) compliance). Expected {homepage!r}"
+                        f", got {action_url!r} for language "
+                        f"{language_code!r}."
+                    ),
+                })

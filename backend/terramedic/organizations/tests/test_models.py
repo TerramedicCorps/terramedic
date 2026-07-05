@@ -216,6 +216,39 @@ class TestOrganizationCategoryThrough:
         with pytest.raises(ValidationError, match="donate"):
             through.full_clean()
 
+    def test_clean_rejects_deep_donate_link_in_non_active_language(
+        self,
+    ) -> None:
+        """``action_url`` is translated per language (en/fr/es) and
+        ``full_clean()`` must reject a deep donate link in *any* of
+        them, not just the active one. A hand-edit that lands in a
+        non-active translation (e.g. a plain ``.save()`` that bypassed
+        ``clean()``) is served to matching-locale clients, so the next
+        ``full_clean()`` has to catch it even when a different
+        language is active."""
+        from django.core.exceptions import ValidationError
+
+        from terramedic.organizations.models import OrganizationCategory
+
+        org = Organization(
+            name="Test Org",
+            website_url="https://example.org",
+        )
+        org.set_current_language("en")
+        org.description = "..."
+        org.save()
+        donate = Category.objects.get(slug="donate")
+        through = OrganizationCategory.objects.create(
+            organization=org, category=donate,
+        )
+        through.set_current_language("es")
+        through.action_url = "https://example.org/donate/give-now"
+        through.save()  # plain save bypasses clean()
+
+        through.set_current_language("en")
+        with pytest.raises(ValidationError, match="donate"):
+            through.full_clean()
+
     def test_clean_accepts_donate_action_url_matching_homepage(
         self,
     ) -> None:
