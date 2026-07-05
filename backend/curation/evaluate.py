@@ -376,12 +376,15 @@ def _normalize_donate_action_url(data: dict[str, Any]) -> None:
 
     Applied unconditionally to whatever the model returned. Callers must
     stamp the authoritative homepage into ``org_metadata.website_url``
-    before this runs (the pipeline does so from the nominated URL). If no
-    homepage is available to substitute, the model's donate ``action_url``
-    is *removed* rather than left in place — an unverified third-party
-    donation link must never survive. Dropping the required field makes
-    schema validation reject the whole response, so the pipeline fails
-    loudly (and retries) instead of publishing a deep donation link.
+    before this runs — both production callers go through
+    ``_parse_and_stamp_response``-style stamping of the validated
+    nominated URL, so the homepage is always present on live paths. The
+    missing-homepage branch below is a defensive guard for a future
+    caller that skips the stamp: the model's donate ``action_url`` is
+    *removed* rather than left in place — an unverified third-party
+    donation link must never survive — and dropping the required field
+    makes post-clean schema validation reject the whole response rather
+    than publish a deep donation link.
     """
     entries = data.get("category_copy")
     if not isinstance(entries, list):
