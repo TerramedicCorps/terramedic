@@ -374,13 +374,16 @@ def _normalize_donate_action_url(data: dict[str, Any]) -> None:
     runs — Terramedic is making the org *findable*, not running a
     fundraiser for them.
 
-    Applied unconditionally to whatever the model returned. If the
-    homepage is missing from ``org_metadata.website_url`` the entry is
-    left untouched and a warning is logged — schema validation will
-    then reject the response, which is the correct outcome (better to
-    fail loudly than to publish an unverified deep link).
+    Applied unconditionally to whatever the model returned. Callers must
+    stamp the authoritative homepage into ``org_metadata.website_url``
+    before this runs (the pipeline does so from the nominated URL). If no
+    homepage is available to substitute, the model's donate ``action_url``
+    is *removed* rather than left in place — an unverified third-party
+    donation link must never survive. Dropping the required field makes
+    schema validation reject the whole response, so the pipeline fails
+    loudly (and retries) instead of publishing a deep donation link.
     """
-    entries = data.get("category_copy") or []
+    entries = data.get("category_copy")
     if not isinstance(entries, list):
         return
     homepage = (
@@ -394,8 +397,9 @@ def _normalize_donate_action_url(data: dict[str, Any]) -> None:
         if not homepage:
             logger.warning(
                 "Cannot rewrite donate action_url to homepage: "
-                "org_metadata.website_url is missing",
+                "org_metadata.website_url is missing; dropping action_url",
             )
+            entry.pop("action_url", None)
             continue
         entry["action_url"] = homepage
 
@@ -602,6 +606,11 @@ def evaluate_org(
 
     result = extract_json(text_block.text)  # type: ignore[union-attr]
 
+    # Establish the authoritative homepage before cleaning (see the note
+    # in ``_parse_and_stamp_response``): the nominated URL is preserved
+    # verbatim, and the donate-CTA normalization in ``_clean_response``
+    # keys off it.
+    result.setdefault("org_metadata", {})["website_url"] = url
     _clean_response(result)
 
     result["evaluated_at"] = (
@@ -610,11 +619,6 @@ def evaluate_org(
     result["evaluated_by"] = model
     result["prompt_version"] = PROMPT_VERSION
     result["duration_ms"] = int(elapsed * 1000)
-    # Preserve the nominated URL verbatim. The model tends to
-    # normalize ``website_url`` to the domain root, which would
-    # collapse subpages (local chapter pages, specific program
-    # landing pages) into a single Organization record.
-    result.setdefault("org_metadata", {})["website_url"] = url
 
     _validate_against_schema(result, source="Output")
 
@@ -731,6 +735,15 @@ def _parse_and_stamp_response(
     retry path can recover from by feeding the error back to the model.
     """
     data = extract_json(text)
+    # Establish the authoritative homepage *before* cleaning. The model
+    # tends to normalize ``website_url`` to the domain root, which would
+    # collapse subpages (local chapter pages, specific program landing
+    # pages) into a single Organization record — so the nominated URL is
+    # preserved verbatim. ``_clean_response`` normalizes the donate CTA
+    # against this value, so it must be set first (otherwise the donate
+    # rewrite keys off the model's discarded value; see
+    # ``_normalize_donate_action_url``).
+    data.setdefault("org_metadata", {})["website_url"] = url
     _clean_response(data)
     data["evaluated_at"] = (
         datetime.datetime.now(datetime.UTC).isoformat()
@@ -741,11 +754,6 @@ def _parse_and_stamp_response(
     data["prompt_version"] = PROMPT_VERSION
     if duration_ms is not None:
         data["duration_ms"] = duration_ms
-    # Preserve the nominated URL verbatim. The model tends to
-    # normalize ``website_url`` to the domain root, which would
-    # collapse subpages (local chapter pages, specific program
-    # landing pages) into a single Organization record.
-    data.setdefault("org_metadata", {})["website_url"] = url
 
     _validate_against_schema(data, source="Claude Code output")
     return data

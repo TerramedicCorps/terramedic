@@ -1209,6 +1209,88 @@ class TestEvaluateOrgViaClaudeCode:
 
         assert call_count[0] == 1
 
+    def _stamped_payload(self, **org_overrides: Any) -> dict[str, Any]:
+        payload = _make_valid_evaluation()
+        for field in (
+            "evaluated_at", "evaluated_by", "prompt_version",
+            "duration_ms", "evaluation_history",
+        ):
+            payload.pop(field, None)
+        payload["org_metadata"].update(org_overrides)
+        return payload
+
+    def test_donate_action_url_uses_nominated_url_when_model_omits_website(
+        self,
+    ) -> None:
+        """501(c)(3): even when the model omits ``website_url`` *and*
+        returns a third-party donation deep link, the persisted donate
+        ``action_url`` must be the nominated homepage — never the deep
+        link. The pipeline stamps the authoritative homepage before
+        normalization, so the compliance rewrite always has a value."""
+        from curation.evaluate import _parse_and_stamp_response
+
+        payload = self._stamped_payload()
+        payload["org_metadata"].pop("website_url", None)  # model omitted it
+        payload["category_copy"] = [
+            {
+                "slug": "donate",
+                "description": "Fund us",
+                "action_text": "Donate",
+                "action_url": "https://elsewhere.example/give-now",
+            },
+        ]
+
+        result = _parse_and_stamp_response(
+            json.dumps(payload),
+            url="https://nominee.org/local-chapter",
+            duration_ms=100,
+            resolved_model="sonnet",
+            effort=None,
+        )
+
+        donate = next(
+            c for c in result["category_copy"] if c["slug"] == "donate"
+        )
+        assert donate["action_url"] == "https://nominee.org/local-chapter"
+        assert (
+            result["org_metadata"]["website_url"]
+            == "https://nominee.org/local-chapter"
+        )
+
+    def test_donate_action_url_matches_persisted_website_not_model_value(
+        self,
+    ) -> None:
+        """When the model normalizes ``website_url`` to the domain root
+        but a subpage was nominated, the donate CTA must equal the
+        *persisted* ``website_url`` (the nominated URL), not the model's
+        value — otherwise a later admin ``full_clean()`` rejects the row
+        because ``action_url != organization.website_url``."""
+        from curation.evaluate import _parse_and_stamp_response
+
+        payload = self._stamped_payload(website_url="https://nominee.org")
+        payload["category_copy"] = [
+            {
+                "slug": "donate",
+                "description": "Fund us",
+                "action_text": "Donate",
+                "action_url": "https://nominee.org",
+            },
+        ]
+
+        result = _parse_and_stamp_response(
+            json.dumps(payload),
+            url="https://nominee.org/local-chapter",
+            duration_ms=100,
+            resolved_model="sonnet",
+            effort=None,
+        )
+
+        donate = next(
+            c for c in result["category_copy"] if c["slug"] == "donate"
+        )
+        assert donate["action_url"] == result["org_metadata"]["website_url"]
+        assert donate["action_url"] == "https://nominee.org/local-chapter"
+
 
 class TestValidateAgainstSchema:
     """Error-path coverage for the shared schema validation helper."""
@@ -1480,14 +1562,15 @@ class TestCleanResponse:
             == "https://example.org/jobs"
         )
 
-    def test_donate_override_skipped_when_homepage_missing(
+    def test_donate_action_url_removed_when_homepage_missing(
         self, caplog: pytest.LogCaptureFixture,
     ) -> None:
-        """If org_metadata.website_url is missing, leave the donate
-        entry untouched and log a warning. The downstream schema
-        validation will fail (action_url is required + format=uri),
-        which is the correct outcome — better to fail loudly than to
-        publish an unverified deep link or silently invent one."""
+        """If no homepage is available to substitute, the model's donate
+        ``action_url`` must be dropped, not preserved: an unverified
+        third-party donation link must never survive. Removing the
+        required ``action_url`` makes schema validation reject the whole
+        response, so the pipeline fails loudly (and retries) rather than
+        publishing a deep donation link."""
         data: dict[str, Any] = {
             "org_metadata": {"name": "Test"},
             "category_copy": [
@@ -1502,11 +1585,8 @@ class TestCleanResponse:
         }
         with caplog.at_level(logging.WARNING):
             _clean_response(data)
-        # Original action_url preserved (no homepage to substitute).
-        assert (
-            data["category_copy"][0]["action_url"]
-            == "https://elsewhere.example/give"
-        )
+        # Deep link dropped — not left in place for publication.
+        assert "action_url" not in data["category_copy"][0]
         assert any(
             "donate" in rec.message.lower()
             and "homepage" in rec.message.lower()
