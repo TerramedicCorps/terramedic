@@ -1293,8 +1293,8 @@ class TestEvaluateOrgViaClaudeCode:
             json.dumps(payload),
             url="https://nominee.org/local-chapter",
             duration_ms=100,
-            resolved_model="sonnet",
-            effort=None,
+            evaluated_by="claude-code:sonnet",
+            source="Claude Code output",
         )
 
         donate = next(
@@ -1330,8 +1330,8 @@ class TestEvaluateOrgViaClaudeCode:
             json.dumps(payload),
             url="https://nominee.org/local-chapter",
             duration_ms=100,
-            resolved_model="sonnet",
-            effort=None,
+            evaluated_by="claude-code:sonnet",
+            source="Claude Code output",
         )
 
         donate = next(

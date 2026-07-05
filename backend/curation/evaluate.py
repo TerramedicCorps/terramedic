@@ -604,25 +604,13 @@ def evaluate_org(
         msg = "No text block found in model response"
         raise ValueError(msg)
 
-    result = extract_json(text_block.text)  # type: ignore[union-attr]
-
-    # Establish the authoritative homepage before cleaning (see the note
-    # in ``_parse_and_stamp_response``): the nominated URL is preserved
-    # verbatim, and the donate-CTA normalization in ``_clean_response``
-    # keys off it.
-    result.setdefault("org_metadata", {})["website_url"] = url
-    _clean_response(result)
-
-    result["evaluated_at"] = (
-        datetime.datetime.now(datetime.UTC).isoformat()
+    return _parse_and_stamp_response(
+        text_block.text,  # type: ignore[union-attr]
+        url=url,
+        duration_ms=int(elapsed * 1000),
+        evaluated_by=model,
+        source="Output",
     )
-    result["evaluated_by"] = model
-    result["prompt_version"] = PROMPT_VERSION
-    result["duration_ms"] = int(elapsed * 1000)
-
-    _validate_against_schema(result, source="Output")
-
-    return result
 
 
 def _invoke_claude_cli(
@@ -725,10 +713,14 @@ def _parse_and_stamp_response(
     *,
     url: str,
     duration_ms: int | None,
-    resolved_model: str,
-    effort: str | None,
+    evaluated_by: str,
+    source: str,
 ) -> dict[str, Any]:
     """Extract JSON, clean, stamp programmatic fields, and validate.
+
+    Single home for the compliance-critical ordering shared by both
+    evaluation paths (API and Claude Code CLI): the authoritative
+    homepage must be stamped before ``_clean_response`` runs.
 
     Raises ``ValueError`` from ``extract_json`` or
     ``_validate_against_schema`` — both are model-output issues that the
@@ -748,14 +740,12 @@ def _parse_and_stamp_response(
     data["evaluated_at"] = (
         datetime.datetime.now(datetime.UTC).isoformat()
     )
-    data["evaluated_by"] = (
-        f"claude-code:{resolved_model}@{_resolve_effort(effort)}"
-    )
+    data["evaluated_by"] = evaluated_by
     data["prompt_version"] = PROMPT_VERSION
     if duration_ms is not None:
         data["duration_ms"] = duration_ms
 
-    _validate_against_schema(data, source="Claude Code output")
+    _validate_against_schema(data, source=source)
     return data
 
 
@@ -787,8 +777,10 @@ def _invoke_and_parse(
         text,
         url=url,
         duration_ms=duration_ms,
-        resolved_model=resolved_model,
-        effort=effort,
+        evaluated_by=(
+            f"claude-code:{resolved_model}@{_resolve_effort(effort)}"
+        ),
+        source="Claude Code output",
     )
 
 
