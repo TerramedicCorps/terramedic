@@ -759,6 +759,39 @@ def _parse_and_stamp_response(
     return data
 
 
+def _invoke_and_parse(
+    cmd: list[str],
+    *,
+    timeout: int,
+    url: str,
+    pages_fetched: int,
+    model: str,
+    effort: str | None,
+) -> dict[str, Any]:
+    """Run the CLI and parse/stamp/validate its output in one step.
+
+    Raises ``ValueError`` on any model-output failure — empty ``result``
+    in the CLI envelope, unparseable JSON, or schema validation — so the
+    caller's bounded retry covers every model-fixable failure mode.
+    CLI / network / auth failures (``RuntimeError``, ``TimeoutExpired``)
+    propagate as-is.
+    """
+    text, duration_ms, resolved_model = _invoke_claude_cli(
+        cmd,
+        timeout=timeout,
+        url=url,
+        pages_fetched=pages_fetched,
+        model_fallback=model,
+    )
+    return _parse_and_stamp_response(
+        text,
+        url=url,
+        duration_ms=duration_ms,
+        resolved_model=resolved_model,
+        effort=effort,
+    )
+
+
 def evaluate_org_via_claude_code(
     url: str,
     model: str = "sonnet",
@@ -777,8 +810,8 @@ def evaluate_org_via_claude_code(
     ``evaluated_by`` is stamped with a ``claude-code:`` prefix so the two
     paths are distinguishable in stored records.
 
-    On a model-output failure (unparseable JSON or schema validation
-    error) the call is retried once with the validator's error fed back
+    On a model-output failure (empty result, unparseable JSON, or schema
+    validation error) the call is retried once with the error fed back
     to the model. CLI / network / auth failures (``RuntimeError``,
     ``TimeoutExpired``) propagate without retry — those are not things
     the model can fix.
@@ -789,19 +822,13 @@ def evaluate_org_via_claude_code(
     )
 
     cmd = _build_claude_cli_cmd(user_content, model, effort)
-    text, duration_ms, resolved_model = _invoke_claude_cli(
-        cmd,
-        timeout=timeout,
-        url=url,
-        pages_fetched=pages_fetched,
-        model_fallback=model,
-    )
     try:
-        return _parse_and_stamp_response(
-            text,
+        return _invoke_and_parse(
+            cmd,
+            timeout=timeout,
             url=url,
-            duration_ms=duration_ms,
-            resolved_model=resolved_model,
+            pages_fetched=pages_fetched,
+            model=model,
             effort=effort,
         )
     except ValueError as exc:
@@ -818,18 +845,12 @@ def evaluate_org_via_claude_code(
         "no markdown fences, no commentary."
     )
     retry_cmd = _build_claude_cli_cmd(retry_content, model, effort)
-    text, duration_ms, resolved_model = _invoke_claude_cli(
+    return _invoke_and_parse(
         retry_cmd,
         timeout=timeout,
         url=url,
         pages_fetched=pages_fetched,
-        model_fallback=model,
-    )
-    return _parse_and_stamp_response(
-        text,
-        url=url,
-        duration_ms=duration_ms,
-        resolved_model=resolved_model,
+        model=model,
         effort=effort,
     )
 

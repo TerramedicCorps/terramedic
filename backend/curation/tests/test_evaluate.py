@@ -1115,6 +1115,47 @@ class TestEvaluateOrgViaClaudeCode:
         # model knows what to fix.
         assert "previous" in captured_prompts[1].lower()
 
+    def test_retries_once_on_empty_cli_result(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A well-formed CLI envelope whose ``result`` is empty is a
+        model-output failure (the model produced nothing), so it gets
+        the same single retry as unparseable JSON — not an immediate
+        failure. This is the "bare prose / no output" production
+        failure mode the retry was built for."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+
+        valid = _make_valid_evaluation()
+        del valid["evaluated_at"]
+        del valid["evaluated_by"]
+
+        empty_envelope = {"is_error": False, "result": "", "usage": {}}
+        empty_result = MagicMock()
+        empty_result.returncode = 0
+        empty_result.stdout = json.dumps(empty_envelope)
+        empty_result.stderr = ""
+
+        responses = iter([
+            empty_result, self._fake_subprocess_result(valid),
+        ])
+        call_count = [0]
+
+        def fake_run(*_a: Any, **_kw: Any) -> MagicMock:
+            call_count[0] += 1
+            return next(responses)
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        result = evaluate_org_via_claude_code(
+            "https://example.org",
+            model="sonnet",
+        )
+
+        assert result["org_metadata"]["name"] == "Test Org"
+        assert call_count[0] == 2
+
     def test_retries_once_on_extract_json_failure(
         self, monkeypatch: pytest.MonkeyPatch,
     ) -> None:
