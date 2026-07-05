@@ -328,7 +328,10 @@ class TestPerCategoryDescriptionAndActionText:
         volunteer_entry.set_current_language("en")
         volunteer_entry.description = "Join a local lobby day."
         volunteer_entry.action_text = "Find a chapter"
+        volunteer_entry.action_url = "https://citizensclimatelobby.org/chapters/"
         volunteer_entry.save()
+        # donate_entry.action_url intentionally left blank to exercise the
+        # website_url fallback.
 
         return org
 
@@ -341,6 +344,40 @@ class TestPerCategoryDescriptionAndActionText:
         assert len(data) == 1
         assert data[0]["description"] == "Fund climate lobbying at scale."
         assert data[0]["action_text"] == "Donate to CCL"
+
+    def test_category_filter_returns_per_category_action_url(
+        self, client: Client, two_pathway_org: Organization,
+    ) -> None:
+        """A populated action_url on the matching row surfaces in the
+        response so the CTA card deep-links to the pathway-specific
+        page."""
+        response = client.get("/api/organizations/?category=volunteer")
+        data = response.json()
+        assert (
+            data[0]["action_url"]
+            == "https://citizensclimatelobby.org/chapters/"
+        )
+
+    def test_action_url_falls_back_to_website_url_when_blank(
+        self, client: Client, two_pathway_org: Organization,
+    ) -> None:
+        """A blank per-category action_url falls back to the org's
+        website_url so the card always has somewhere to send the reader.
+        For the donate slug this fallback is also the 501(c)(3)-compliant
+        homepage."""
+        response = client.get("/api/organizations/?category=donate")
+        data = response.json()
+        assert data[0]["action_url"] == "https://citizensclimatelobby.org/"
+        assert data[0]["action_url"] == two_pathway_org.website_url
+
+    def test_unfiltered_list_returns_empty_action_url(
+        self, client: Client, two_pathway_org: Organization,
+    ) -> None:
+        """Without a category filter there is no pathway context, so
+        action_url stays empty even when a through row has one."""
+        response = client.get("/api/organizations/")
+        data = response.json()
+        assert data[0]["action_url"] == ""
 
     def test_same_org_returns_different_copy_under_different_pathways(
         self, client: Client, two_pathway_org: Organization,
