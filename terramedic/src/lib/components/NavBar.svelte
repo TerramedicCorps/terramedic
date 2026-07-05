@@ -10,13 +10,6 @@
     DropdownItem
   } from 'flowbite-svelte';
   import { ChevronDownOutline } from 'flowbite-svelte-icons';
-
-  let activeUrl = '';
-
-  // Get current path
-  if (typeof window !== 'undefined') {
-    activeUrl = window.location.pathname;
-  }
 </script>
 
 <div class="sticky top-0 z-50">
@@ -39,10 +32,7 @@
           ulClass="flex flex-col p-4 mt-4 bg-[#0f1829]/95 border border-white/10 rounded-lg lg:flex-row lg:space-x-4 lg:mt-0 lg:text-sm lg:font-medium lg:border-0 lg:bg-transparent"
           class="nav-menu-wrapper mt-0"
         >
-          <NavLi
-            class="nav-item about-dropdown-trigger"
-            active={activeUrl === '/about' || activeUrl === '/warming-stripes'}
-          >
+          <NavLi class="nav-item about-dropdown-trigger">
             <button class="nav-link about-link" aria-haspopup="true" aria-label="About menu">
               About
               <ChevronDownOutline class="ms-1 h-3 w-3" />
@@ -54,22 +44,22 @@
               >Warming Stripes</DropdownItem
             >
           </Dropdown>
-          <NavLi href="/volunteer" active={activeUrl === '/volunteer'} class="nav-item">
+          <NavLi href="/volunteer" class="nav-item">
             <span class="nav-link">Volunteer</span>
           </NavLi>
-          <NavLi href="/donate" active={activeUrl === '/donate'} class="nav-item">
+          <NavLi href="/donate" class="nav-item">
             <span class="nav-link">Donate</span>
           </NavLi>
-          <NavLi href="/other-actions" active={activeUrl === '/other-actions'} class="nav-item">
+          <NavLi href="/other-actions" class="nav-item">
             <span class="nav-link">Other Actions</span>
           </NavLi>
-          <NavLi href="/careers" active={activeUrl === '/careers'} class="nav-item">
+          <NavLi href="/careers" class="nav-item">
             <span class="nav-link">Careers</span>
           </NavLi>
-          <NavLi href="/resources" active={activeUrl === '/resources'} class="nav-item">
+          <NavLi href="/resources" class="nav-item">
             <span class="nav-link">Resources</span>
           </NavLi>
-          <NavLi href="/contact-us" active={activeUrl === '/contact-us'} class="nav-item">
+          <NavLi href="/contact-us" class="nav-item">
             <span class="nav-link">Contact</span>
           </NavLi>
         </NavUl>

@@ -8,11 +8,13 @@
   export let websiteUrl = '';
   export let imageUrl = '';
   export let actionText = DEFAULT_ORG_ACTION_TEXT;
+  /** @type {string[]} */
   export let tags = [];
   export let tagColor = 'blue'; // 'blue', 'green', 'gold', 'purple', 'orange', 'red', 'gray'
   export let buttonColor = 'blue'; // 'blue', 'green', 'gold', 'purple'
 
   // Map tag colors to dark theme values
+  /** @type {Record<string, { bg: string; text: string; hover: string }>} */
   const tagColorMap = {
     blue: { bg: 'bg-blue-900/60', text: 'text-blue-400', hover: 'hover:bg-blue-900/70' },
     green: { bg: 'bg-green-900/60', text: 'text-green-400', hover: 'hover:bg-green-900/70' },
@@ -27,6 +29,7 @@
   $: tagStyle = tagColorMap[tagColor] || tagColorMap.blue;
 
   // Map button colors to brand styles
+  /** @type {Record<string, { bg: string; hover: string; text: string }>} */
   const buttonStyleMap = {
     blue: {
       bg: 'background-color: var(--btn-blue)',
@@ -85,13 +88,12 @@
 
   <div class="mt-auto">
     <Button
-      color="none"
       href={websiteUrl}
       target="_blank"
       rel="noopener noreferrer"
       style={btnStyle.bg}
       class="w-full {btnStyle.text} {btnStyle.hover} shadow-sm transition-all duration-200 hover:shadow"
-      on:click={handleButtonClick}
+      onclick={handleButtonClick}
     >
       {actionText}
     </Button>

@@ -18,6 +18,7 @@
     { size: 3, top: '12%', left: '85%', delay: '0.8s' }
   ];
 
+  /** @type {HTMLVideoElement | undefined} */
   let videoEl;
 
   // Pause video for users who prefer reduced motion

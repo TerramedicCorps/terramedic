@@ -153,7 +153,7 @@
           name="notes"
           bind:value={notes}
           placeholder="Anything we should know about this organization?"
-          rows="3"
+          rows={3}
           class="bg-deep-navy w-full text-white"
         />
       </div>
@@ -163,7 +163,6 @@
         <Button
           type="submit"
           disabled={isSubmitting}
-          color="none"
           class="bg-btn-green hover:bg-btn-green-hover w-full text-white transition-colors"
         >
           {isSubmitting ? 'Submitting...' : 'Submit Nomination'}

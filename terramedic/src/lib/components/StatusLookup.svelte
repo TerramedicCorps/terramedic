@@ -74,7 +74,6 @@
       <Button
         type="submit"
         disabled={isLoading}
-        color="none"
         class="bg-btn-blue hover:bg-btn-blue-hover w-full text-white transition-colors"
       >
         {isLoading ? 'Checking...' : 'Check Status'}
