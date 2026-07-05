@@ -156,5 +156,5 @@
   <Footer {form} />
 
   <!-- Image modal component -->
-  <ImageModal show={showModal} imageSrc={modalImage} imageAlt={modalAlt} on:close={closeModal} />
+  <ImageModal show={showModal} imageSrc={modalImage} imageAlt={modalAlt} onclose={closeModal} />
 </div>
