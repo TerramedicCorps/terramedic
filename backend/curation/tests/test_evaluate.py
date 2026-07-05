@@ -1362,6 +1362,44 @@ class TestValidateAgainstSchema:
         with pytest.raises(RuntimeError, match="jsonschema"):
             _validate_against_schema({}, source="Output")
 
+    def test_rejects_non_uri_action_url_at_runtime(self) -> None:
+        """``format: uri`` must be enforced by the runtime validator,
+        not just declared in the schema text. Models love to return
+        labels or partial paths in URL fields; without an installed
+        ``uri`` format checker, jsonschema silently skips the check and
+        a bare label like "Volunteer" survives to the database."""
+        from curation.evaluate import _validate_against_schema
+
+        payload = _make_valid_evaluation()
+        payload["category_copy"] = [
+            {
+                "slug": "volunteer",
+                "description": "Sign up",
+                "action_text": "Volunteer",
+                "action_url": "Volunteer",  # label, not a URL
+            },
+        ]
+
+        with pytest.raises(ValueError, match="schema validation"):
+            _validate_against_schema(payload, source="Output")
+
+    def test_accepts_well_formed_action_url_at_runtime(self) -> None:
+        """Counterpart guard: enabling the format checker must not
+        false-reject a fully-qualified URL."""
+        from curation.evaluate import _validate_against_schema
+
+        payload = _make_valid_evaluation()
+        payload["category_copy"] = [
+            {
+                "slug": "volunteer",
+                "description": "Sign up",
+                "action_text": "Volunteer",
+                "action_url": "https://example.org/volunteer/signup",
+            },
+        ]
+
+        _validate_against_schema(payload, source="Output")  # must not raise
+
 
 class TestCategoryCopyInSchema:
     """``category_copy`` is a top-level required field. Per-category
