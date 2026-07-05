@@ -7,6 +7,7 @@ export interface Organization {
   name: string;
   description: string;
   action_text: string;
+  action_url: string;
   website_url: string;
   image_url: string;
   categories: string[];

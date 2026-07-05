@@ -6,6 +6,7 @@
   export let name = '';
   export let description = '';
   export let websiteUrl = '';
+  export let actionUrl = '';
   export let imageUrl = '';
   export let actionText = DEFAULT_ORG_ACTION_TEXT;
   export let tags = [];
@@ -52,11 +53,18 @@
 
   $: btnStyle = buttonStyleMap[buttonColor] || buttonStyleMap.blue;
 
+  // The CTA deep-links to the per-pathway action_url (volunteer
+  // signup, jobs board); unfiltered/nearby contexts return "" so the
+  // card falls back to the org's website. Svelte prop defaults only
+  // fire on undefined, not "", so the fallback has to be explicit.
+  $: linkUrl = actionUrl || websiteUrl;
+
   // Handle button click for analytics tracking
   function handleButtonClick() {
     trackEvent('organization_click', {
       organization_name: name,
       organization_url: websiteUrl,
+      action_url: linkUrl,
       button_text: actionText,
       categories: tags.join(',')
     });
@@ -86,12 +94,12 @@
   <div class="mt-auto">
     <Button
       color="none"
-      href={websiteUrl}
+      href={linkUrl}
       target="_blank"
       rel="noopener noreferrer"
       style={btnStyle.bg}
       class="w-full {btnStyle.text} {btnStyle.hover} shadow-sm transition-all duration-200 hover:shadow"
-      on:click={handleButtonClick}
+      onclick={handleButtonClick}
     >
       {actionText}
     </Button>
