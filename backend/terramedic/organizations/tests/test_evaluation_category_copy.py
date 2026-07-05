@@ -108,6 +108,34 @@ class TestCreateOrgPopulatesCategoryCopy:
             "https://citizensclimatelobby.org/chapters/"
         )
 
+    def test_deep_donate_link_in_evaluation_is_rejected_on_write(
+        self,
+    ) -> None:
+        """501(c)(3) defense in depth on the curation write path. If
+        evaluation_data carries a deep donate link (a legacy record or
+        hand-edited JSON that bypassed the curation-layer normalization),
+        the write must not silently persist it. ``_write_category_copy``
+        runs ``full_clean``, so ``OrganizationCategory.clean()`` rejects
+        a donate ``action_url`` that isn't the org homepage, and the
+        atomic transaction rolls the whole create back."""
+        from django.core.exceptions import ValidationError
+
+        ev = OrganizationEvaluation.objects.create(
+            evaluation_data=_eval_data(
+                category_copy=[
+                    {
+                        "slug": "donate",
+                        "description": "Fund us.",
+                        "action_text": "Donate",
+                        "action_url": "https://example.com/donate/give-now",
+                    },
+                ],
+            ),
+        )
+
+        with pytest.raises(ValidationError, match="donate"):
+            create_org_from_evaluation(ev)
+
     def test_slug_without_category_copy_entry_starts_blank(self) -> None:
         """Reviewers can add an extra category via reviewer_categories
         that the AI didn't propose. That row should exist but have
