@@ -1084,7 +1084,11 @@ class TestEvaluateOrgViaClaudeCode:
 
         self._patch_build_user_message(monkeypatch)
 
-        invalid = {"org_metadata": {"name": "Test"}}  # missing required
+        # Valid except for exactly one missing required field, so the
+        # validator's message deterministically names it and the retry
+        # prompt can be checked for that exact feedback.
+        invalid = _make_valid_evaluation()
+        del invalid["evidence_score"]
         valid = _make_valid_evaluation()
         del valid["evaluated_at"]
         del valid["evaluated_by"]
@@ -1111,9 +1115,13 @@ class TestEvaluateOrgViaClaudeCode:
 
         assert result["org_metadata"]["name"] == "Test Org"
         assert len(captured_prompts) == 2
-        # Retry prompt must include the validator's error message so the
-        # model knows what to fix.
+        # Retry prompt must include the validator's actual error — a
+        # generic "try again" that drops the feedback would not tell
+        # the model what to fix. The stubbed user message contains no
+        # schema text, so the field name can only arrive via the
+        # fed-back error.
         assert "previous" in captured_prompts[1].lower()
+        assert "evidence_score" in captured_prompts[1]
 
     def test_retries_once_on_empty_cli_result(
         self, monkeypatch: pytest.MonkeyPatch,
