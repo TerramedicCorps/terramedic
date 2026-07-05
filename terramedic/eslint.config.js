@@ -56,6 +56,16 @@ export default ts.config(
             'SvelteElement[kind="component"] > SvelteStartTag > SvelteDirective[kind="EventHandler"]',
           message:
             'on: event directives on components never fire in Svelte 5. Pass a callback prop instead (e.g. onclick={handler}, onclose={handler}).'
+        },
+        {
+          // <svelte:component>/<svelte:self> parse as kind="special",
+          // not "component", but still render component instances with
+          // the same silent-no-op behavior. <svelte:element> and
+          // <svelte:window> render real DOM targets and stay allowed.
+          selector:
+            'SvelteElement[kind="special"][name.name=/^svelte:(component|self)$/] > SvelteStartTag > SvelteDirective[kind="EventHandler"]',
+          message:
+            'on: event directives on <svelte:component>/<svelte:self> never fire in Svelte 5. Pass a callback prop instead (e.g. onclick={handler}).'
         }
       ]
     }
