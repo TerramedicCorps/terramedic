@@ -1,6 +1,6 @@
 import { svelteTesting } from '@testing-library/svelte/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 // More info at: https://storybook.js.org/docs/writing-tests/test-addon
 export default defineConfig({
@@ -10,9 +10,6 @@ export default defineConfig({
     }
   },
   plugins: [sveltekit()],
-  css: {
-    postcss: true // Ensure PostCSS is used
-  },
   test: {
     server: {
       deps: {

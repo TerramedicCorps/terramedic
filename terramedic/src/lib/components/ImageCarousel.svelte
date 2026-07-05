@@ -1,11 +1,13 @@
 <script>
   import { onDestroy } from 'svelte'; // Import onDestroy
 
+  /** @type {string[]} */
   export let images = []; // Array of image paths
   export let interval = 5000; // Time in milliseconds for auto-rotation
 
   let currentIndex = 0;
-  let timer;
+  /** @type {ReturnType<typeof setInterval> | null} */
+  let timer = null;
 
   // Start the auto-rotation
   function startRotation() {

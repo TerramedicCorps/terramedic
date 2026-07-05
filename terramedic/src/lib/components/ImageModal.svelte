@@ -12,6 +12,7 @@
   }
 
   // Close modal on Escape key
+  /** @param {KeyboardEvent} event */
   function handleKeydown(event) {
     if (event.key === 'Escape' && show) {
       closeModal();

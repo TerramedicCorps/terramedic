@@ -7,12 +7,17 @@
   export let text = 'Click me';
   export let href = '/';
   export let type = 'primary'; // primary, secondary, or purple
+  /** @type {'xs' | 'sm' | 'md' | 'lg' | 'xl'} */
   export let size = 'lg';
   export let id = ''; // Optional ID for more specific tracking
   export let fullWidth = false; // Whether the button should stretch full width
+  /** @type {import('$lib/icons').IconName | ''} */
   export let icon = ''; // Optional icon: 'clock', 'banknotes', or 'bolt'
 
-  $: iconPath = icon && Object.hasOwn(ICON_PATHS, icon) ? ICON_PATHS[icon] : '';
+  $: iconPath =
+    icon && Object.hasOwn(ICON_PATHS, icon)
+      ? ICON_PATHS[/** @type {import('$lib/icons').IconName} */ (icon)]
+      : '';
 
   // Create style objects for different button types
   const primaryStyle = `
@@ -55,10 +60,9 @@
 <Button
   {size}
   {href}
-  color="none"
   {style}
   class={`justify-center text-white ${customClass} ${fullWidth ? 'w-full' : ''}`}
-  on:click={handleClick}
+  onclick={handleClick}
 >
   {#if iconPath}
     <svg

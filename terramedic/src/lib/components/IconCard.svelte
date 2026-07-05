@@ -1,7 +1,7 @@
 <script>
   export let title = '';
   export let description = '';
-  /** @type {import('svelte').ComponentType | undefined} */
+  /** @type {import('svelte').Component<any> | undefined} */
   export let icon = undefined;
   /** @type {'blue' | 'gold' | 'green' | 'purple'} */
   export let color = 'purple';
