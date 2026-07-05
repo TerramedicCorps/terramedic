@@ -1,7 +1,8 @@
 import { describe, test, expect, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, fireEvent } from '@testing-library/svelte';
 import ActionButton from './ActionButton.svelte';
+import { trackEvent } from '$lib/utils/analytics';
 import { ICON_PATHS } from '$lib/icons';
 
 // Mock analytics
@@ -83,5 +84,23 @@ describe('ActionButton', () => {
     });
     const svg = container.querySelector('svg.action-icon');
     expect(svg).not.toBeInTheDocument();
+  });
+
+  test('click fires button_click tracking with the documented payload', async () => {
+    // flowbite-svelte 1.x spreads restProps onto the rendered anchor —
+    // handlers must be passed as onclick props; the legacy on:click
+    // directive silently never fires. This test pins the tracking
+    // actually reaching analytics, including the derived button_id.
+    render(ActionButton, {
+      props: { text: 'Volunteer Now', href: '/volunteer', type: 'primary' }
+    });
+    const link = screen.getByRole('link', { name: /Volunteer Now/i });
+    await fireEvent.click(link);
+    expect(trackEvent).toHaveBeenCalledWith('button_click', {
+      button_text: 'Volunteer Now',
+      button_type: 'primary',
+      button_id: 'volunteer_now',
+      destination: '/volunteer'
+    });
   });
 });

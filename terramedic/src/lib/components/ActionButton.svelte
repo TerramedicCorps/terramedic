@@ -58,7 +58,7 @@
   color="none"
   {style}
   class={`justify-center text-white ${customClass} ${fullWidth ? 'w-full' : ''}`}
-  on:click={handleClick}
+  onclick={handleClick}
 >
   {#if iconPath}
     <svg
