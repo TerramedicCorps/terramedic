@@ -238,6 +238,30 @@ class TestOrganizationCategoryThrough:
         through.action_url = "https://example.org"
         through.full_clean()  # must not raise
 
+    def test_clean_accepts_donate_action_url_with_trailing_slash_variance(
+        self,
+    ) -> None:
+        """``https://example.org`` and ``https://example.org/`` are the
+        same homepage. A curator typing the trailing-slash form in the
+        admin must not be false-rejected; a genuine donation deep link
+        (which has a path beyond the domain) is still caught."""
+        from terramedic.organizations.models import OrganizationCategory
+
+        org = Organization(
+            name="Test Org",
+            website_url="https://example.org",
+        )
+        org.set_current_language("en")
+        org.description = "..."
+        org.save()
+        donate = Category.objects.get(slug="donate")
+        through = OrganizationCategory.objects.create(
+            organization=org, category=donate,
+        )
+        through.set_current_language("en")
+        through.action_url = "https://example.org/"
+        through.full_clean()  # must not raise
+
     def test_clean_accepts_blank_donate_action_url(self) -> None:
         """A blank action_url falls back to the org homepage at the
         serializer layer, which is also compliant — so the model

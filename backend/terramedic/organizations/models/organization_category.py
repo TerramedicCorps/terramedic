@@ -56,14 +56,17 @@ class OrganizationCategory(TranslatableModel):
         because doing so functionally constitutes fundraising for them.
         ``_normalize_donate_action_url`` in the curation layer rewrites
         donate ``action_url`` to the homepage on every evaluation, but
-        this ``clean()`` is the second line of defense — admin saves
-        and any future programmatic writer call ``full_clean`` and get
-        the same enforcement, so a hand-edited deep donation link
-        can't slip past the legal check.
+        this ``clean()`` is the second line of defense — admin saves and
+        the curation write path (``_write_category_copy`` calls
+        ``full_clean``) get the same enforcement, so a hand-edited deep
+        donation link can't slip past the legal check.
 
         Blank ``action_url`` is permitted; the API serializer falls
         back to ``organization.website_url`` (the homepage), which is
-        also compliant.
+        also compliant. A trailing-slash difference from the homepage is
+        tolerated (``https://x.org`` and ``https://x.org/`` are the same
+        page); a genuine donation deep link has a path beyond the domain
+        and is still rejected.
         """
         super().clean()
         if self.category_id != "donate":
@@ -72,7 +75,7 @@ class OrganizationCategory(TranslatableModel):
         if not action_url:
             return
         homepage = self.organization.website_url or ""
-        if action_url != homepage:
+        if action_url.rstrip("/") != homepage.rstrip("/"):
             raise ValidationError({
                 "action_url": (
                     "donate CTA must link to the org's homepage, not "
