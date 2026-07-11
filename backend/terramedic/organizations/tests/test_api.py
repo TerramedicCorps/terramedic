@@ -402,6 +402,26 @@ class TestPerCategoryDescriptionAndActionText:
 
         assert response.json()[0]["action_url"] == two_pathway_org.website_url
 
+    def test_same_site_deep_donate_link_falls_back_to_homepage(
+        self, client: Client, two_pathway_org: Organization,
+    ) -> None:
+        """501(c)(3) read defense: a same-site *deep* donate link that
+        bypassed model ``clean`` (raw ``save``, migration, future write
+        path) must not surface as the donate CTA. ``is_same_site_web_url``
+        ignores the path, so only slug-aware override catches this — the
+        homepage is the sole compliant donate target."""
+        entry = OrganizationCategory.objects.get(
+            organization=two_pathway_org,
+            category_id="donate",
+        )
+        entry.set_current_language("en")
+        entry.action_url = "https://citizensclimatelobby.org/donate/give-now"
+        entry.save()  # Deliberately bypass full_clean to test read defense.
+
+        response = client.get("/api/organizations/?category=donate")
+
+        assert response.json()[0]["action_url"] == two_pathway_org.website_url
+
     def test_unfiltered_list_returns_empty_action_url(
         self, client: Client, two_pathway_org: Organization,
     ) -> None:

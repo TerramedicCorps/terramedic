@@ -74,9 +74,11 @@ def _serialize_org(
 
     ``action_url`` falls back to ``org.website_url`` when the
     per-category row is blank, so cards always have somewhere to send
-    the reader. The donate slug is enforced (in curation + admin
-    ``clean()``) to be the homepage already, so the fallback
-    coincides with the compliance rule.
+    the reader. For the donate slug the homepage is forced
+    unconditionally here (not merely as a blank fallback): the
+    501(c)(3) rule is also enforced upstream in curation + admin
+    ``clean()``, but this read-path override closes the gap for any
+    stored value that bypassed those write paths.
 
     When *category_slug* is ``None`` (multi-category contexts like the
     nearby map or unfiltered listing), the general
@@ -109,7 +111,11 @@ def _serialize_org(
                 if is_same_site_web_url(candidate_url, org.website_url)
                 else ""
             )
-            if not action_url:
+            if not action_url or category_slug == "donate":
+                # 501(c)(3): the donate CTA must always resolve to the
+                # homepage. ``is_same_site_web_url`` ignores the path, so a
+                # same-site deep link that bypassed model ``clean`` would
+                # otherwise pass; force the homepage here regardless.
                 action_url = _safe_web_url(org.website_url)
             sort_order = entry.sort_order
 
