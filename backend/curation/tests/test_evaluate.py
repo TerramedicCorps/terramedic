@@ -1540,6 +1540,36 @@ class TestValidateAgainstSchema:
         with pytest.raises(ValueError, match="schema validation"):
             _validate_against_schema(payload, source="Output")
 
+    @pytest.mark.parametrize(
+        "citation_url",
+        [
+            "http://127.0.0.1/internal-report",  # private IP literal
+            "sources/refs.pdf",  # partial path, not a URL
+            "https://user:pass@example.org/report",  # embedded credentials
+        ],
+    )
+    def test_rejects_unsafe_citation_url_anywhere_in_response(
+        self, citation_url: str,
+    ) -> None:
+        """Intended strictness: the ``uri`` format checker enforces
+        ``is_safe_web_url`` on *every* ``format: uri`` field, not just the
+        rendered ``action_url``. A malformed or non-public citation URL —
+        the kind a model hallucinates for an evidence source — fails the
+        whole-response validation, so an otherwise-good evaluation is
+        retried (and, if it recurs, dropped) rather than persisted with a
+        junk source link. This pins that global policy so a future
+        loosening of the checker's scope is a deliberate, visible change.
+        """
+        from curation.evaluate import _validate_against_schema
+
+        payload = _make_valid_evaluation()
+        payload["org_metadata"]["verification_sources"] = [
+            {"name": "Annual report", "url": citation_url},
+        ]
+
+        with pytest.raises(ValueError, match="schema validation"):
+            _validate_against_schema(payload, source="Output")
+
 
 class TestCategoryCopyInSchema:
     """``category_copy`` is a top-level required field. Per-category
