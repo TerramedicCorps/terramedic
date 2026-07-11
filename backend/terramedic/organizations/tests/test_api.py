@@ -595,6 +595,47 @@ class TestPerCategoryDescriptionAndActionText:
             == "https://example.org/volunteer/signup"
         )
 
+    def test_blank_localized_description_and_action_text_fall_back(
+        self, client: Client,
+    ) -> None:
+        """A present-but-blank localized field falls back to the
+        default-language per-category value — the same non-blank
+        preference that protects action_url applies to description and
+        action_text. Without it, a blank French label would blank the
+        per-category copy back to the general org description / category
+        default rather than the English pathway copy."""
+        org = Organization(
+            name="Bilingual Blank-Field Org",
+            website_url="https://example.org/",
+        )
+        org.set_current_language("en")
+        org.description = "General org blurb."
+        org.save()
+        entry = OrganizationCategory.objects.create(
+            organization=org,
+            category=Category.objects.get(slug="donate"),
+        )
+        entry.set_current_language("en")
+        entry.description = "Fund climate lobbying at scale."
+        entry.action_text = "Give today"
+        entry.set_current_language("fr")
+        entry.description = ""
+        entry.action_text = ""
+        entry.action_url = "https://example.org/fr/donner"
+        entry.save()
+
+        response = client.get(
+            "/api/organizations/?category=donate",
+            headers={"Accept-Language": "fr"},
+        )
+        data = response.json()
+        # English per-category values, not the general org description
+        # ("General org blurb.") or the category default action_text
+        # ("Learn more"), which is what a bare active-language return
+        # would surface.
+        assert data[0]["description"] == "Fund climate lobbying at scale."
+        assert data[0]["action_text"] == "Give today"
+
     def test_per_category_copy_falls_back_to_english_for_missing_lang(
         self, client: Client,
     ) -> None:
