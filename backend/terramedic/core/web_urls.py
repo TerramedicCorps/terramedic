@@ -1,4 +1,12 @@
-"""Pure helpers for validating public, organization-owned web URLs."""
+"""Pure helpers for validating public, organization-owned web URLs.
+
+This is the authoritative implementation. A deliberately-approximate
+client-side mirror lives in
+``terramedic/src/lib/components/OrganizationCard.svelte``
+(``isLocalHostname`` / ``safeActionUrl``) for defense in depth on the
+raw ``website_url`` the API returns unsanitized; keep the local-suffix
+list and reserved-IP ranges in sync when either changes.
+"""
 
 from __future__ import annotations
 

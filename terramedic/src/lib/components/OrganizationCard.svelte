@@ -64,6 +64,13 @@
       .replace(/^www\./, '');
   }
 
+  // Client-side mirror of backend/terramedic/core/web_urls.py
+  // (web_hostname / is_safe_web_url). This is a deliberately-approximate
+  // defense-in-depth layer, NOT the authority — the serializer sanitizes
+  // action_url server-side, but returns website_url raw, so this is the
+  // last check on that field. The reserved-IPv4 ranges below match what
+  // Python's ipaddress.is_global rejects; keep the two in sync when
+  // either changes.
   /** @param {string} hostname */
   function isLocalHostname(hostname) {
     const host = hostname.replace(/^\[|\]$/g, '').toLowerCase();
@@ -79,15 +86,21 @@
     }
     const octets = host.split('.').map(Number);
     if (octets.length !== 4 || octets.some((part) => !Number.isInteger(part))) return false;
-    const [first, second] = octets;
+    const [first, second, third] = octets;
     return (
-      first === 0 ||
-      first === 10 ||
-      first === 127 ||
-      (first === 169 && second === 254) ||
-      (first === 172 && second >= 16 && second <= 31) ||
-      (first === 192 && second === 168) ||
-      first >= 224
+      first === 0 || // 0.0.0.0/8 "this network"
+      first === 10 || // 10.0.0.0/8 private
+      first === 127 || // 127.0.0.0/8 loopback
+      (first === 100 && second >= 64 && second <= 127) || // 100.64.0.0/10 CGNAT
+      (first === 169 && second === 254) || // 169.254.0.0/16 link-local
+      (first === 172 && second >= 16 && second <= 31) || // 172.16.0.0/12 private
+      (first === 192 && second === 0 && third === 0) || // 192.0.0.0/24 IETF protocol
+      (first === 192 && second === 0 && third === 2) || // 192.0.2.0/24 TEST-NET-1
+      (first === 192 && second === 168) || // 192.168.0.0/16 private
+      (first === 198 && (second === 18 || second === 19)) || // 198.18.0.0/15 benchmark
+      (first === 198 && second === 51 && third === 100) || // 198.51.100.0/24 TEST-NET-2
+      (first === 203 && second === 0 && third === 113) || // 203.0.113.0/24 TEST-NET-3
+      first >= 224 // 224.0.0.0/4 multicast + 240.0.0.0/4 reserved
     );
   }
 
