@@ -53,11 +53,20 @@
 
   $: btnStyle = buttonStyleMap[buttonColor] || buttonStyleMap.blue;
 
+  function safeWebUrl(value) {
+    try {
+      const parsed = new URL(value);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? value : '';
+    } catch {
+      return '';
+    }
+  }
+
   // The CTA deep-links to the per-pathway action_url (volunteer
   // signup, jobs board); unfiltered/nearby contexts return "" so the
   // card falls back to the org's website. Svelte prop defaults only
   // fire on undefined, not "", so the fallback has to be explicit.
-  $: linkUrl = actionUrl || websiteUrl;
+  $: linkUrl = safeWebUrl(actionUrl) || safeWebUrl(websiteUrl);
 
   // Handle button click for analytics tracking
   function handleButtonClick() {

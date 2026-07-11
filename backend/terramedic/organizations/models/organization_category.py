@@ -1,9 +1,12 @@
 from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from django.db import models
 from parler.models import TranslatableModel, TranslatedFields
 
 from terramedic.organizations.models.category import Category
 from terramedic.organizations.models.organization import Organization
+
+_http_url_validator = URLValidator(schemes=["http", "https"])
 
 
 class OrganizationCategory(TranslatableModel):
@@ -36,8 +39,8 @@ class OrganizationCategory(TranslatableModel):
         # 501(c)(3) compliance, when ``category.slug == "donate"`` this
         # must equal ``organization.website_url`` (the homepage); the
         # curation layer normalizes that and ``clean()`` enforces it on
-        # admin saves so a future code path can't slip a deep donation
-        # link past the legal check.
+        # admin saves. ``clean()`` also restricts every pathway URL to
+        # HTTP(S), preventing unsafe browser schemes.
         action_url=models.URLField(blank=True, default="", max_length=500),
     )
 
@@ -50,7 +53,12 @@ class OrganizationCategory(TranslatableModel):
         return f"{self.organization.name} / {self.category.slug}"
 
     def clean(self) -> None:
-        """Enforce 501(c)(3) compliance on the donate slug.
+        """Enforce safe CTA URLs and 501(c)(3) donate compliance.
+
+        Every non-blank translated CTA URL must be an absolute HTTP(S)
+        destination. Parler's translated fields are not covered by Django's
+        normal model ``full_clean()``, so this explicit check prevents script
+        and data URLs from reaching the public card ``href``.
 
         Terramedic must not deep-link into another org's donation flow,
         because doing so functionally constitutes fundraising for them.
@@ -76,6 +84,34 @@ class OrganizationCategory(TranslatableModel):
         matching-locale clients.
         """
         super().clean()
+        if self.pk is None:
+            # Querying the reverse translations manager requires a saved
+            # master row. New admin forms still have their current unsaved
+            # translation in Parler's cache, so validate that language.
+            language_codes = [self.get_current_language()]
+        else:
+            language_codes = self.get_available_languages(
+                include_unsaved=True,
+            )
+
+        translated_urls: list[tuple[str, str]] = []
+        for language_code in language_codes:
+            action_url = (
+                self.get_translation(language_code).action_url or ""
+            )
+            if not action_url:
+                continue
+            try:
+                _http_url_validator(action_url)
+            except ValidationError as exc:
+                raise ValidationError({
+                    "action_url": (
+                        "CTA URL must use http or https; got "
+                        f"{action_url!r} for language {language_code!r}."
+                    ),
+                }) from exc
+            translated_urls.append((language_code, action_url))
+
         if self.category_id != "donate" or self.organization_id is None:
             # Without an organization there is no homepage to check;
             # clean_fields() reports the missing FK as a normal
@@ -83,14 +119,7 @@ class OrganizationCategory(TranslatableModel):
             # RelatedObjectDoesNotExist on the dereference below.
             return
         homepage = self.organization.website_url or ""
-        for language_code in self.get_available_languages(
-            include_unsaved=True,
-        ):
-            action_url = (
-                self.get_translation(language_code).action_url or ""
-            )
-            if not action_url:
-                continue
+        for language_code, action_url in translated_urls:
             if action_url.rstrip("/") != homepage.rstrip("/"):
                 raise ValidationError({
                     "action_url": (

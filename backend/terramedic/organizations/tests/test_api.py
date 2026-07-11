@@ -370,6 +370,22 @@ class TestPerCategoryDescriptionAndActionText:
         assert data[0]["action_url"] == "https://citizensclimatelobby.org/"
         assert data[0]["action_url"] == two_pathway_org.website_url
 
+    def test_unsafe_stored_action_url_falls_back_to_website_url(
+        self, client: Client, two_pathway_org: Organization,
+    ) -> None:
+        """The API must not expose a script URL even if save bypassed clean."""
+        entry = OrganizationCategory.objects.get(
+            organization=two_pathway_org,
+            category_id="volunteer",
+        )
+        entry.set_current_language("en")
+        entry.action_url = "javascript:alert(document.domain)"
+        entry.save()  # Deliberately bypass full_clean to test read defense.
+
+        response = client.get("/api/organizations/?category=volunteer")
+
+        assert response.json()[0]["action_url"] == two_pathway_org.website_url
+
     def test_unfiltered_list_returns_empty_action_url(
         self, client: Client, two_pathway_org: Organization,
     ) -> None:

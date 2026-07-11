@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.contrib.gis.db.models.functions import Distance
@@ -19,6 +20,17 @@ from terramedic.organizations.models import (
 from terramedic.organizations.schemas import OrganizationOut
 
 router = Router()
+
+
+def _safe_web_url(value: str) -> str:
+    """Return *value* only when it is an absolute HTTP(S) URL."""
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return ""
+    if parsed.scheme.lower() not in {"http", "https"} or not parsed.netloc:
+        return ""
+    return value
 
 
 def _translated(
@@ -92,9 +104,9 @@ def _serialize_org(
             action_text = _translated(entry, "action_text")
             if not action_text:
                 action_text = entry.category.default_action_text
-            action_url = _translated(entry, "action_url")
+            action_url = _safe_web_url(_translated(entry, "action_url"))
             if not action_url:
-                action_url = org.website_url
+                action_url = _safe_web_url(org.website_url)
             sort_order = entry.sort_order
 
     return {

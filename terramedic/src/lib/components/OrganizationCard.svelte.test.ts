@@ -67,6 +67,16 @@ describe('OrganizationCard', () => {
     expect(link).toHaveAttribute('href', 'https://example.com');
   });
 
+  test.each([
+    'javascript:alert(document.domain)',
+    'data:text/html,owned',
+    'mailto:volunteer@example.com'
+  ])('button rejects unsafe actionUrl scheme %s', (actionUrl) => {
+    render(OrganizationCard, { props: { ...baseProps, actionUrl } });
+    const link = screen.getByRole('link', { name: /Visit Website/i });
+    expect(link).toHaveAttribute('href', 'https://example.com');
+  });
+
   test('click tracking reports the effective link target', async () => {
     // organization_url stays the org's identity (homepage); action_url
     // records where the click actually sent the reader, so deep-link

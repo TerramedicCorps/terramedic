@@ -357,6 +357,39 @@ class TestOrganizationCategoryThrough:
         through.action_url = "https://example.org/volunteer/signup"
         through.full_clean()  # must not raise
 
+    @pytest.mark.parametrize(
+        "action_url",
+        [
+            "javascript:alert(document.domain)",
+            "data:text/html,owned",
+            "mailto:volunteer@example.org",
+        ],
+    )
+    def test_clean_rejects_non_web_action_url_for_any_slug(
+        self, action_url: str,
+    ) -> None:
+        """Translated URL fields are not validated by model full_clean."""
+        from django.core.exceptions import ValidationError
+
+        from terramedic.organizations.models import OrganizationCategory
+
+        org = Organization(
+            name="Test Org",
+            website_url="https://example.org",
+        )
+        org.set_current_language("en")
+        org.description = "..."
+        org.save()
+        through = OrganizationCategory.objects.create(
+            organization=org,
+            category=Category.objects.get(slug="volunteer"),
+        )
+        through.set_current_language("en")
+        through.action_url = action_url
+
+        with pytest.raises(ValidationError, match="http or https"):
+            through.full_clean()
+
 
 @pytest.mark.django_db
 class TestOrganizationCategoriesM2M:

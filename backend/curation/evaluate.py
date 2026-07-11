@@ -30,7 +30,7 @@ from curation.json_utils import extract_json
 from curation.prompt import (
     PROMPT_VERSION,
     SYSTEM_PROMPT,
-    build_model_output_schema_json,
+    build_cli_output_schema_json,
 )
 
 logger = logging.getLogger(__name__)
@@ -503,9 +503,35 @@ def _validate_against_schema(
         )
         raise RuntimeError(msg) from exc
 
+    format_checker = jsonschema.FormatChecker()
+
+    @format_checker.checks("uri")
+    def _is_web_uri(value: object) -> bool:
+        if not isinstance(value, str):
+            return False
+        try:
+            parsed = urlparse(value)
+        except ValueError:
+            return False
+        return (
+            parsed.scheme.lower() in {"http", "https"}
+            and bool(parsed.netloc)
+        )
+
+    @format_checker.checks("date-time")
+    def _is_rfc3339_datetime(value: object) -> bool:
+        if not isinstance(value, str) or "T" not in value.upper():
+            return False
+        normalized = value[:-1] + "+00:00" if value.endswith(("Z", "z")) else value
+        try:
+            parsed = datetime.datetime.fromisoformat(normalized)
+        except ValueError:
+            return False
+        return parsed.tzinfo is not None
+
     validator = jsonschema.Draft202012Validator(
         _load_schema(),
-        format_checker=jsonschema.FormatChecker(),
+        format_checker=format_checker,
     )
     try:
         validator.validate(data)
@@ -622,16 +648,19 @@ def _invoke_claude_cli(
     url: str,
     pages_fetched: int = 0,
     model_fallback: str = "",
-) -> tuple[str, int | None, str]:
-    """Run the ``claude`` CLI and return ``(text, duration_ms, model)``.
+) -> tuple[dict[str, Any] | str, int | None, str]:
+    """Run ``claude`` and return ``(output, duration_ms, model)``.
 
     ``duration_ms`` is wall-clock for the whole call including tool
     turns. ``model`` is the resolved model ID from ``modelUsage``,
     falling back to ``model_fallback`` (the input alias) when an older
     CLI omits the field. Handles exit code, JSON envelope parsing,
     ``is_error`` handling, and per-call usage logging. Raises
-    ``RuntimeError`` on non-zero exit or ``is_error: true``;
-    ``ValueError`` on malformed stdout or missing ``result`` field.
+    With ``--json-schema``, validated data lives in the envelope's
+    ``structured_output`` field. ``result`` remains a compatibility fallback
+    for older CLIs that ignored the schema. Raises ``RuntimeError`` on
+    non-zero exit or operational errors; ``ValueError`` on malformed output
+    or structured-output exhaustion so the caller can retry once.
     """
     proc = subprocess.run(
         cmd,
@@ -653,6 +682,13 @@ def _invoke_claude_cli(
         msg = f"claude CLI stdout was not valid JSON: {exc}"
         raise ValueError(msg) from exc
 
+    if envelope.get("subtype") == "error_max_structured_output_retries":
+        errors = envelope.get("errors")
+        msg = "claude CLI exhausted structured-output retries"
+        if errors:
+            msg += f": {errors}"
+        raise ValueError(msg)
+
     if envelope.get("is_error"):
         msg = (
             f"claude CLI reported error: "
@@ -660,10 +696,20 @@ def _invoke_claude_cli(
         )
         raise RuntimeError(msg)
 
-    text = envelope.get("result", "")
-    if not text:
-        msg = "claude CLI envelope had no 'result' field"
-        raise ValueError(msg)
+    structured_output = envelope.get("structured_output")
+    if structured_output is not None:
+        if not isinstance(structured_output, dict):
+            msg = "claude CLI 'structured_output' was not a JSON object"
+            raise ValueError(msg)
+        output: dict[str, Any] | str = structured_output
+    else:
+        output = envelope.get("result", "")
+        if not isinstance(output, str) or not output:
+            msg = (
+                "claude CLI envelope had neither a structured output "
+                "nor a non-empty 'result' field"
+            )
+            raise ValueError(msg)
 
     tool_use = envelope.get("usage", {}).get("server_tool_use", {})
     # total_cost_usd is 0 on Max subscriptions (no per-token billing);
@@ -687,7 +733,7 @@ def _invoke_claude_cli(
     )
     duration_ms = envelope.get("duration_ms")
     return (
-        text,
+        output,
         duration_ms if isinstance(duration_ms, int) else None,
         _resolve_model(envelope, model_fallback),
     )
@@ -704,7 +750,7 @@ def _build_claude_cli_cmd(
         "--output-format", "json",
         "--permission-mode", "dontAsk",
         "--model", model,
-        "--json-schema", build_model_output_schema_json(),
+        "--json-schema", build_cli_output_schema_json(),
     ]
     if effort:
         cmd.extend(["--effort", effort])
@@ -712,14 +758,14 @@ def _build_claude_cli_cmd(
 
 
 def _parse_and_stamp_response(
-    text: str,
+    output: dict[str, Any] | str,
     *,
     url: str,
     duration_ms: int | None,
     evaluated_by: str,
     source: str,
 ) -> dict[str, Any]:
-    """Extract JSON, clean, stamp programmatic fields, and validate.
+    """Parse/accept structured output, clean, stamp fields, and validate.
 
     Single home for the compliance-critical ordering shared by both
     evaluation paths (API and Claude Code CLI): the authoritative
@@ -729,7 +775,7 @@ def _parse_and_stamp_response(
     ``_validate_against_schema`` — both are model-output issues that the
     retry path can recover from by feeding the error back to the model.
     """
-    data = extract_json(text)
+    data = output.copy() if isinstance(output, dict) else extract_json(output)
     # Establish the authoritative homepage *before* cleaning. The model
     # tends to normalize ``website_url`` to the domain root, which would
     # collapse subpages (local chapter pages, specific program landing
@@ -738,8 +784,16 @@ def _parse_and_stamp_response(
     # against this value, so it must be set first (otherwise the donate
     # rewrite keys off the model's discarded value; see
     # ``_normalize_donate_action_url``).
-    data.setdefault("org_metadata", {})["website_url"] = url
-    _clean_response(data)
+    org_metadata = data.setdefault("org_metadata", {})
+    if not isinstance(org_metadata, dict):
+        msg = f"{source} field 'org_metadata' must be an object"
+        raise ValueError(msg)
+    org_metadata["website_url"] = url
+    try:
+        _clean_response(data)
+    except (AttributeError, KeyError, TypeError) as exc:
+        msg = f"{source} could not be normalized: {exc}"
+        raise ValueError(msg) from exc
     data["evaluated_at"] = (
         datetime.datetime.now(datetime.UTC).isoformat()
     )
@@ -769,7 +823,7 @@ def _invoke_and_parse(
     CLI / network / auth failures (``RuntimeError``, ``TimeoutExpired``)
     propagate as-is.
     """
-    text, duration_ms, resolved_model = _invoke_claude_cli(
+    output, duration_ms, resolved_model = _invoke_claude_cli(
         cmd,
         timeout=timeout,
         url=url,
@@ -777,7 +831,7 @@ def _invoke_and_parse(
         model_fallback=model,
     )
     return _parse_and_stamp_response(
-        text,
+        output,
         url=url,
         duration_ms=duration_ms,
         evaluated_by=(

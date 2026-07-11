@@ -472,7 +472,8 @@ class TestEvaluateOrgViaClaudeCode:
             "type": "result",
             "subtype": "success",
             "is_error": is_error,
-            "result": json.dumps(payload),
+            "result": "",
+            "structured_output": payload,
             "total_cost_usd": 0.001,
             "duration_ms": 12345,
             "duration_api_ms": 6789,
@@ -591,6 +592,10 @@ class TestEvaluateOrgViaClaudeCode:
         assert "evidence_score" in schema["required"]
         assert "curator_notes" in schema["required"]
         assert "org_metadata" in schema["required"]
+        # Claude Code <2.1.205 silently ignores schemas containing a
+        # ``format`` keyword. Local validation still enforces URI/date
+        # formats, so the CLI view must strip them recursively.
+        assert '"format"' not in schema_json
 
     def test_extracts_evaluation_from_envelope(
         self, monkeypatch: pytest.MonkeyPatch,
@@ -611,6 +616,35 @@ class TestEvaluateOrgViaClaudeCode:
             "https://example.org",
             model="sonnet",
         )
+
+        assert result["org_metadata"]["name"] == "Test Org"
+
+    def test_falls_back_to_legacy_result_field(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Older CLIs that ignore ``--json-schema`` return only result."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        payload = _make_valid_evaluation()
+        payload.pop("evaluated_at")
+        payload.pop("evaluated_by")
+        envelope = {
+            "type": "result",
+            "subtype": "success",
+            "is_error": False,
+            "result": json.dumps(payload),
+            "duration_ms": 12345,
+            "usage": {},
+        }
+        process = MagicMock(
+            returncode=0,
+            stdout=json.dumps(envelope),
+            stderr="",
+        )
+        monkeypatch.setattr("subprocess.run", lambda *_a, **_kw: process)
+
+        result = evaluate_org_via_claude_code("https://example.org")
 
         assert result["org_metadata"]["name"] == "Test Org"
 
@@ -1023,7 +1057,7 @@ class TestEvaluateOrgViaClaudeCode:
 
         monkeypatch.setattr("subprocess.run", fake_run)
 
-        with pytest.raises(ValueError, match="no 'result' field"):
+        with pytest.raises(ValueError, match="neither a structured output"):
             evaluate_org_via_claude_code(
                 "https://example.org",
                 model="sonnet",
@@ -1122,6 +1156,35 @@ class TestEvaluateOrgViaClaudeCode:
         # fed-back error.
         assert "previous" in captured_prompts[1].lower()
         assert "evidence_score" in captured_prompts[1]
+
+    def test_retries_once_when_nested_shape_cannot_be_normalized(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Wrong nested types are model-output errors, not hard crashes."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        malformed = {"org_metadata": None}
+        valid = _make_valid_evaluation()
+        valid.pop("evaluated_at")
+        valid.pop("evaluated_by")
+        responses = iter([
+            self._fake_subprocess_result(malformed),
+            self._fake_subprocess_result(valid),
+        ])
+        call_count = 0
+
+        def fake_run(*_a: Any, **_kw: Any) -> MagicMock:
+            nonlocal call_count
+            call_count += 1
+            return next(responses)
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        result = evaluate_org_via_claude_code("https://example.org")
+
+        assert result["org_metadata"]["name"] == "Test Org"
+        assert call_count == 2
 
     def test_retries_once_on_empty_cli_result(
         self, monkeypatch: pytest.MonkeyPatch,
@@ -1400,6 +1463,43 @@ class TestValidateAgainstSchema:
 
         _validate_against_schema(payload, source="Output")  # must not raise
 
+    def test_rejects_invalid_datetime_without_optional_format_extra(
+        self,
+    ) -> None:
+        """Local RFC3339 checking must not depend on jsonschema extras."""
+        from curation.evaluate import _validate_against_schema
+
+        payload = _make_valid_evaluation()
+        payload["evaluated_at"] = "not-a-date-time"
+
+        with pytest.raises(ValueError, match="schema validation"):
+            _validate_against_schema(payload, source="Output")
+
+    @pytest.mark.parametrize(
+        "action_url",
+        [
+            "javascript:alert(document.domain)",
+            "data:text/html,owned",
+            "mailto:volunteer@example.org",
+        ],
+    )
+    def test_rejects_non_web_action_url_schemes(
+        self, action_url: str,
+    ) -> None:
+        """Only browser-safe HTTP(S) destinations may reach card hrefs."""
+        from curation.evaluate import _validate_against_schema
+
+        payload = _make_valid_evaluation()
+        payload["category_copy"] = [{
+            "slug": "volunteer",
+            "description": "Sign up",
+            "action_text": "Volunteer",
+            "action_url": action_url,
+        }]
+
+        with pytest.raises(ValueError, match="schema validation"):
+            _validate_against_schema(payload, source="Output")
+
 
 class TestCategoryCopyInSchema:
     """``category_copy`` is a top-level required field. Per-category
@@ -1461,6 +1561,7 @@ class TestCategoryCopyInSchema:
         ]["action_url"]
         assert au_schema["type"] == "string"
         assert au_schema["format"] == "uri"
+        assert au_schema["pattern"].endswith("://")
 
     def test_prompt_instructs_model_on_category_copy(self) -> None:
         """The model has to know to produce category_copy; embedding

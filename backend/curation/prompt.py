@@ -114,10 +114,9 @@ site"* instead — *"Donate"*, *"Volunteer"*, and customizations like \
 
 # Fields injected programmatically by evaluate.py after the model responds.
 # They are stripped from the schema (both ``properties`` and ``required``)
-# everywhere it's exposed to the model — both in the schema embedded in
-# this prompt and in the schema handed to ``claude --json-schema``. Single
-# source of truth so the prompt and CLI views can't drift apart and
-# reintroduce avoidable validation failures.
+# everywhere it's exposed to the model. The schema embedded in this prompt
+# is also the source for the older-CLI-compatible ``--json-schema`` variant,
+# so the two structural views can't drift apart.
 PROGRAMMATIC_FIELDS: tuple[str, ...] = (
     "evaluated_at",
     "evaluated_by",
@@ -134,9 +133,9 @@ def build_model_output_schema_json() -> str:
 
     The model has no way to produce those fields correctly, so they're
     omitted entirely from the schema view it sees. Used by
-    ``_build_output_instructions`` (embeds the schema in the prompt) and
-    by ``curation/evaluate.py`` (passes the same schema to
-    ``claude --json-schema``).
+    ``_build_output_instructions`` embeds this schema in the prompt;
+    ``build_cli_output_schema_json`` derives the ``claude --json-schema``
+    variant from it by removing annotations unsupported by older CLIs.
 
     Compact form (no indent) saves ~30% on tokens. The model parses
     indented and compact JSON identically.
@@ -156,6 +155,31 @@ def build_model_output_schema_json() -> str:
             r for r in required if r not in PROGRAMMATIC_FIELDS
         ]
 
+    return json.dumps(schema, separators=(",", ":"))
+
+
+def _strip_schema_keyword(node: object, keyword: str) -> None:
+    """Recursively remove *keyword* from a JSON Schema tree in place."""
+    if isinstance(node, dict):
+        node.pop(keyword, None)
+        for value in node.values():
+            _strip_schema_keyword(value, keyword)
+    elif isinstance(node, list):
+        for value in node:
+            _strip_schema_keyword(value, keyword)
+
+
+@functools.cache
+def build_cli_output_schema_json() -> str:
+    """Return the model-output schema accepted by older Claude Code CLIs.
+
+    Claude Code versions before 2.1.205 silently ignored an entire schema
+    when it contained a ``format`` keyword. The local jsonschema validator
+    remains the source of truth for URI/date enforcement, so the CLI view
+    strips only ``format`` annotations while retaining all structural rules.
+    """
+    schema: object = json.loads(build_model_output_schema_json())
+    _strip_schema_keyword(schema, "format")
     return json.dumps(schema, separators=(",", ":"))
 
 
