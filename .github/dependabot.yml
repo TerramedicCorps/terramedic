@@ -23,15 +23,25 @@ updates:
       include: ["*"]
     # Group development dependencies together
     groups:
+      # @vitest/* are exact-pinned to vitest, so they must bump together (all
+      # update types).
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+      # eslint and @eslint/* are version-coupled on majors, so they bump together.
+      eslint:
+        patterns:
+          - "eslint"
+          - "@eslint/*"
       dev-dependencies:
         patterns:
           - "@storybook/*"
           - "@testing-library/*"
-          - "@vitest/*"
           - "@playwright/*"
-          - "eslint*"
+          - "eslint-config-*"
+          - "eslint-plugin-*"
           - "prettier*"
-          - "vitest"
           - "playwright"
         update-types:
           - "minor"

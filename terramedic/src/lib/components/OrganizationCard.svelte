@@ -9,11 +9,13 @@
   export let actionUrl = '';
   export let imageUrl = '';
   export let actionText = DEFAULT_ORG_ACTION_TEXT;
+  /** @type {string[]} */
   export let tags = [];
   export let tagColor = 'blue'; // 'blue', 'green', 'gold', 'purple', 'orange', 'red', 'gray'
   export let buttonColor = 'blue'; // 'blue', 'green', 'gold', 'purple'
 
   // Map tag colors to dark theme values
+  /** @type {Record<string, { bg: string; text: string; hover: string }>} */
   const tagColorMap = {
     blue: { bg: 'bg-blue-900/60', text: 'text-blue-400', hover: 'hover:bg-blue-900/70' },
     green: { bg: 'bg-green-900/60', text: 'text-green-400', hover: 'hover:bg-green-900/70' },
@@ -28,6 +30,7 @@
   $: tagStyle = tagColorMap[tagColor] || tagColorMap.blue;
 
   // Map button colors to brand styles
+  /** @type {Record<string, { bg: string; hover: string; text: string }>} */
   const buttonStyleMap = {
     blue: {
       bg: 'background-color: var(--btn-blue)',
@@ -53,6 +56,7 @@
 
   $: btnStyle = buttonStyleMap[buttonColor] || buttonStyleMap.blue;
 
+  /** @param {string} value */
   function safeWebUrl(value) {
     try {
       const parsed = new URL(value);
@@ -102,7 +106,6 @@
 
   <div class="mt-auto">
     <Button
-      color="none"
       href={linkUrl}
       target="_blank"
       rel="noopener noreferrer"

@@ -4,6 +4,7 @@
   import ContactForm from '$lib/components/ContactForm.svelte';
   import { trackSectionView } from '$lib/utils/analytics';
 
+  /** @type {import('$lib/types/forms').FormResult | undefined} */
   export let form;
 </script>
 

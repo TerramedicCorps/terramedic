@@ -54,7 +54,7 @@ yarn lint && yarn test:unit --run && yarn build
 
 # Backend (from backend/)
 poetry run ruff check .
-poetry run mypy terramedic
+SECRET_KEY=test poetry run mypy terramedic
 poetry run pytest
 ```
 
@@ -74,7 +74,7 @@ yarn build
 
 # Backend (from backend/)
 poetry run ruff check .
-poetry run mypy terramedic
+SECRET_KEY=test poetry run mypy terramedic
 poetry run pytest
 ```
 

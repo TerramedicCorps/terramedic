@@ -4,6 +4,7 @@
   import { trackEvent } from '$lib/utils/analytics';
 
   // Receive form data from SvelteKit form actions
+  /** @type {import('$lib/types/forms').FormResult | undefined} */
   export let form = undefined;
 
   // Form state
@@ -32,9 +33,11 @@
   }
 
   // Function to handle form submission
+  /** @param {SubmitEvent} event */
   async function handleSubmit(event) {
+    const formEl = /** @type {HTMLFormElement} */ (event.currentTarget);
     // Prevent default form submission if not using enhanced form handling
-    if (!event.target.checkValidity()) {
+    if (!formEl.checkValidity()) {
       return;
     }
 
@@ -46,12 +49,16 @@
 
       try {
         // Netlify Forms handles this automatically when form has data-netlify="true"
-        const formData = new FormData(event.target);
+        const formData = new FormData(formEl);
 
         // For Netlify, we need to include form-name
         formData.append('form-name', 'contact-form');
 
-        const formEntries = Object.fromEntries(formData.entries());
+        /** @type {Record<string, string>} */
+        const formEntries = {};
+        formData.forEach((value, key) => {
+          formEntries[key] = value.toString();
+        });
         const response = await fetch('/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -89,6 +96,7 @@
     };
   });
 
+  /** @type {ReturnType<typeof setTimeout> | undefined} */
   let successTimer;
   /* eslint-disable svelte/infinite-reactive-loop */
   $: if (isSuccess) {
@@ -117,7 +125,7 @@
       name="contact-form"
       method="POST"
       data-netlify="true"
-      netlify-honeypot="bot-field"
+      {...{ 'netlify-honeypot': 'bot-field' }}
       class="bg-navy space-y-4 rounded-lg p-6 shadow-sm"
     >
       <!-- Hidden inputs required by Netlify Forms -->
@@ -209,7 +217,7 @@
           bind:value={message}
           required
           placeholder="Your message"
-          rows="5"
+          rows={5}
           class="bg-deep-navy w-full text-white"
         />
       </div>
@@ -219,7 +227,6 @@
         <Button
           type="submit"
           disabled={isSubmitting}
-          color="none"
           class="bg-btn-blue w-full text-white transition-colors hover:bg-[#0d47a1]"
         >
           {isSubmitting ? 'Sending...' : 'Send Message'}

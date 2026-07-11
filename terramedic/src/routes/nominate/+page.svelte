@@ -3,6 +3,8 @@
   import Footer from '$lib/components/Footer.svelte';
   import NominationForm from '$lib/components/NominationForm.svelte';
   import { trackSectionView } from '$lib/utils/analytics';
+
+  export let form;
 </script>
 
 <svelte:head>
@@ -54,5 +56,5 @@
     </div>
   </main>
 
-  <Footer />
+  <Footer {form} />
 </div>
