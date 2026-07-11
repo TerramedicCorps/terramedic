@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Any
-from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.contrib.gis.db.models.functions import Distance
@@ -13,6 +12,10 @@ from django.utils.translation import get_language
 from ninja import Query, Router
 from ninja.errors import HttpError
 
+from terramedic.core.web_urls import (
+    is_safe_web_url,
+    is_same_site_web_url,
+)
 from terramedic.organizations.models import (
     Organization,
     OrganizationCategory,
@@ -23,14 +26,8 @@ router = Router()
 
 
 def _safe_web_url(value: str) -> str:
-    """Return *value* only when it is an absolute HTTP(S) URL."""
-    try:
-        parsed = urlsplit(value)
-    except ValueError:
-        return ""
-    if parsed.scheme.lower() not in {"http", "https"} or not parsed.netloc:
-        return ""
-    return value
+    """Return *value* only when it is a public, credential-free web URL."""
+    return value if is_safe_web_url(value) else ""
 
 
 def _translated(
@@ -38,10 +35,10 @@ def _translated(
 ) -> str:
     """Pull a translated field off the prefetched through row.
 
-    Prefers the active language (django-parler honors
+    Prefers a non-blank value in the active language (django-parler honors
     ``Accept-Language`` via middleware); falls back to the project's
-    ``LANGUAGE_CODE`` when absent so default-language content isn't
-    silently dropped for non-matching requests. Following
+    ``LANGUAGE_CODE`` when the translation or field is absent so
+    default-language content isn't silently dropped. Following
     ``settings.LANGUAGE_CODE`` (rather than a hardcoded ``"en"``)
     means if the project's default language ever changes, this
     follows along without a code edit.
@@ -51,7 +48,9 @@ def _translated(
     translations = list(entry.translations.all())  # type: ignore[attr-defined]
     for translation in translations:
         if translation.language_code == active:
-            return str(getattr(translation, field, "") or "")
+            value = str(getattr(translation, field, "") or "")
+            if value:
+                return value
     if fallback != active:
         for translation in translations:
             if translation.language_code == fallback:
@@ -104,7 +103,12 @@ def _serialize_org(
             action_text = _translated(entry, "action_text")
             if not action_text:
                 action_text = entry.category.default_action_text
-            action_url = _safe_web_url(_translated(entry, "action_url"))
+            candidate_url = _translated(entry, "action_url")
+            action_url = (
+                candidate_url
+                if is_same_site_web_url(candidate_url, org.website_url)
+                else ""
+            )
             if not action_url:
                 action_url = _safe_web_url(org.website_url)
             sort_order = entry.sort_order

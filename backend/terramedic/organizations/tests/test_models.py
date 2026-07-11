@@ -357,6 +357,80 @@ class TestOrganizationCategoryThrough:
         through.action_url = "https://example.org/volunteer/signup"
         through.full_clean()  # must not raise
 
+    def test_clean_allows_org_subdomain_action_url(self) -> None:
+        from terramedic.organizations.models import OrganizationCategory
+
+        org = Organization(
+            name="Test Org",
+            website_url="https://www.example.org",
+        )
+        org.set_current_language("en")
+        org.description = "..."
+        org.save()
+        through = OrganizationCategory.objects.create(
+            organization=org,
+            category=Category.objects.get(slug="career"),
+        )
+        through.set_current_language("en")
+        through.action_url = "https://jobs.example.org/openings"
+
+        through.full_clean()  # must not raise
+
+    @pytest.mark.parametrize(
+        "action_url",
+        [
+            "https://evil.example/phish",
+            "http://127.0.0.1:3000/admin",
+            "http://intranet/admin",
+            "https://example.org@evil.example/phish",
+        ],
+    )
+    def test_clean_rejects_action_url_outside_public_org_site(
+        self, action_url: str,
+    ) -> None:
+        from django.core.exceptions import ValidationError
+
+        from terramedic.organizations.models import OrganizationCategory
+
+        org = Organization(
+            name="Test Org",
+            website_url="https://example.org",
+        )
+        org.set_current_language("en")
+        org.description = "..."
+        org.save()
+        through = OrganizationCategory.objects.create(
+            organization=org,
+            category=Category.objects.get(slug="volunteer"),
+        )
+        through.set_current_language("en")
+        through.action_url = action_url
+
+        with pytest.raises(ValidationError):
+            through.full_clean()
+
+    def test_clean_rejects_action_url_over_storage_limit(self) -> None:
+        from django.core.exceptions import ValidationError
+
+        from terramedic.organizations.models import OrganizationCategory
+
+        org = Organization(
+            name="Test Org",
+            website_url="https://example.org",
+        )
+        org.set_current_language("en")
+        org.description = "..."
+        org.save()
+        through = OrganizationCategory.objects.create(
+            organization=org,
+            category=Category.objects.get(slug="volunteer"),
+        )
+        through.set_current_language("en")
+        through.action_url = "https://example.org/" + "a" * 500
+
+        with pytest.raises(ValidationError, match="at most 500"):
+            through.full_clean()
+
     @pytest.mark.parametrize(
         "action_url",
         [

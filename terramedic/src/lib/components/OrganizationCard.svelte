@@ -56,21 +56,82 @@
 
   $: btnStyle = buttonStyleMap[buttonColor] || buttonStyleMap.blue;
 
+  /** @param {string} hostname */
+  function normalizedHostname(hostname) {
+    return hostname
+      .toLowerCase()
+      .replace(/\.$/, '')
+      .replace(/^www\./, '');
+  }
+
+  /** @param {string} hostname */
+  function isLocalHostname(hostname) {
+    const host = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+    if (
+      host === 'localhost' ||
+      (!host.includes('.') && !host.includes(':')) ||
+      /\.(example|home|internal|invalid|lan|local|localhost|test)$/.test(host) ||
+      host === '::' ||
+      host === '::1' ||
+      /^(fc|fd|fe8|fe9|fea|feb)/.test(host)
+    ) {
+      return true;
+    }
+    const octets = host.split('.').map(Number);
+    if (octets.length !== 4 || octets.some((part) => !Number.isInteger(part))) return false;
+    const [first, second] = octets;
+    return (
+      first === 0 ||
+      first === 10 ||
+      first === 127 ||
+      (first === 169 && second === 254) ||
+      (first === 172 && second >= 16 && second <= 31) ||
+      (first === 192 && second === 168) ||
+      first >= 224
+    );
+  }
+
   /** @param {string} value */
-  function safeWebUrl(value) {
+  function parsedSafeWebUrl(value) {
     try {
       const parsed = new URL(value);
-      return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? value : '';
+      if (
+        !['http:', 'https:'].includes(parsed.protocol) ||
+        parsed.username ||
+        parsed.password ||
+        isLocalHostname(parsed.hostname)
+      ) {
+        return null;
+      }
+      return parsed;
     } catch {
-      return '';
+      return null;
     }
+  }
+
+  /** @param {string} value */
+  function safeWebUrl(value) {
+    return parsedSafeWebUrl(value) ? value : '';
+  }
+
+  /**
+   * @param {string} value
+   * @param {string} siteUrl
+   */
+  function safeActionUrl(value, siteUrl) {
+    const parsed = parsedSafeWebUrl(value);
+    const site = parsedSafeWebUrl(siteUrl);
+    if (!parsed || !site) return '';
+    const candidateHost = normalizedHostname(parsed.hostname);
+    const siteHost = normalizedHostname(site.hostname);
+    return candidateHost === siteHost || candidateHost.endsWith(`.${siteHost}`) ? value : '';
   }
 
   // The CTA deep-links to the per-pathway action_url (volunteer
   // signup, jobs board); unfiltered/nearby contexts return "" so the
   // card falls back to the org's website. Svelte prop defaults only
   // fire on undefined, not "", so the fallback has to be explicit.
-  $: linkUrl = safeWebUrl(actionUrl) || safeWebUrl(websiteUrl);
+  $: linkUrl = safeActionUrl(actionUrl, websiteUrl) || safeWebUrl(websiteUrl);
 
   // Handle button click for analytics tracking
   function handleButtonClick() {

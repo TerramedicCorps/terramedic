@@ -18,7 +18,7 @@ from pathlib import Path
 # Bump this version whenever SYSTEM_PROMPT or any of the shared
 # prompt constants below is modified.
 # Format: YYYY.MM.N where N resets to 1 each month.
-PROMPT_VERSION: str = "2026.04.26"
+PROMPT_VERSION: str = "2026.07.1"
 
 
 # -- Shared constants --------------------------------------------------

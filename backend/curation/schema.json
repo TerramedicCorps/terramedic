@@ -284,6 +284,7 @@
             "type": "string",
             "format": "uri",
             "pattern": "^[Hh][Tt][Tt][Pp][Ss]?://",
+            "maxLength": 500,
             "description": "URL the action_text CTA links to. Use the most specific page on the org's site that supports the action (e.g. a volunteer signup page for 'Volunteer', a jobs board for 'Browse jobs', a specific toolkit page for 'Read the guide'). For slug 'donate', return the org's homepage (org_metadata.website_url) — the curation layer enforces this regardless of what is returned, because Terramedic is a 501(c)(3) and must not deep-link into other orgs' donation flows."
           }
         }

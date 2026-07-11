@@ -3,10 +3,55 @@ from django.core.validators import URLValidator
 from django.db import models
 from parler.models import TranslatableModel, TranslatedFields
 
+from terramedic.core.web_urls import (
+    is_safe_web_url,
+    is_same_site_web_url,
+)
 from terramedic.organizations.models.category import Category
 from terramedic.organizations.models.organization import Organization
 
+_ACTION_URL_MAX_LENGTH = 500
 _http_url_validator = URLValidator(schemes=["http", "https"])
+
+
+def _validate_action_url(
+    action_url: str,
+    language_code: str,
+    website_url: str | None,
+) -> None:
+    """Validate one translated CTA URL against storage and site rules."""
+    if len(action_url) > _ACTION_URL_MAX_LENGTH:
+        raise ValidationError({
+            "action_url": (
+                "CTA URL must be at most "
+                f"{_ACTION_URL_MAX_LENGTH} characters; got "
+                f"{len(action_url)} for language {language_code!r}."
+            ),
+        })
+    try:
+        _http_url_validator(action_url)
+    except ValidationError as exc:
+        raise ValidationError({
+            "action_url": (
+                "CTA URL must use http or https; got "
+                f"{action_url!r} for language {language_code!r}."
+            ),
+        }) from exc
+    if not is_safe_web_url(action_url):
+        raise ValidationError({
+            "action_url": (
+                "CTA URL must be a public http or https URL "
+                f"without credentials; got {action_url!r} for "
+                f"language {language_code!r}."
+            ),
+        })
+    if website_url and not is_same_site_web_url(action_url, website_url):
+        raise ValidationError({
+            "action_url": (
+                "CTA URL must belong to the organization's website; "
+                f"got {action_url!r} for language {language_code!r}."
+            ),
+        })
 
 
 class OrganizationCategory(TranslatableModel):
@@ -40,8 +85,13 @@ class OrganizationCategory(TranslatableModel):
         # must equal ``organization.website_url`` (the homepage); the
         # curation layer normalizes that and ``clean()`` enforces it on
         # admin saves. ``clean()`` also restricts every pathway URL to
-        # HTTP(S), preventing unsafe browser schemes.
-        action_url=models.URLField(blank=True, default="", max_length=500),
+        # the organization's public HTTP(S) site, preventing unsafe
+        # browser schemes, local destinations, and unrelated hosts.
+        action_url=models.URLField(
+            blank=True,
+            default="",
+            max_length=_ACTION_URL_MAX_LENGTH,
+        ),
     )
 
     class Meta:
@@ -55,10 +105,11 @@ class OrganizationCategory(TranslatableModel):
     def clean(self) -> None:
         """Enforce safe CTA URLs and 501(c)(3) donate compliance.
 
-        Every non-blank translated CTA URL must be an absolute HTTP(S)
-        destination. Parler's translated fields are not covered by Django's
-        normal model ``full_clean()``, so this explicit check prevents script
-        and data URLs from reaching the public card ``href``.
+        Every non-blank translated CTA URL must be an absolute, public HTTP(S)
+        destination on the organization's site. Parler's translated fields
+        are not covered by Django's normal model ``full_clean()``, so this
+        explicit check prevents script/data URLs, local hosts, unrelated
+        destinations, and overlong database values from reaching the card.
 
         Terramedic must not deep-link into another org's donation flow,
         because doing so functionally constitutes fundraising for them.
@@ -95,21 +146,18 @@ class OrganizationCategory(TranslatableModel):
             )
 
         translated_urls: list[tuple[str, str]] = []
+        website_url = (
+            self.organization.website_url
+            if self.organization_id is not None
+            else None
+        )
         for language_code in language_codes:
             action_url = (
                 self.get_translation(language_code).action_url or ""
             )
             if not action_url:
                 continue
-            try:
-                _http_url_validator(action_url)
-            except ValidationError as exc:
-                raise ValidationError({
-                    "action_url": (
-                        "CTA URL must use http or https; got "
-                        f"{action_url!r} for language {language_code!r}."
-                    ),
-                }) from exc
+            _validate_action_url(action_url, language_code, website_url)
             translated_urls.append((language_code, action_url))
 
         if self.category_id != "donate" or self.organization_id is None:

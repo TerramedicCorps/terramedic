@@ -1463,6 +1463,46 @@ class TestValidateAgainstSchema:
 
         _validate_against_schema(payload, source="Output")  # must not raise
 
+    def test_accepts_action_url_on_org_subdomain(self) -> None:
+        """An org-owned jobs/volunteer subdomain is a valid destination."""
+        from curation.evaluate import _validate_against_schema
+
+        payload = _make_valid_evaluation()
+        payload["category_copy"] = [{
+            "slug": "career",
+            "description": "Find roles",
+            "action_text": "Browse jobs",
+            "action_url": "https://jobs.example.org/openings",
+        }]
+
+        _validate_against_schema(payload, source="Output")
+
+    @pytest.mark.parametrize(
+        "action_url",
+        [
+            "https://evil.example/phish",
+            "http://127.0.0.1:3000/admin",
+            "http://intranet/admin",
+            "https://example.org@evil.example/phish",
+        ],
+    )
+    def test_rejects_action_url_outside_public_org_site(
+        self, action_url: str,
+    ) -> None:
+        """Model output must not turn public CTAs into phishing/local links."""
+        from curation.evaluate import _validate_against_schema
+
+        payload = _make_valid_evaluation()
+        payload["category_copy"] = [{
+            "slug": "volunteer",
+            "description": "Sign up",
+            "action_text": "Volunteer",
+            "action_url": action_url,
+        }]
+
+        with pytest.raises(ValueError, match="schema validation"):
+            _validate_against_schema(payload, source="Output")
+
     def test_rejects_invalid_datetime_without_optional_format_extra(
         self,
     ) -> None:
@@ -1562,6 +1602,7 @@ class TestCategoryCopyInSchema:
         assert au_schema["type"] == "string"
         assert au_schema["format"] == "uri"
         assert au_schema["pattern"].endswith("://")
+        assert au_schema["maxLength"] == 500
 
     def test_prompt_instructs_model_on_category_copy(self) -> None:
         """The model has to know to produce category_copy; embedding

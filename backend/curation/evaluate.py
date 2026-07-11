@@ -32,6 +32,10 @@ from curation.prompt import (
     SYSTEM_PROMPT,
     build_cli_output_schema_json,
 )
+from terramedic.core.web_urls import (
+    is_safe_web_url,
+    is_same_site_web_url,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -507,16 +511,7 @@ def _validate_against_schema(
 
     @format_checker.checks("uri")
     def _is_web_uri(value: object) -> bool:
-        if not isinstance(value, str):
-            return False
-        try:
-            parsed = urlparse(value)
-        except ValueError:
-            return False
-        return (
-            parsed.scheme.lower() in {"http", "https"}
-            and bool(parsed.netloc)
-        )
+        return isinstance(value, str) and is_safe_web_url(value)
 
     @format_checker.checks("date-time")
     def _is_rfc3339_datetime(value: object) -> bool:
@@ -538,6 +533,17 @@ def _validate_against_schema(
     except jsonschema.ValidationError as exc:
         msg = f"{source} failed schema validation: {exc.message}"
         raise ValueError(msg) from exc
+
+    website_url = data.get("org_metadata", {}).get("website_url", "")
+    for entry in data.get("category_copy", []):
+        action_url = entry.get("action_url", "")
+        if not is_same_site_web_url(action_url, website_url):
+            msg = (
+                f"{source} failed schema validation: category_copy "
+                f"action_url {action_url!r} must belong to the "
+                f"organization site {website_url!r}"
+            )
+            raise ValueError(msg)
 
 
 def evaluate_org(

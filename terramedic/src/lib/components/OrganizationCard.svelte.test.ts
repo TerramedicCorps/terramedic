@@ -70,11 +70,27 @@ describe('OrganizationCard', () => {
   test.each([
     'javascript:alert(document.domain)',
     'data:text/html,owned',
-    'mailto:volunteer@example.com'
+    'mailto:volunteer@example.com',
+    'https://evil.example/phish',
+    'http://127.0.0.1:3000/admin',
+    'http://intranet/admin',
+    'https://example.com@evil.example/phish'
   ])('button rejects unsafe actionUrl scheme %s', (actionUrl) => {
     render(OrganizationCard, { props: { ...baseProps, actionUrl } });
     const link = screen.getByRole('link', { name: /Visit Website/i });
     expect(link).toHaveAttribute('href', 'https://example.com');
+  });
+
+  test('button allows an organization-owned subdomain', () => {
+    render(OrganizationCard, {
+      props: {
+        ...baseProps,
+        websiteUrl: 'https://www.example.com',
+        actionUrl: 'https://jobs.example.com/openings'
+      }
+    });
+    const link = screen.getByRole('link', { name: /Visit Website/i });
+    expect(link).toHaveAttribute('href', 'https://jobs.example.com/openings');
   });
 
   test('click tracking reports the effective link target', async () => {

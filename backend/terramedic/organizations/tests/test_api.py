@@ -386,6 +386,22 @@ class TestPerCategoryDescriptionAndActionText:
 
         assert response.json()[0]["action_url"] == two_pathway_org.website_url
 
+    def test_cross_site_stored_action_url_falls_back_to_website_url(
+        self, client: Client, two_pathway_org: Organization,
+    ) -> None:
+        """Read defense blocks links that bypassed model ``full_clean``."""
+        entry = OrganizationCategory.objects.get(
+            organization=two_pathway_org,
+            category_id="volunteer",
+        )
+        entry.set_current_language("en")
+        entry.action_url = "https://evil.example/phish"
+        entry.save()
+
+        response = client.get("/api/organizations/?category=volunteer")
+
+        assert response.json()[0]["action_url"] == two_pathway_org.website_url
+
     def test_unfiltered_list_returns_empty_action_url(
         self, client: Client, two_pathway_org: Organization,
     ) -> None:
@@ -523,6 +539,41 @@ class TestPerCategoryDescriptionAndActionText:
         data = response.json()
         assert data[0]["description"] == "Financez notre travail."
         assert data[0]["action_text"] == "Faire un don"
+
+    def test_blank_localized_action_url_falls_back_to_english(
+        self, client: Client,
+    ) -> None:
+        """A translated label must not discard the default-language URL."""
+        org = Organization(
+            name="Bilingual Volunteer Org",
+            website_url="https://example.org/",
+        )
+        org.set_current_language("en")
+        org.description = "General."
+        org.save()
+        entry = OrganizationCategory.objects.create(
+            organization=org,
+            category=Category.objects.get(slug="volunteer"),
+        )
+        entry.set_current_language("en")
+        entry.description = "Join the team."
+        entry.action_text = "Sign up"
+        entry.action_url = "https://example.org/volunteer/signup"
+        entry.set_current_language("fr")
+        entry.description = "Rejoignez l'équipe."
+        entry.action_text = "S'inscrire"
+        entry.action_url = ""
+        entry.save()
+
+        response = client.get(
+            "/api/organizations/?category=volunteer",
+            headers={"Accept-Language": "fr"},
+        )
+
+        assert (
+            response.json()[0]["action_url"]
+            == "https://example.org/volunteer/signup"
+        )
 
     def test_per_category_copy_falls_back_to_english_for_missing_lang(
         self, client: Client,
