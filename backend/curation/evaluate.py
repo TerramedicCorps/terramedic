@@ -12,6 +12,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import copy
 import datetime
 import functools
 import ipaddress
@@ -796,7 +797,10 @@ def _parse_and_stamp_response(
     ``_validate_against_schema`` — both are model-output issues that the
     retry path can recover from by feeding the error back to the model.
     """
-    data = output.copy() if isinstance(output, dict) else extract_json(output)
+    # Deep-copy so stamping and the in-place donate rewrite below never
+    # leak back into a caller-held ``structured_output`` dict (a shallow
+    # copy would keep nested ``org_metadata``/``category_copy`` shared).
+    data = copy.deepcopy(output) if isinstance(output, dict) else extract_json(output)
     # Establish the authoritative homepage *before* cleaning. The model
     # tends to normalize ``website_url`` to the domain root, which would
     # collapse subpages (local chapter pages, specific program landing

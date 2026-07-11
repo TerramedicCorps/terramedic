@@ -1420,6 +1420,39 @@ class TestEvaluateOrgViaClaudeCode:
         assert donate["action_url"] == result["org_metadata"]["website_url"]
         assert donate["action_url"] == "https://nominee.org/local-chapter"
 
+    def test_does_not_mutate_caller_supplied_structured_output(self) -> None:
+        """When the CLI hands over the parsed ``structured_output`` dict,
+        stamping and donate normalization must not leak back into the
+        caller's object. A shallow copy leaves nested ``org_metadata`` and
+        ``category_copy`` shared, so the homepage stamp and the donate
+        deep-link rewrite would silently corrupt the envelope the caller
+        still holds."""
+        from curation.evaluate import _parse_and_stamp_response
+
+        supplied = self._stamped_payload(website_url="https://nominee.org")
+        supplied["category_copy"] = [
+            {
+                "slug": "donate",
+                "description": "Fund us",
+                "action_text": "Donate",
+                "action_url": "https://elsewhere.example/give-now",
+            },
+        ]
+
+        _parse_and_stamp_response(
+            supplied,
+            url="https://nominee.org/local-chapter",
+            duration_ms=100,
+            evaluated_by="claude-code:sonnet",
+            source="Claude Code output",
+        )
+
+        assert supplied["org_metadata"]["website_url"] == "https://nominee.org"
+        assert (
+            supplied["category_copy"][0]["action_url"]
+            == "https://elsewhere.example/give-now"
+        )
+
 
 class TestValidateAgainstSchema:
     """Error-path coverage for the shared schema validation helper."""
