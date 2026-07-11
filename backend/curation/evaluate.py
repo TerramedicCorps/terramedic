@@ -178,13 +178,28 @@ def _build_arg_parser() -> argparse.ArgumentParser:
 
 
 def _validate_url(url: str) -> str:
-    """Validate that a URL has an http(s) scheme and a domain."""
+    """Validate that a URL is a public, organization-owned http(s) site.
+
+    The nominated URL is stamped verbatim into
+    ``org_metadata.website_url``, which the schema validates with
+    ``is_safe_web_url`` *after* the model call. Applying the same safety
+    check here rejects credentials, IP literals, and local/private hosts
+    at intake instead of burning a model call — and its one retry — on a
+    URL the model cannot fix. The scheme/domain checks stay first so the
+    common malformed-input cases keep their specific messages.
+    """
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
         msg = f"Invalid URL scheme '{parsed.scheme}': must be http or https"
         raise ValueError(msg)
     if not parsed.netloc:
         msg = "Invalid URL: missing domain"
+        raise ValueError(msg)
+    if not is_safe_web_url(url):
+        msg = (
+            f"Invalid URL '{url}': must be a public organization site "
+            "(no credentials, IP literals, or local/private hosts)"
+        )
         raise ValueError(msg)
     return url
 

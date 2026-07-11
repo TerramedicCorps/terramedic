@@ -168,6 +168,23 @@ class TestValidateUrl:
         with pytest.raises(ValueError, match="scheme"):
             _validate_url("ftp://example.org")
 
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "http://127.0.0.1/admin",  # private IP literal
+            "http://intranet.internal/admin",  # local TLD
+            "https://user:pass@example.org",  # embedded credentials
+        ],
+    )
+    def test_rejects_non_public_org_url(self, url: str) -> None:
+        """The nominated URL is stamped verbatim into website_url, which
+        the schema then validates with is_safe_web_url. Rejecting these
+        at intake avoids burning a model call (plus its retry) on a URL
+        the model cannot fix — the entry check must match the schema
+        check, not just require an http(s) scheme + netloc."""
+        with pytest.raises(ValueError, match="public"):
+            _validate_url(url)
+
 
 class TestUrlToSlug:
     def test_simple_domain(self) -> None:
