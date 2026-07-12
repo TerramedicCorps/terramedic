@@ -132,7 +132,7 @@ def build_model_output_schema_json() -> str:
     fields stripped from both ``required`` and ``properties``.
 
     The model has no way to produce those fields correctly, so they're
-    omitted entirely from the schema view it sees. Used by
+    omitted entirely from the schema view it sees.
     ``_build_output_instructions`` embeds this schema in the prompt;
     ``build_cli_output_schema_json`` derives the ``claude --json-schema``
     variant from it by removing annotations unsupported by older CLIs.

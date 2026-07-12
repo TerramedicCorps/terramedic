@@ -677,7 +677,8 @@ def _invoke_claude_cli(
     turns. ``model`` is the resolved model ID from ``modelUsage``,
     falling back to ``model_fallback`` (the input alias) when an older
     CLI omits the field. Handles exit code, JSON envelope parsing,
-    ``is_error`` handling, and per-call usage logging. Raises
+    ``is_error`` handling, and per-call usage logging.
+
     With ``--json-schema``, validated data lives in the envelope's
     ``structured_output`` field. ``result`` remains a compatibility fallback
     for older CLIs that ignored the schema. Raises ``RuntimeError`` on
