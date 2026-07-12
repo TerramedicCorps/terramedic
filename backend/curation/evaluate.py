@@ -34,6 +34,7 @@ from curation.prompt import (
     build_cli_output_schema_json,
 )
 from terramedic.core.web_urls import (
+    is_public_ip_address,
     is_safe_web_url,
     is_same_site_web_url,
 )
@@ -77,14 +78,7 @@ def _url_resolves_to_public(url: str) -> bool:
             addr = ipaddress.ip_address(ip_str)
         except ValueError:
             return False
-        if (
-            addr.is_private
-            or addr.is_loopback
-            or addr.is_link_local
-            or addr.is_unspecified
-            or addr.is_multicast
-            or addr.is_reserved
-        ):
+        if not is_public_ip_address(addr):
             return False
     return True
 

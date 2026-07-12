@@ -2088,7 +2088,8 @@ class TestUrlResolvesToPublic:
             "10.0.0.1",
             "192.168.1.1",
             "0.0.0.0",
-            "224.0.0.1",  # multicast
+            "224.0.0.1",  # IPv4 multicast
+            "ff02::1",  # IPv6 link-local multicast (is_global is True)
             "::1",
         ],
     )

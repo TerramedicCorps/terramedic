@@ -45,6 +45,25 @@ def _is_dns_hostname(hostname: str) -> bool:
     return all(_DNS_LABEL.match(label) for label in labels)
 
 
+def is_public_ip_address(
+    address: ipaddress.IPv4Address | ipaddress.IPv6Address,
+) -> bool:
+    """Return whether *address* is a globally-routable unicast address.
+
+    ``ipaddress.is_global`` is necessary but not sufficient: it reports
+    True for multicast (``ff02::1``, ``224.0.0.1``) and does not exclude
+    every reserved range. A multicast/reserved/unspecified destination is
+    never a public website, so callers screening a host — the fetch-time
+    SSRF guard and ``web_hostname`` below — must reject them explicitly.
+    """
+    return (
+        address.is_global
+        and not address.is_multicast
+        and not address.is_reserved
+        and not address.is_unspecified
+    )
+
+
 def web_hostname(value: str) -> str | None:
     """Return a normalized hostname for a safe HTTP(S) destination.
 
@@ -78,7 +97,7 @@ def web_hostname(value: str) -> str | None:
         address = ipaddress.ip_address(hostname)
     except ValueError:
         return hostname if _is_dns_hostname(hostname) else None
-    return hostname if address.is_global else None
+    return hostname if is_public_ip_address(address) else None
 
 
 def is_safe_web_url(value: str) -> bool:

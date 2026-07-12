@@ -132,11 +132,32 @@ class TestWebHostname:
             == "rainforest-alliance.org"
         )
 
+    @pytest.mark.parametrize(
+        "host",
+        [
+            "224.0.0.1",  # IPv4 multicast 224.0.0.0/4
+            "239.255.255.250",  # IPv4 SSDP multicast
+            "[ff02::1]",  # IPv6 link-local multicast
+            "[ff0e::1]",  # IPv6 global-scope multicast
+            "[ffff::1]",  # IPv6 multicast
+        ],
+    )
+    def test_rejects_multicast_hosts(self, host: str) -> None:
+        # ipaddress.is_global is True for multicast, so a bare is_global
+        # gate would let these non-unicast destinations through.
+        assert web_hostname(f"http://{host}/x") is None
+
     def test_accepts_globally_routable_ip_literal(self) -> None:
         # The rejection above is because those ranges are non-global, not
         # because IP literals are banned outright — a public IP is a valid
         # public host.
         assert web_hostname("http://8.8.8.8/x") == "8.8.8.8"
+
+    def test_accepts_public_ipv6_unicast(self) -> None:
+        assert (
+            web_hostname("https://[2606:4700:4700::1111]/dns")
+            == "2606:4700:4700::1111"
+        )
 
     def test_rejects_malformed_port(self) -> None:
         assert web_hostname("https://example.org:99999") is None
