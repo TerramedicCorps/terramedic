@@ -11,13 +11,14 @@ Any change to those constants or to ``SYSTEM_PROMPT`` needs a
 
 from __future__ import annotations
 
+import functools
 import json
 from pathlib import Path
 
 # Bump this version whenever SYSTEM_PROMPT or any of the shared
 # prompt constants below is modified.
 # Format: YYYY.MM.N where N resets to 1 each month.
-PROMPT_VERSION: str = "2026.04.16"
+PROMPT_VERSION: str = "2026.07.1"
 
 
 # -- Shared constants --------------------------------------------------
@@ -112,9 +113,11 @@ site"* instead — *"Donate"*, *"Volunteer"*, and customizations like \
 *"Fund lobby days"* all read as Terramedic-driven solicitation."""
 
 # Fields injected programmatically by evaluate.py after the model responds.
-# They are stripped from the schema before embedding in the prompt so the
-# model doesn't try to produce them.
-_PROGRAMMATIC_FIELDS = (
+# They are stripped from the schema (both ``properties`` and ``required``)
+# everywhere it's exposed to the model. The schema embedded in this prompt
+# is also the source for the older-CLI-compatible ``--json-schema`` variant,
+# so the two structural views can't drift apart.
+PROGRAMMATIC_FIELDS: tuple[str, ...] = (
     "evaluated_at",
     "evaluated_by",
     "prompt_version",
@@ -123,32 +126,60 @@ _PROGRAMMATIC_FIELDS = (
 )
 
 
-def _build_output_schema() -> str:
-    """Load schema.json and return a prompt-ready version.
+@functools.cache
+def build_model_output_schema_json() -> str:
+    """Return ``schema.json`` as a compact JSON string with programmatic
+    fields stripped from both ``required`` and ``properties``.
 
-    Removes fields that are injected programmatically and filters the
-    top-level ``required`` list to exclude those fields (since the model
-    shouldn't worry about which fields the *pipeline* adds).
+    The model has no way to produce those fields correctly, so they're
+    omitted entirely from the schema view it sees.
+    ``_build_output_instructions`` embeds this schema in the prompt;
+    ``build_cli_output_schema_json`` derives the ``claude --json-schema``
+    variant from it by removing annotations unsupported by older CLIs.
+
+    Compact form (no indent) saves ~30% on tokens. The model parses
+    indented and compact JSON identically.
     """
     schema_path = Path(__file__).parent / "schema.json"
     with open(schema_path) as f:
         schema: dict[str, object] = json.load(f)
 
-    # Strip programmatic fields
     props = schema.get("properties")
     if isinstance(props, dict):
-        for field in _PROGRAMMATIC_FIELDS:
+        for field in PROGRAMMATIC_FIELDS:
             props.pop(field, None)
 
-    # Update the required list to exclude programmatic fields
     required = schema.get("required")
     if isinstance(required, list):
         schema["required"] = [
-            r for r in required if r not in _PROGRAMMATIC_FIELDS
+            r for r in required if r not in PROGRAMMATIC_FIELDS
         ]
 
-    # Compact form (no indent) saves ~30% on tokens. The model parses
-    # indented and compact JSON identically.
+    return json.dumps(schema, separators=(",", ":"))
+
+
+def _strip_schema_keyword(node: object, keyword: str) -> None:
+    """Recursively remove *keyword* from a JSON Schema tree in place."""
+    if isinstance(node, dict):
+        node.pop(keyword, None)
+        for value in node.values():
+            _strip_schema_keyword(value, keyword)
+    elif isinstance(node, list):
+        for value in node:
+            _strip_schema_keyword(value, keyword)
+
+
+@functools.cache
+def build_cli_output_schema_json() -> str:
+    """Return the model-output schema accepted by older Claude Code CLIs.
+
+    Claude Code versions before 2.1.205 silently ignored an entire schema
+    when it contained a ``format`` keyword. The local jsonschema validator
+    remains the source of truth for URI/date enforcement, so the CLI view
+    strips only ``format`` annotations while retaining all structural rules.
+    """
+    schema: object = json.loads(build_model_output_schema_json())
+    _strip_schema_keyword(schema, "format")
     return json.dumps(schema, separators=(",", ":"))
 
 
@@ -190,6 +221,19 @@ Each entry contains:
 rules below.
 - ``action_text`` — the CTA label on the card for that pathway. \
 Overrides ``Category.default_action_text``.
+- ``action_url`` — the page the CTA links to. Use the **most specific \
+page on the org's site** that supports ``action_text``: a volunteer \
+signup page for "Volunteer," a jobs board for "Browse jobs," a \
+specific toolkit or guide page for "Read the report." If the most \
+fitting page is the homepage itself (some orgs route every CTA \
+there), use the homepage. **Only return URLs you have actually seen** \
+in the page content provided or via WebFetch — do not guess paths. \
+**Exception — slug ``donate``:** return the org's homepage \
+(``org_metadata.website_url``). The curation layer overrides this \
+unconditionally regardless of what you return, because Terramedic is \
+a US 501(c)(3) and must not deep-link into another org's donation \
+flow. Returning the homepage matches the override and keeps your \
+output consistent.
 
 {PER_CATEGORY_COPY_GUIDANCE}
 
@@ -484,13 +528,13 @@ note that orgs with only `other` categories are unlikely to be included."""
 
 def _build_output_instructions() -> str:
     """Build the output format section with the schema and field exclusions."""
-    field_list = ", ".join(f"`{f}`" for f in _PROGRAMMATIC_FIELDS)
+    field_list = ", ".join(f"`{f}`" for f in PROGRAMMATIC_FIELDS)
     return (
         "\n\n## Output format\n\n"
         "Return your evaluation as a single JSON object conforming to the "
         f"schema below. Do NOT include {field_list} fields — those are added "
         "programmatically.\n\n"
-        f"```json\n{_build_output_schema()}\n```\n\n"
+        f"```json\n{build_model_output_schema_json()}\n```\n\n"
         "Return ONLY the raw JSON object. Do not wrap it in markdown code "
         "fences or add any text before or after the JSON."
     )

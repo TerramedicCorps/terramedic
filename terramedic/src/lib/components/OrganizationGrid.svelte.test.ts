@@ -18,6 +18,7 @@ function makeOrg(overrides: Partial<Organization> = {}): Organization {
     name: 'Test Org',
     description: 'A test organization',
     action_text: 'Volunteer',
+    action_url: '',
     website_url: 'https://example.org',
     image_url: '',
     categories: ['volunteer'],
@@ -95,6 +96,36 @@ describe('OrganizationGrid', () => {
       expect(screen.getByText('Unfiltered Org')).toBeInTheDocument();
     });
     expect(screen.getByRole('link', { name: 'Visit Website' })).toBeInTheDocument();
+  });
+
+  test('cards deep-link to per-pathway action_url, falling back to website_url', async () => {
+    // action_url is the payoff of the per-pathway copy work: the CTA
+    // sends the reader to the pathway-specific page (volunteer signup,
+    // jobs board), not the homepage. A blank action_url (unfiltered
+    // contexts) must keep linking to the org's website_url.
+    const orgs = [
+      makeOrg({
+        id: 1,
+        name: 'Deep Link Org',
+        action_text: 'Sign up',
+        action_url: 'https://example.org/volunteer/signup'
+      }),
+      makeOrg({ id: 2, name: 'Fallback Org', action_text: 'Visit', action_url: '' })
+    ];
+    const promise = Promise.resolve(orgs);
+    render(OrganizationGrid, { props: { ...baseProps, promise } });
+
+    await waitFor(() => {
+      expect(screen.getByText('Deep Link Org')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('link', { name: 'Sign up' })).toHaveAttribute(
+      'href',
+      'https://example.org/volunteer/signup'
+    );
+    expect(screen.getByRole('link', { name: 'Visit' })).toHaveAttribute(
+      'href',
+      'https://example.org'
+    );
   });
 
   test('shows refresh-to-retry message when the promise rejects', async () => {

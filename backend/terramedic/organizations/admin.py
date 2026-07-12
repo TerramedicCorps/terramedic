@@ -15,6 +15,10 @@ from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_POST
 from parler.admin import TranslatableAdmin, TranslatableTabularInline
 
+from terramedic.core.web_urls import (
+    is_safe_web_url,
+    is_same_site_web_url,
+)
 from terramedic.organizations.evaluation_actions import (
     sync_org_categories_from_evaluation,
 )
@@ -49,14 +53,20 @@ class CategoryAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
 class OrganizationCategoryInline(TranslatableTabularInline):
     """Per-(org, category) editor for the Organization change form.
 
-    Carries the pathway-specific description and action_text that the
-    curation pipeline drafts for each category. Curators pick
-    categories and edit their copy in the same place.
+    Carries the pathway-specific description, action_text, and action_url
+    that the curation pipeline drafts for each category. Curators pick
+    categories and edit their copy and destination in the same place.
     """
 
     model = OrganizationCategory
     extra = 0
-    fields = ["category", "sort_order", "description", "action_text"]
+    fields = [
+        "category",
+        "sort_order",
+        "description",
+        "action_text",
+        "action_url",
+    ]
     autocomplete_fields = ["category"]
 
 
@@ -371,6 +381,41 @@ def _render_evidence_section(data: dict[str, Any]) -> str:
             "</div>",
         )
     return "\n".join(parts)
+
+
+def _render_category_copy(data: dict[str, Any]) -> str:
+    """Render pathway CTA labels and destinations for curator review."""
+    entries = data.get("category_copy", [])
+    if not isinstance(entries, list) or not entries:
+        return ""
+    metadata = data.get("org_metadata", {})
+    website_url = (
+        str(metadata.get("website_url", ""))
+        if isinstance(metadata, dict)
+        else ""
+    )
+    parts = ["<h3>Pathway CTAs</h3>"]
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        slug = escape(str(entry.get("slug", "?")))
+        action_text = escape(str(entry.get("action_text", "")))
+        raw_url = str(entry.get("action_url", ""))
+        url = escape(raw_url)
+        if is_same_site_web_url(raw_url, website_url):
+            destination = (
+                f'<a href="{url}" rel="noopener noreferrer">{url}</a>'
+            )
+        elif is_safe_web_url(raw_url):
+            destination = f"{url} — <strong>outside organization site</strong>"
+        else:
+            destination = url
+        parts.append(
+            '<div class="ev-item">'
+            f"<p><strong>{slug}</strong> — {action_text}: "
+            f"{destination}</p></div>",
+        )
+    return "\n".join(parts) if len(parts) > 1 else ""
 
 
 def _render_score_section(data: dict[str, Any]) -> str:
@@ -762,6 +807,7 @@ class OrganizationEvaluationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         for renderer in (
             _render_sdg_section,
             _render_evidence_section,
+            _render_category_copy,
             _render_score_section,
             _render_curator_notes,
             _render_eval_history,

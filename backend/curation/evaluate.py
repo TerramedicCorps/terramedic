@@ -12,6 +12,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import copy
 import datetime
 import functools
 import ipaddress
@@ -27,7 +28,16 @@ from typing import Any
 from urllib.parse import urljoin, urlparse
 
 from curation.json_utils import extract_json
-from curation.prompt import PROMPT_VERSION, SYSTEM_PROMPT
+from curation.prompt import (
+    PROMPT_VERSION,
+    SYSTEM_PROMPT,
+    build_cli_output_schema_json,
+)
+from terramedic.core.web_urls import (
+    is_public_ip_address,
+    is_safe_web_url,
+    is_same_site_web_url,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -68,14 +78,7 @@ def _url_resolves_to_public(url: str) -> bool:
             addr = ipaddress.ip_address(ip_str)
         except ValueError:
             return False
-        if (
-            addr.is_private
-            or addr.is_loopback
-            or addr.is_link_local
-            or addr.is_unspecified
-            or addr.is_multicast
-            or addr.is_reserved
-        ):
+        if not is_public_ip_address(addr):
             return False
     return True
 
@@ -170,13 +173,28 @@ def _build_arg_parser() -> argparse.ArgumentParser:
 
 
 def _validate_url(url: str) -> str:
-    """Validate that a URL has an http(s) scheme and a domain."""
+    """Validate that a URL is a public, organization-owned http(s) site.
+
+    The nominated URL is stamped verbatim into
+    ``org_metadata.website_url``, which the schema validates with
+    ``is_safe_web_url`` *after* the model call. Applying the same safety
+    check here rejects credentials, IP literals, and local/private hosts
+    at intake instead of burning a model call — and its one retry — on a
+    URL the model cannot fix. The scheme/domain checks stay first so the
+    common malformed-input cases keep their specific messages.
+    """
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
         msg = f"Invalid URL scheme '{parsed.scheme}': must be http or https"
         raise ValueError(msg)
     if not parsed.netloc:
         msg = "Invalid URL: missing domain"
+        raise ValueError(msg)
+    if not is_safe_web_url(url):
+        msg = (
+            f"Invalid URL '{url}': must be a public organization site "
+            "(no credentials, IP literals, or local/private hosts)"
+        )
         raise ValueError(msg)
     return url
 
@@ -351,9 +369,56 @@ def _clean_response(data: dict[str, Any]) -> None:
             for c in accessibility["categories"]
         ]
 
+    _normalize_donate_action_url(data)
+
     # Remove null values for optional fields — the schema uses
     # type-specific validation, so null isn't valid; omission is.
     _strip_nulls(data)
+
+
+def _normalize_donate_action_url(data: dict[str, Any]) -> None:
+    """Force ``donate`` slug ``action_url`` to the org's homepage.
+
+    501(c)(3) compliance: Terramedic must not appear to solicit
+    donations on behalf of nominee orgs. Deep-linking into another
+    org's donation flow (Stripe checkout, GoFundMe, campaign-specific
+    landing page) functionally constitutes fundraising for them, with
+    tax/legal implications. Routing the donate CTA to the homepage
+    means the visitor self-directs to whatever giving channel the org
+    runs — Terramedic is making the org *findable*, not running a
+    fundraiser for them.
+
+    Applied unconditionally to whatever the model returned. Callers must
+    stamp the authoritative homepage into ``org_metadata.website_url``
+    before this runs — both production callers go through
+    ``_parse_and_stamp_response``-style stamping of the validated
+    nominated URL, so the homepage is always present on live paths. The
+    missing-homepage branch below is a defensive guard for a future
+    caller that skips the stamp: the model's donate ``action_url`` is
+    *removed* rather than left in place — an unverified third-party
+    donation link must never survive — and dropping the required field
+    makes post-clean schema validation reject the whole response rather
+    than publish a deep donation link.
+    """
+    entries = data.get("category_copy")
+    if not isinstance(entries, list):
+        return
+    homepage = (
+        data.get("org_metadata", {}).get("website_url")
+        if isinstance(data.get("org_metadata"), dict)
+        else None
+    )
+    for entry in entries:
+        if not isinstance(entry, dict) or entry.get("slug") != "donate":
+            continue
+        if not homepage:
+            logger.warning(
+                "Cannot rewrite donate action_url to homepage: "
+                "org_metadata.website_url is missing; dropping action_url",
+            )
+            entry.pop("action_url", None)
+            continue
+        entry["action_url"] = homepage
 
 
 def _strip_nulls(obj: Any) -> None:
@@ -452,15 +517,43 @@ def _validate_against_schema(
         )
         raise RuntimeError(msg) from exc
 
+    format_checker = jsonschema.FormatChecker()
+
+    @format_checker.checks("uri")
+    def _is_web_uri(value: object) -> bool:
+        return isinstance(value, str) and is_safe_web_url(value)
+
+    @format_checker.checks("date-time")
+    def _is_rfc3339_datetime(value: object) -> bool:
+        if not isinstance(value, str) or "T" not in value.upper():
+            return False
+        normalized = value[:-1] + "+00:00" if value.endswith(("Z", "z")) else value
+        try:
+            parsed = datetime.datetime.fromisoformat(normalized)
+        except ValueError:
+            return False
+        return parsed.tzinfo is not None
+
     validator = jsonschema.Draft202012Validator(
         _load_schema(),
-        format_checker=jsonschema.FormatChecker(),
+        format_checker=format_checker,
     )
     try:
         validator.validate(data)
     except jsonschema.ValidationError as exc:
         msg = f"{source} failed schema validation: {exc.message}"
         raise ValueError(msg) from exc
+
+    website_url = data.get("org_metadata", {}).get("website_url", "")
+    for entry in data.get("category_copy", []):
+        action_url = entry.get("action_url", "")
+        if not is_same_site_web_url(action_url, website_url):
+            msg = (
+                f"{source} failed schema validation: category_copy "
+                f"action_url {action_url!r} must belong to the "
+                f"organization site {website_url!r}"
+            )
+            raise ValueError(msg)
 
 
 def evaluate_org(
@@ -556,25 +649,13 @@ def evaluate_org(
         msg = "No text block found in model response"
         raise ValueError(msg)
 
-    result = extract_json(text_block.text)  # type: ignore[union-attr]
-
-    _clean_response(result)
-
-    result["evaluated_at"] = (
-        datetime.datetime.now(datetime.UTC).isoformat()
+    return _parse_and_stamp_response(
+        text_block.text,  # type: ignore[union-attr]
+        url=url,
+        duration_ms=int(elapsed * 1000),
+        evaluated_by=model,
+        source="Output",
     )
-    result["evaluated_by"] = model
-    result["prompt_version"] = PROMPT_VERSION
-    result["duration_ms"] = int(elapsed * 1000)
-    # Preserve the nominated URL verbatim. The model tends to
-    # normalize ``website_url`` to the domain root, which would
-    # collapse subpages (local chapter pages, specific program
-    # landing pages) into a single Organization record.
-    result.setdefault("org_metadata", {})["website_url"] = url
-
-    _validate_against_schema(result, source="Output")
-
-    return result
 
 
 def _invoke_claude_cli(
@@ -583,16 +664,20 @@ def _invoke_claude_cli(
     url: str,
     pages_fetched: int = 0,
     model_fallback: str = "",
-) -> tuple[str, int | None, str]:
-    """Run the ``claude`` CLI and return ``(text, duration_ms, model)``.
+) -> tuple[dict[str, Any] | str, int | None, str]:
+    """Run ``claude`` and return ``(output, duration_ms, model)``.
 
     ``duration_ms`` is wall-clock for the whole call including tool
     turns. ``model`` is the resolved model ID from ``modelUsage``,
     falling back to ``model_fallback`` (the input alias) when an older
     CLI omits the field. Handles exit code, JSON envelope parsing,
-    ``is_error`` handling, and per-call usage logging. Raises
-    ``RuntimeError`` on non-zero exit or ``is_error: true``;
-    ``ValueError`` on malformed stdout or missing ``result`` field.
+    ``is_error`` handling, and per-call usage logging.
+
+    With ``--json-schema``, validated data lives in the envelope's
+    ``structured_output`` field. ``result`` remains a compatibility fallback
+    for older CLIs that ignored the schema. Raises ``RuntimeError`` on
+    non-zero exit or operational errors; ``ValueError`` on malformed output
+    or structured-output exhaustion so the caller can retry once.
     """
     proc = subprocess.run(
         cmd,
@@ -614,6 +699,13 @@ def _invoke_claude_cli(
         msg = f"claude CLI stdout was not valid JSON: {exc}"
         raise ValueError(msg) from exc
 
+    if envelope.get("subtype") == "error_max_structured_output_retries":
+        errors = envelope.get("errors")
+        msg = "claude CLI exhausted structured-output retries"
+        if errors:
+            msg += f": {errors}"
+        raise ValueError(msg)
+
     if envelope.get("is_error"):
         msg = (
             f"claude CLI reported error: "
@@ -621,10 +713,20 @@ def _invoke_claude_cli(
         )
         raise RuntimeError(msg)
 
-    text = envelope.get("result", "")
-    if not text:
-        msg = "claude CLI envelope had no 'result' field"
-        raise ValueError(msg)
+    structured_output = envelope.get("structured_output")
+    if structured_output is not None:
+        if not isinstance(structured_output, dict):
+            msg = "claude CLI 'structured_output' was not a JSON object"
+            raise ValueError(msg)
+        output: dict[str, Any] | str = structured_output
+    else:
+        output = envelope.get("result", "")
+        if not isinstance(output, str) or not output:
+            msg = (
+                "claude CLI envelope had neither a structured output "
+                "nor a non-empty 'result' field"
+            )
+            raise ValueError(msg)
 
     tool_use = envelope.get("usage", {}).get("server_tool_use", {})
     # total_cost_usd is 0 on Max subscriptions (no per-token billing);
@@ -648,9 +750,114 @@ def _invoke_claude_cli(
     )
     duration_ms = envelope.get("duration_ms")
     return (
-        text,
+        output,
         duration_ms if isinstance(duration_ms, int) else None,
         _resolve_model(envelope, model_fallback),
+    )
+
+
+def _build_claude_cli_cmd(
+    user_content: str, model: str, effort: str | None,
+) -> list[str]:
+    cmd = [
+        "claude",
+        "-p", user_content,
+        "--append-system-prompt", SYSTEM_PROMPT,
+        "--tools", "WebSearch,WebFetch",
+        "--output-format", "json",
+        "--permission-mode", "dontAsk",
+        "--model", model,
+        "--json-schema", build_cli_output_schema_json(),
+    ]
+    if effort:
+        cmd.extend(["--effort", effort])
+    return cmd
+
+
+def _parse_and_stamp_response(
+    output: dict[str, Any] | str,
+    *,
+    url: str,
+    duration_ms: int | None,
+    evaluated_by: str,
+    source: str,
+) -> dict[str, Any]:
+    """Parse/accept structured output, clean, stamp fields, and validate.
+
+    Single home for the compliance-critical ordering shared by both
+    evaluation paths (API and Claude Code CLI): the authoritative
+    homepage must be stamped before ``_clean_response`` runs.
+
+    Raises ``ValueError`` from ``extract_json`` or
+    ``_validate_against_schema`` — both are model-output issues that the
+    retry path can recover from by feeding the error back to the model.
+    """
+    # Deep-copy so stamping and the in-place donate rewrite below never
+    # leak back into a caller-held ``structured_output`` dict (a shallow
+    # copy would keep nested ``org_metadata``/``category_copy`` shared).
+    data = copy.deepcopy(output) if isinstance(output, dict) else extract_json(output)
+    # Establish the authoritative homepage *before* cleaning. The model
+    # tends to normalize ``website_url`` to the domain root, which would
+    # collapse subpages (local chapter pages, specific program landing
+    # pages) into a single Organization record — so the nominated URL is
+    # preserved verbatim. ``_clean_response`` normalizes the donate CTA
+    # against this value, so it must be set first (otherwise the donate
+    # rewrite keys off the model's discarded value; see
+    # ``_normalize_donate_action_url``).
+    org_metadata = data.setdefault("org_metadata", {})
+    if not isinstance(org_metadata, dict):
+        msg = f"{source} field 'org_metadata' must be an object"
+        raise ValueError(msg)
+    org_metadata["website_url"] = url
+    try:
+        _clean_response(data)
+    except (AttributeError, KeyError, TypeError) as exc:
+        msg = f"{source} could not be normalized: {exc}"
+        raise ValueError(msg) from exc
+    data["evaluated_at"] = (
+        datetime.datetime.now(datetime.UTC).isoformat()
+    )
+    data["evaluated_by"] = evaluated_by
+    data["prompt_version"] = PROMPT_VERSION
+    if duration_ms is not None:
+        data["duration_ms"] = duration_ms
+
+    _validate_against_schema(data, source=source)
+    return data
+
+
+def _invoke_and_parse(
+    cmd: list[str],
+    *,
+    timeout: int,
+    url: str,
+    pages_fetched: int,
+    model: str,
+    effort: str | None,
+) -> dict[str, Any]:
+    """Run the CLI and parse/stamp/validate its output in one step.
+
+    Raises ``ValueError`` on any model-output failure — empty ``result``
+    in the CLI envelope, unparseable JSON, or schema validation — so the
+    caller's bounded retry covers every model-fixable failure mode.
+    CLI / network / auth failures (``RuntimeError``, ``TimeoutExpired``)
+    propagate as-is.
+    """
+    output, duration_ms, resolved_model = _invoke_claude_cli(
+        cmd,
+        timeout=timeout,
+        url=url,
+        pages_fetched=pages_fetched,
+        model_fallback=model,
+    )
+    return _parse_and_stamp_response(
+        output,
+        url=url,
+        duration_ms=duration_ms,
+        evaluated_by=(
+            f"claude-code:{resolved_model}@{_resolve_effort(effort)}"
+        ),
+        source="Claude Code output",
     )
 
 
@@ -671,50 +878,50 @@ def evaluate_org_via_claude_code(
     Returns a schema-validated evaluation dict, just like ``evaluate_org``.
     ``evaluated_by`` is stamped with a ``claude-code:`` prefix so the two
     paths are distinguishable in stored records.
+
+    On a model-output failure (empty result, unparseable JSON, or schema
+    validation error) the call is retried once with the error fed back
+    to the model. CLI / network / auth failures (``RuntimeError``,
+    ``TimeoutExpired``) propagate without retry — those are not things
+    the model can fix.
     """
     _validate_url(url)
     user_content, pages_fetched = _build_user_message(
         url, categories=categories,
     )
 
-    cmd = [
-        "claude",
-        "-p", user_content,
-        "--append-system-prompt", SYSTEM_PROMPT,
-        "--tools", "WebSearch,WebFetch",
-        "--output-format", "json",
-        "--permission-mode", "dontAsk",
-        "--model", model,
-    ]
-    if effort:
-        cmd.extend(["--effort", effort])
-    text, duration_ms, resolved_model = _invoke_claude_cli(
-        cmd,
+    cmd = _build_claude_cli_cmd(user_content, model, effort)
+    try:
+        return _invoke_and_parse(
+            cmd,
+            timeout=timeout,
+            url=url,
+            pages_fetched=pages_fetched,
+            model=model,
+            effort=effort,
+        )
+    except ValueError as exc:
+        logger.warning(
+            "Claude Code output invalid for %s; retrying once: %s",
+            url, exc,
+        )
+        retry_error = str(exc)
+
+    retry_content = (
+        f"{user_content}\n\n## Retry\n\nYour previous response could "
+        f"not be used. Validation error: {retry_error}\n\nReturn ONLY "
+        "a single JSON object that conforms to the schema. No prose, "
+        "no markdown fences, no commentary."
+    )
+    retry_cmd = _build_claude_cli_cmd(retry_content, model, effort)
+    return _invoke_and_parse(
+        retry_cmd,
         timeout=timeout,
         url=url,
         pages_fetched=pages_fetched,
-        model_fallback=model,
+        model=model,
+        effort=effort,
     )
-
-    data = extract_json(text)
-    _clean_response(data)
-    data["evaluated_at"] = (
-        datetime.datetime.now(datetime.UTC).isoformat()
-    )
-    data["evaluated_by"] = (
-        f"claude-code:{resolved_model}@{_resolve_effort(effort)}"
-    )
-    data["prompt_version"] = PROMPT_VERSION
-    if duration_ms is not None:
-        data["duration_ms"] = duration_ms
-    # Preserve the nominated URL verbatim. The model tends to
-    # normalize ``website_url`` to the domain root, which would
-    # collapse subpages (local chapter pages, specific program
-    # landing pages) into a single Organization record.
-    data.setdefault("org_metadata", {})["website_url"] = url
-
-    _validate_against_schema(data, source="Claude Code output")
-    return data
 
 
 def _save_evaluation(data: dict[str, Any], output_path: str) -> None:

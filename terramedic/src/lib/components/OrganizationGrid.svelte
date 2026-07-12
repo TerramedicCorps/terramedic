@@ -42,6 +42,7 @@
               name={org.name}
               description={org.description}
               websiteUrl={org.website_url}
+              actionUrl={org.action_url}
               imageUrl={org.image_url}
               tags={org.tags}
               actionText={org.action_text || DEFAULT_ORG_ACTION_TEXT}

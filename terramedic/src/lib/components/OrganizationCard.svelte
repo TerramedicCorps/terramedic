@@ -6,6 +6,7 @@
   export let name = '';
   export let description = '';
   export let websiteUrl = '';
+  export let actionUrl = '';
   export let imageUrl = '';
   export let actionText = DEFAULT_ORG_ACTION_TEXT;
   /** @type {string[]} */
@@ -55,11 +56,121 @@
 
   $: btnStyle = buttonStyleMap[buttonColor] || buttonStyleMap.blue;
 
+  /** @param {string} hostname */
+  function normalizedHostname(hostname) {
+    return hostname
+      .toLowerCase()
+      .replace(/\.$/, '')
+      .replace(/^www\./, '');
+  }
+
+  // Client-side mirror of backend/terramedic/core/web_urls.py
+  // (web_hostname / is_public_ip_address). This is a deliberately-approximate
+  // defense-in-depth layer, NOT the authority — the serializer sanitizes
+  // action_url server-side, but returns website_url raw, so this is the
+  // last check on that field. The reserved-IPv4 ranges below match what
+  // Python's ipaddress.is_global rejects; keep the two in sync when either
+  // changes. IPv6 literals cannot be classified this way, so isValidWebHost
+  // rejects them wholesale rather than mirror every non-global range.
+  /** @param {string} hostname */
+  function isLocalHostname(hostname) {
+    const host = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+    if (
+      host === 'localhost' ||
+      (!host.includes('.') && !host.includes(':')) ||
+      /\.(example|home|internal|invalid|lan|local|localhost|test)$/.test(host)
+    ) {
+      return true;
+    }
+    const octets = host.split('.').map(Number);
+    if (octets.length !== 4 || octets.some((part) => !Number.isInteger(part))) return false;
+    const [first, second, third] = octets;
+    return (
+      first === 0 || // 0.0.0.0/8 "this network"
+      first === 10 || // 10.0.0.0/8 private
+      first === 127 || // 127.0.0.0/8 loopback
+      (first === 100 && second >= 64 && second <= 127) || // 100.64.0.0/10 CGNAT
+      (first === 169 && second === 254) || // 169.254.0.0/16 link-local
+      (first === 172 && second >= 16 && second <= 31) || // 172.16.0.0/12 private
+      (first === 192 && second === 0 && third === 0) || // 192.0.0.0/24 IETF protocol
+      (first === 192 && second === 0 && third === 2) || // 192.0.2.0/24 TEST-NET-1
+      (first === 192 && second === 168) || // 192.168.0.0/16 private
+      (first === 198 && (second === 18 || second === 19)) || // 198.18.0.0/15 benchmark
+      (first === 198 && second === 51 && third === 100) || // 198.51.100.0/24 TEST-NET-2
+      (first === 203 && second === 0 && third === 113) || // 203.0.113.0/24 TEST-NET-3
+      first >= 224 // 224.0.0.0/4 multicast + 240.0.0.0/4 reserved
+    );
+  }
+
+  // Mirror of web_urls._is_dns_hostname: reject STD3-invalid labels
+  // (underscores, edge hyphens) and all-numeric TLDs that `new URL`
+  // tolerates but the backend rejects. Canonical IPv4 (already normalized
+  // by `new URL`, e.g. 127.1 -> 127.0.0.1) is screened by isLocalHostname
+  // and skips the label check.
+  const dnsLabel = /^(?!-)[a-z0-9-]{1,63}(?<!-)$/;
+  /** @param {string} hostname */
+  function isValidWebHost(hostname) {
+    const host = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+    // IPv6 literals (bracketed, colon-bearing) can't be reliably classified
+    // client-side against the backend's is_public_ip_address, so reject them
+    // wholesale — real org sites use domains, and any public IPv6 site stays
+    // gated server-side.
+    if (host.includes(':')) return false;
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return true; // canonical IPv4
+    const labels = host.split('.');
+    if (labels.length < 2 || /^\d+$/.test(labels[labels.length - 1])) return false;
+    return labels.every((label) => dnsLabel.test(label));
+  }
+
+  /** @param {string} value */
+  function parsedSafeWebUrl(value) {
+    try {
+      const parsed = new URL(value);
+      if (
+        !['http:', 'https:'].includes(parsed.protocol) ||
+        parsed.username ||
+        parsed.password ||
+        isLocalHostname(parsed.hostname) ||
+        !isValidWebHost(parsed.hostname)
+      ) {
+        return null;
+      }
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
+
+  /** @param {string} value */
+  function safeWebUrl(value) {
+    return parsedSafeWebUrl(value) ? value : '';
+  }
+
+  /**
+   * @param {string} value
+   * @param {string} siteUrl
+   */
+  function safeActionUrl(value, siteUrl) {
+    const parsed = parsedSafeWebUrl(value);
+    const site = parsedSafeWebUrl(siteUrl);
+    if (!parsed || !site) return '';
+    const candidateHost = normalizedHostname(parsed.hostname);
+    const siteHost = normalizedHostname(site.hostname);
+    return candidateHost === siteHost || candidateHost.endsWith(`.${siteHost}`) ? value : '';
+  }
+
+  // The CTA deep-links to the per-pathway action_url (volunteer
+  // signup, jobs board); unfiltered/nearby contexts return "" so the
+  // card falls back to the org's website. Svelte prop defaults only
+  // fire on undefined, not "", so the fallback has to be explicit.
+  $: linkUrl = safeActionUrl(actionUrl, websiteUrl) || safeWebUrl(websiteUrl);
+
   // Handle button click for analytics tracking
   function handleButtonClick() {
     trackEvent('organization_click', {
       organization_name: name,
       organization_url: websiteUrl,
+      action_url: linkUrl,
       button_text: actionText,
       categories: tags.join(',')
     });
@@ -88,7 +199,7 @@
 
   <div class="mt-auto">
     <Button
-      href={websiteUrl}
+      href={linkUrl}
       target="_blank"
       rel="noopener noreferrer"
       style={btnStyle.bg}

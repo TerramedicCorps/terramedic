@@ -187,6 +187,283 @@ class TestOrganizationCategoryThrough:
         with pytest.raises(ProtectedError):
             donate.delete()
 
+    def test_clean_rejects_donate_action_url_other_than_homepage(
+        self,
+    ) -> None:
+        """501(c)(3) compliance: the donate CTA must land on the org's
+        homepage. Defense in depth on top of the curation-layer
+        override — admin saves go through ``full_clean``, so a
+        hand-edited deep donation link is rejected before it reaches
+        the database."""
+        from django.core.exceptions import ValidationError
+
+        from terramedic.organizations.models import OrganizationCategory
+
+        org = Organization(
+            name="Test Org",
+            website_url="https://example.org",
+        )
+        org.set_current_language("en")
+        org.description = "..."
+        org.save()
+        donate = Category.objects.get(slug="donate")
+        through = OrganizationCategory.objects.create(
+            organization=org, category=donate,
+        )
+        through.set_current_language("en")
+        through.action_url = "https://example.org/donate/give-now"
+
+        with pytest.raises(ValidationError, match="donate"):
+            through.full_clean()
+
+    def test_clean_rejects_deep_donate_link_in_non_active_language(
+        self,
+    ) -> None:
+        """``action_url`` is translated per language (en/fr/es) and
+        ``full_clean()`` must reject a deep donate link in *any* of
+        them, not just the active one. A hand-edit that lands in a
+        non-active translation (e.g. a plain ``.save()`` that bypassed
+        ``clean()``) is served to matching-locale clients, so the next
+        ``full_clean()`` has to catch it even when a different
+        language is active."""
+        from django.core.exceptions import ValidationError
+
+        from terramedic.organizations.models import OrganizationCategory
+
+        org = Organization(
+            name="Test Org",
+            website_url="https://example.org",
+        )
+        org.set_current_language("en")
+        org.description = "..."
+        org.save()
+        donate = Category.objects.get(slug="donate")
+        through = OrganizationCategory.objects.create(
+            organization=org, category=donate,
+        )
+        through.set_current_language("es")
+        through.action_url = "https://example.org/donate/give-now"
+        through.save()  # plain save bypasses clean()
+
+        through.set_current_language("en")
+        with pytest.raises(ValidationError, match="donate"):
+            through.full_clean()
+
+    def test_clean_accepts_donate_action_url_matching_homepage(
+        self,
+    ) -> None:
+        """Same scheme/path as ``organization.website_url`` passes —
+        this is the compliant path."""
+        from terramedic.organizations.models import OrganizationCategory
+
+        org = Organization(
+            name="Test Org",
+            website_url="https://example.org",
+        )
+        org.set_current_language("en")
+        org.description = "..."
+        org.save()
+        donate = Category.objects.get(slug="donate")
+        through = OrganizationCategory.objects.create(
+            organization=org, category=donate,
+        )
+        through.set_current_language("en")
+        through.action_url = "https://example.org"
+        through.full_clean()  # must not raise
+
+    def test_clean_accepts_donate_action_url_with_trailing_slash_variance(
+        self,
+    ) -> None:
+        """``https://example.org`` and ``https://example.org/`` are the
+        same homepage. A curator typing the trailing-slash form in the
+        admin must not be false-rejected; a genuine donation deep link
+        (which has a path beyond the domain) is still caught."""
+        from terramedic.organizations.models import OrganizationCategory
+
+        org = Organization(
+            name="Test Org",
+            website_url="https://example.org",
+        )
+        org.set_current_language("en")
+        org.description = "..."
+        org.save()
+        donate = Category.objects.get(slug="donate")
+        through = OrganizationCategory.objects.create(
+            organization=org, category=donate,
+        )
+        through.set_current_language("en")
+        through.action_url = "https://example.org/"
+        through.full_clean()  # must not raise
+
+    def test_clean_reports_missing_organization_as_validation_error(
+        self,
+    ) -> None:
+        """A donate row with no organization selected (partial admin
+        form) must fail with a normal ValidationError from field
+        validation — not crash clean() with RelatedObjectDoesNotExist
+        when it dereferences ``self.organization`` for the homepage.
+        ``full_clean`` runs ``clean()`` even when ``clean_fields``
+        already recorded the missing FK."""
+        from django.core.exceptions import ValidationError
+
+        from terramedic.organizations.models import OrganizationCategory
+
+        donate = Category.objects.get(slug="donate")
+        through = OrganizationCategory(category=donate)
+        through.set_current_language("en")
+        through.action_url = "https://example.org/donate/give-now"
+
+        with pytest.raises(ValidationError):
+            through.full_clean()
+
+    def test_clean_accepts_blank_donate_action_url(self) -> None:
+        """A blank action_url falls back to the org homepage at the
+        serializer layer, which is also compliant — so the model
+        should accept it."""
+        from terramedic.organizations.models import OrganizationCategory
+
+        org = Organization(
+            name="Test Org",
+            website_url="https://example.org",
+        )
+        org.set_current_language("en")
+        org.description = "..."
+        org.save()
+        donate = Category.objects.get(slug="donate")
+        through = OrganizationCategory.objects.create(
+            organization=org, category=donate,
+        )
+        through.set_current_language("en")
+        through.action_url = ""
+        through.full_clean()  # must not raise
+
+    def test_clean_allows_deep_link_for_non_donate_slugs(self) -> None:
+        """Volunteer/career/etc. CTAs are *supposed* to deep-link.
+        The compliance rule applies strictly to ``donate``."""
+        from terramedic.organizations.models import OrganizationCategory
+
+        org = Organization(
+            name="Test Org",
+            website_url="https://example.org",
+        )
+        org.set_current_language("en")
+        org.description = "..."
+        org.save()
+        volunteer = Category.objects.get(slug="volunteer")
+        through = OrganizationCategory.objects.create(
+            organization=org, category=volunteer,
+        )
+        through.set_current_language("en")
+        through.action_url = "https://example.org/volunteer/signup"
+        through.full_clean()  # must not raise
+
+    def test_clean_allows_org_subdomain_action_url(self) -> None:
+        from terramedic.organizations.models import OrganizationCategory
+
+        org = Organization(
+            name="Test Org",
+            website_url="https://www.example.org",
+        )
+        org.set_current_language("en")
+        org.description = "..."
+        org.save()
+        through = OrganizationCategory.objects.create(
+            organization=org,
+            category=Category.objects.get(slug="career"),
+        )
+        through.set_current_language("en")
+        through.action_url = "https://jobs.example.org/openings"
+
+        through.full_clean()  # must not raise
+
+    @pytest.mark.parametrize(
+        "action_url",
+        [
+            "https://evil.example/phish",
+            "http://127.0.0.1:3000/admin",
+            "http://intranet/admin",
+            "https://example.org@evil.example/phish",
+        ],
+    )
+    def test_clean_rejects_action_url_outside_public_org_site(
+        self, action_url: str,
+    ) -> None:
+        from django.core.exceptions import ValidationError
+
+        from terramedic.organizations.models import OrganizationCategory
+
+        org = Organization(
+            name="Test Org",
+            website_url="https://example.org",
+        )
+        org.set_current_language("en")
+        org.description = "..."
+        org.save()
+        through = OrganizationCategory.objects.create(
+            organization=org,
+            category=Category.objects.get(slug="volunteer"),
+        )
+        through.set_current_language("en")
+        through.action_url = action_url
+
+        with pytest.raises(ValidationError):
+            through.full_clean()
+
+    def test_clean_rejects_action_url_over_storage_limit(self) -> None:
+        from django.core.exceptions import ValidationError
+
+        from terramedic.organizations.models import OrganizationCategory
+
+        org = Organization(
+            name="Test Org",
+            website_url="https://example.org",
+        )
+        org.set_current_language("en")
+        org.description = "..."
+        org.save()
+        through = OrganizationCategory.objects.create(
+            organization=org,
+            category=Category.objects.get(slug="volunteer"),
+        )
+        through.set_current_language("en")
+        through.action_url = "https://example.org/" + "a" * 500
+
+        with pytest.raises(ValidationError, match="at most 500"):
+            through.full_clean()
+
+    @pytest.mark.parametrize(
+        "action_url",
+        [
+            "javascript:alert(document.domain)",
+            "data:text/html,owned",
+            "mailto:volunteer@example.org",
+        ],
+    )
+    def test_clean_rejects_non_web_action_url_for_any_slug(
+        self, action_url: str,
+    ) -> None:
+        """Translated URL fields are not validated by model full_clean."""
+        from django.core.exceptions import ValidationError
+
+        from terramedic.organizations.models import OrganizationCategory
+
+        org = Organization(
+            name="Test Org",
+            website_url="https://example.org",
+        )
+        org.set_current_language("en")
+        org.description = "..."
+        org.save()
+        through = OrganizationCategory.objects.create(
+            organization=org,
+            category=Category.objects.get(slug="volunteer"),
+        )
+        through.set_current_language("en")
+        through.action_url = action_url
+
+        with pytest.raises(ValidationError, match="http or https"):
+            through.full_clean()
+
 
 @pytest.mark.django_db
 class TestOrganizationCategoriesM2M:

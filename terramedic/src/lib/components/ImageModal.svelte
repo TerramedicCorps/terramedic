@@ -1,14 +1,13 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
-
   export let show = false;
   export let imageSrc = '';
   export let imageAlt = '';
-
-  const dispatch = createEventDispatcher();
+  // Callback prop instead of createEventDispatcher (deprecated in
+  // Svelte 5): consumers pass onclose={handler}.
+  export let onclose = () => {};
 
   function closeModal() {
-    dispatch('close');
+    onclose();
   }
 
   // Close modal on Escape key

@@ -231,6 +231,30 @@ class TestOrganizationEvaluationAdminDetail:
         content = response.content.decode()
         assert "Well-established org" in content
 
+    def test_detail_shows_pathway_action_url(
+        self,
+        admin_client: Client,
+        pending_evaluation: OrganizationEvaluation,
+    ) -> None:
+        data = pending_evaluation.evaluation_data
+        data["category_copy"] = [{
+            "slug": "volunteer",
+            "description": "Join a local team.",
+            "action_text": "Sign up",
+            "action_url": "https://example.com/volunteer/signup",
+        }]
+        pending_evaluation.evaluation_data = data
+        pending_evaluation.save(update_fields=["evaluation_data"])
+
+        response = admin_client.get(
+            f"/admin/organizations/organizationevaluation/"
+            f"{pending_evaluation.pk}/change/",
+        )
+        content = response.content.decode()
+
+        assert "Pathway CTAs" in content
+        assert "https://example.com/volunteer/signup" in content
+
 
 @pytest.mark.django_db
 class TestApproveAction:

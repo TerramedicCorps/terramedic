@@ -168,6 +168,23 @@ class TestValidateUrl:
         with pytest.raises(ValueError, match="scheme"):
             _validate_url("ftp://example.org")
 
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "http://127.0.0.1/admin",  # private IP literal
+            "http://intranet.internal/admin",  # local TLD
+            "https://user:pass@example.org",  # embedded credentials
+        ],
+    )
+    def test_rejects_non_public_org_url(self, url: str) -> None:
+        """The nominated URL is stamped verbatim into website_url, which
+        the schema then validates with is_safe_web_url. Rejecting these
+        at intake avoids burning a model call (plus its retry) on a URL
+        the model cannot fix — the entry check must match the schema
+        check, not just require an http(s) scheme + netloc."""
+        with pytest.raises(ValueError, match="public"):
+            _validate_url(url)
+
 
 class TestUrlToSlug:
     def test_simple_domain(self) -> None:
@@ -472,7 +489,8 @@ class TestEvaluateOrgViaClaudeCode:
             "type": "result",
             "subtype": "success",
             "is_error": is_error,
-            "result": json.dumps(payload),
+            "result": "",
+            "structured_output": payload,
             "total_cost_usd": 0.001,
             "duration_ms": 12345,
             "duration_api_ms": 6789,
@@ -541,6 +559,61 @@ class TestEvaluateOrgViaClaudeCode:
         model_idx = captured_cmd.index("--model")
         assert captured_cmd[model_idx + 1] == "sonnet"
 
+    def test_passes_json_schema_to_cli(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """``--json-schema`` constrains the CLI to emit schema-conforming
+        JSON, which fixes the two failure modes seen in production runs:
+        omitted required fields (e.g. ``evidence_score``) and bare prose
+        with no JSON object. The schema must drop fields the curation
+        layer injects post-call (``evaluated_at``, ``evaluated_by``,
+        ``prompt_version``, ``duration_ms``, ``evaluation_history``) so
+        the CLI doesn't reject valid model output for missing them."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        eval_payload = _make_valid_evaluation()
+        del eval_payload["evaluated_at"]
+        del eval_payload["evaluated_by"]
+
+        captured_cmd: list[str] = []
+
+        def fake_run(cmd: list[str], **_kw: Any) -> MagicMock:
+            captured_cmd.extend(cmd)
+            return self._fake_subprocess_result(eval_payload)
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        evaluate_org_via_claude_code(
+            "https://example.org",
+            model="sonnet",
+        )
+
+        assert "--json-schema" in captured_cmd
+        schema_idx = captured_cmd.index("--json-schema")
+        schema_json = captured_cmd[schema_idx + 1]
+        schema = json.loads(schema_json)
+        # Programmatic fields must be stripped from BOTH ``required`` and
+        # ``properties``. JSON Schema validates a property if it's
+        # present, so leaving e.g. ``evaluated_at`` in ``properties``
+        # with ``format: date-time`` would let the CLI reject otherwise
+        # valid output if the model emitted a non-ISO value there.
+        programmatic = {
+            "evaluated_at", "evaluated_by", "prompt_version",
+            "duration_ms", "evaluation_history",
+        }
+        assert programmatic.isdisjoint(schema.get("required", []))
+        assert programmatic.isdisjoint(schema.get("properties", {}).keys())
+        # But the core required fields must still be enforced — these
+        # are exactly the ones we saw the model omit in prod runs.
+        assert "evidence_score" in schema["required"]
+        assert "curator_notes" in schema["required"]
+        assert "org_metadata" in schema["required"]
+        # Claude Code <2.1.205 silently ignores schemas containing a
+        # ``format`` keyword. Local validation still enforces URI/date
+        # formats, so the CLI view must strip them recursively.
+        assert '"format"' not in schema_json
+
     def test_extracts_evaluation_from_envelope(
         self, monkeypatch: pytest.MonkeyPatch,
     ) -> None:
@@ -560,6 +633,35 @@ class TestEvaluateOrgViaClaudeCode:
             "https://example.org",
             model="sonnet",
         )
+
+        assert result["org_metadata"]["name"] == "Test Org"
+
+    def test_falls_back_to_legacy_result_field(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Older CLIs that ignore ``--json-schema`` return only result."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        payload = _make_valid_evaluation()
+        payload.pop("evaluated_at")
+        payload.pop("evaluated_by")
+        envelope = {
+            "type": "result",
+            "subtype": "success",
+            "is_error": False,
+            "result": json.dumps(payload),
+            "duration_ms": 12345,
+            "usage": {},
+        }
+        process = MagicMock(
+            returncode=0,
+            stdout=json.dumps(envelope),
+            stderr="",
+        )
+        monkeypatch.setattr("subprocess.run", lambda *_a, **_kw: process)
+
+        result = evaluate_org_via_claude_code("https://example.org")
 
         assert result["org_metadata"]["name"] == "Test Org"
 
@@ -972,7 +1074,7 @@ class TestEvaluateOrgViaClaudeCode:
 
         monkeypatch.setattr("subprocess.run", fake_run)
 
-        with pytest.raises(ValueError, match="no 'result' field"):
+        with pytest.raises(ValueError, match="neither a structured output"):
             evaluate_org_via_claude_code(
                 "https://example.org",
                 model="sonnet",
@@ -1023,6 +1125,334 @@ class TestEvaluateOrgViaClaudeCode:
                 model="sonnet",
             )
 
+    def test_retries_once_on_schema_validation_failure(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A first response missing required fields gets one retry with
+        the validation error fed back to the model. Bounded retry —
+        defense in depth on top of ``--json-schema``."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+
+        # Valid except for exactly one missing required field, so the
+        # validator's message deterministically names it and the retry
+        # prompt can be checked for that exact feedback.
+        invalid = _make_valid_evaluation()
+        del invalid["evidence_score"]
+        valid = _make_valid_evaluation()
+        del valid["evaluated_at"]
+        del valid["evaluated_by"]
+
+        responses = iter([
+            self._fake_subprocess_result(invalid),
+            self._fake_subprocess_result(valid),
+        ])
+        captured_prompts: list[str] = []
+
+        def fake_run(cmd: list[str], **_kw: Any) -> MagicMock:
+            # Capture the user prompt (-p arg) to verify retry includes
+            # the validation error as feedback.
+            p_idx = cmd.index("-p")
+            captured_prompts.append(cmd[p_idx + 1])
+            return next(responses)
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        result = evaluate_org_via_claude_code(
+            "https://example.org",
+            model="sonnet",
+        )
+
+        assert result["org_metadata"]["name"] == "Test Org"
+        assert len(captured_prompts) == 2
+        # Retry prompt must include the validator's actual error — a
+        # generic "try again" that drops the feedback would not tell
+        # the model what to fix. The stubbed user message contains no
+        # schema text, so the field name can only arrive via the
+        # fed-back error.
+        assert "previous" in captured_prompts[1].lower()
+        assert "evidence_score" in captured_prompts[1]
+
+    def test_retries_once_when_nested_shape_cannot_be_normalized(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Wrong nested types are model-output errors, not hard crashes."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        malformed = {"org_metadata": None}
+        valid = _make_valid_evaluation()
+        valid.pop("evaluated_at")
+        valid.pop("evaluated_by")
+        responses = iter([
+            self._fake_subprocess_result(malformed),
+            self._fake_subprocess_result(valid),
+        ])
+        call_count = 0
+
+        def fake_run(*_a: Any, **_kw: Any) -> MagicMock:
+            nonlocal call_count
+            call_count += 1
+            return next(responses)
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        result = evaluate_org_via_claude_code("https://example.org")
+
+        assert result["org_metadata"]["name"] == "Test Org"
+        assert call_count == 2
+
+    def test_retries_once_on_empty_cli_result(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A well-formed CLI envelope whose ``result`` is empty is a
+        model-output failure (the model produced nothing), so it gets
+        the same single retry as unparseable JSON — not an immediate
+        failure. This is the "bare prose / no output" production
+        failure mode the retry was built for."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+
+        valid = _make_valid_evaluation()
+        del valid["evaluated_at"]
+        del valid["evaluated_by"]
+
+        empty_envelope = {"is_error": False, "result": "", "usage": {}}
+        empty_result = MagicMock()
+        empty_result.returncode = 0
+        empty_result.stdout = json.dumps(empty_envelope)
+        empty_result.stderr = ""
+
+        responses = iter([
+            empty_result, self._fake_subprocess_result(valid),
+        ])
+        call_count = [0]
+
+        def fake_run(*_a: Any, **_kw: Any) -> MagicMock:
+            call_count[0] += 1
+            return next(responses)
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        result = evaluate_org_via_claude_code(
+            "https://example.org",
+            model="sonnet",
+        )
+
+        assert result["org_metadata"]["name"] == "Test Org"
+        assert call_count[0] == 2
+
+    def test_retries_once_on_extract_json_failure(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A first response with no parseable JSON gets one retry."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+
+        valid = _make_valid_evaluation()
+        del valid["evaluated_at"]
+        del valid["evaluated_by"]
+
+        # First call returns prose with no JSON object — extract_json
+        # raises ValueError. Second call returns a clean envelope.
+        bad_envelope = {
+            "is_error": False,
+            "result": "Sorry, I cannot evaluate this organization.",
+            "usage": {},
+        }
+        bad_result = MagicMock()
+        bad_result.returncode = 0
+        bad_result.stdout = json.dumps(bad_envelope)
+        bad_result.stderr = ""
+
+        responses = iter([bad_result, self._fake_subprocess_result(valid)])
+
+        monkeypatch.setattr(
+            "subprocess.run",
+            lambda *_a, **_kw: next(responses),
+        )
+
+        result = evaluate_org_via_claude_code(
+            "https://example.org",
+            model="sonnet",
+        )
+
+        assert result["org_metadata"]["name"] == "Test Org"
+
+    def test_raises_after_retry_also_fails(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """If the retry response is also invalid, raise — we don't loop
+        forever burning Max minutes on a stuck model."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        invalid = {"org_metadata": {"name": "Test"}}
+
+        call_count = [0]
+
+        def fake_run(*_a: Any, **_kw: Any) -> MagicMock:
+            call_count[0] += 1
+            return self._fake_subprocess_result(invalid)
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        with pytest.raises(ValueError, match="Claude Code output"):
+            evaluate_org_via_claude_code(
+                "https://example.org",
+                model="sonnet",
+            )
+
+        # Exactly one retry — original call + 1 retry = 2 invocations.
+        assert call_count[0] == 2
+
+    def test_no_retry_on_cli_runtime_error(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Retry is for model output issues only. A CLI/auth/network
+        failure is not something the model can fix, so don't waste a
+        round-trip retrying it."""
+        from curation.evaluate import evaluate_org_via_claude_code
+
+        self._patch_build_user_message(monkeypatch)
+        eval_payload = _make_valid_evaluation()
+
+        call_count = [0]
+
+        def fake_run(*_a: Any, **_kw: Any) -> MagicMock:
+            call_count[0] += 1
+            return self._fake_subprocess_result(
+                eval_payload, is_error=True,
+            )
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        with pytest.raises(RuntimeError, match="CLI reported error"):
+            evaluate_org_via_claude_code(
+                "https://example.org",
+                model="sonnet",
+            )
+
+        assert call_count[0] == 1
+
+    def _stamped_payload(self, **org_overrides: Any) -> dict[str, Any]:
+        payload = _make_valid_evaluation()
+        for field in (
+            "evaluated_at", "evaluated_by", "prompt_version",
+            "duration_ms", "evaluation_history",
+        ):
+            payload.pop(field, None)
+        payload["org_metadata"].update(org_overrides)
+        return payload
+
+    def test_donate_action_url_uses_nominated_url_when_model_omits_website(
+        self,
+    ) -> None:
+        """501(c)(3): even when the model omits ``website_url`` *and*
+        returns a third-party donation deep link, the persisted donate
+        ``action_url`` must be the nominated homepage — never the deep
+        link. The pipeline stamps the authoritative homepage before
+        normalization, so the compliance rewrite always has a value."""
+        from curation.evaluate import _parse_and_stamp_response
+
+        payload = self._stamped_payload()
+        payload["org_metadata"].pop("website_url", None)  # model omitted it
+        payload["category_copy"] = [
+            {
+                "slug": "donate",
+                "description": "Fund us",
+                "action_text": "Donate",
+                "action_url": "https://elsewhere.example/give-now",
+            },
+        ]
+
+        result = _parse_and_stamp_response(
+            json.dumps(payload),
+            url="https://nominee.org/local-chapter",
+            duration_ms=100,
+            evaluated_by="claude-code:sonnet",
+            source="Claude Code output",
+        )
+
+        donate = next(
+            c for c in result["category_copy"] if c["slug"] == "donate"
+        )
+        assert donate["action_url"] == "https://nominee.org/local-chapter"
+        assert (
+            result["org_metadata"]["website_url"]
+            == "https://nominee.org/local-chapter"
+        )
+
+    def test_donate_action_url_matches_persisted_website_not_model_value(
+        self,
+    ) -> None:
+        """When the model normalizes ``website_url`` to the domain root
+        but a subpage was nominated, the donate CTA must equal the
+        *persisted* ``website_url`` (the nominated URL), not the model's
+        value — otherwise a later admin ``full_clean()`` rejects the row
+        because ``action_url != organization.website_url``."""
+        from curation.evaluate import _parse_and_stamp_response
+
+        payload = self._stamped_payload(website_url="https://nominee.org")
+        payload["category_copy"] = [
+            {
+                "slug": "donate",
+                "description": "Fund us",
+                "action_text": "Donate",
+                "action_url": "https://nominee.org",
+            },
+        ]
+
+        result = _parse_and_stamp_response(
+            json.dumps(payload),
+            url="https://nominee.org/local-chapter",
+            duration_ms=100,
+            evaluated_by="claude-code:sonnet",
+            source="Claude Code output",
+        )
+
+        donate = next(
+            c for c in result["category_copy"] if c["slug"] == "donate"
+        )
+        assert donate["action_url"] == result["org_metadata"]["website_url"]
+        assert donate["action_url"] == "https://nominee.org/local-chapter"
+
+    def test_does_not_mutate_caller_supplied_structured_output(self) -> None:
+        """When the CLI hands over the parsed ``structured_output`` dict,
+        stamping and donate normalization must not leak back into the
+        caller's object. A shallow copy leaves nested ``org_metadata`` and
+        ``category_copy`` shared, so the homepage stamp and the donate
+        deep-link rewrite would silently corrupt the envelope the caller
+        still holds."""
+        from curation.evaluate import _parse_and_stamp_response
+
+        supplied = self._stamped_payload(website_url="https://nominee.org")
+        supplied["category_copy"] = [
+            {
+                "slug": "donate",
+                "description": "Fund us",
+                "action_text": "Donate",
+                "action_url": "https://elsewhere.example/give-now",
+            },
+        ]
+
+        _parse_and_stamp_response(
+            supplied,
+            url="https://nominee.org/local-chapter",
+            duration_ms=100,
+            evaluated_by="claude-code:sonnet",
+            source="Claude Code output",
+        )
+
+        assert supplied["org_metadata"]["website_url"] == "https://nominee.org"
+        assert (
+            supplied["category_copy"][0]["action_url"]
+            == "https://elsewhere.example/give-now"
+        )
+
 
 class TestValidateAgainstSchema:
     """Error-path coverage for the shared schema validation helper."""
@@ -1045,6 +1475,166 @@ class TestValidateAgainstSchema:
         with pytest.raises(RuntimeError, match="jsonschema"):
             _validate_against_schema({}, source="Output")
 
+    def test_rejects_unsafe_http_action_url_beyond_pattern(self) -> None:
+        """The ``action_url`` node pairs an ``^https?://`` pattern with
+        ``format: uri``. The pattern only checks the scheme prefix, so an
+        ``http(s)`` URL with a local/private host (here ``localhost``)
+        clears the pattern and must still be rejected by the runtime
+        safety validation. A bare label like ``"Volunteer"`` would fail
+        the pattern alone and so could not discriminate the safety layer;
+        the ``uri`` format checker is isolated on its own — on a
+        pattern-free ``format: uri`` field — in
+        ``test_rejects_unsafe_citation_url_anywhere_in_response``."""
+        from curation.evaluate import _validate_against_schema
+
+        payload = _make_valid_evaluation()
+        payload["category_copy"] = [
+            {
+                "slug": "volunteer",
+                "description": "Sign up",
+                "action_text": "Volunteer",
+                # Valid http(s) prefix (clears the pattern), unsafe host.
+                "action_url": "https://localhost/volunteer",
+            },
+        ]
+
+        with pytest.raises(ValueError, match="schema validation"):
+            _validate_against_schema(payload, source="Output")
+
+    def test_accepts_well_formed_action_url_at_runtime(self) -> None:
+        """Counterpart guard: enabling the format checker must not
+        false-reject a fully-qualified URL."""
+        from curation.evaluate import _validate_against_schema
+
+        payload = _make_valid_evaluation()
+        payload["category_copy"] = [
+            {
+                "slug": "volunteer",
+                "description": "Sign up",
+                "action_text": "Volunteer",
+                "action_url": "https://example.org/volunteer/signup",
+            },
+        ]
+
+        _validate_against_schema(payload, source="Output")  # must not raise
+
+    def test_accepts_action_url_on_org_subdomain(self) -> None:
+        """An org-owned jobs/volunteer subdomain is a valid destination."""
+        from curation.evaluate import _validate_against_schema
+
+        payload = _make_valid_evaluation()
+        payload["category_copy"] = [{
+            "slug": "career",
+            "description": "Find roles",
+            "action_text": "Browse jobs",
+            "action_url": "https://jobs.example.org/openings",
+        }]
+
+        _validate_against_schema(payload, source="Output")
+
+    @pytest.mark.parametrize(
+        "action_url",
+        [
+            "https://evil.example/phish",
+            "http://127.0.0.1:3000/admin",
+            "http://intranet/admin",
+            "https://example.org@evil.example/phish",
+        ],
+    )
+    def test_rejects_action_url_outside_public_org_site(
+        self, action_url: str,
+    ) -> None:
+        """Model output must not turn public CTAs into phishing/local links."""
+        from curation.evaluate import _validate_against_schema
+
+        payload = _make_valid_evaluation()
+        payload["category_copy"] = [{
+            "slug": "volunteer",
+            "description": "Sign up",
+            "action_text": "Volunteer",
+            "action_url": action_url,
+        }]
+
+        with pytest.raises(ValueError, match="schema validation"):
+            _validate_against_schema(payload, source="Output")
+
+    @pytest.mark.parametrize(
+        "evaluated_at",
+        [
+            "not-a-date-time",  # unparseable
+            "2026-04-04T12:00:00",  # parseable but timezone-naive
+        ],
+    )
+    def test_rejects_non_rfc3339_datetime(self, evaluated_at: str) -> None:
+        """The local ``date-time`` checker requires a real RFC3339 stamp
+        with an explicit UTC offset. The timezone-naive case is the
+        discriminating one: a degenerate checker that only called
+        ``fromisoformat`` (dropping the ``tzinfo is not None`` guard)
+        would wrongly accept ``2026-04-04T12:00:00`` — a stock RFC3339
+        checker or the unparseable case would not surface that gap."""
+        from curation.evaluate import _validate_against_schema
+
+        payload = _make_valid_evaluation()
+        payload["evaluated_at"] = evaluated_at
+
+        with pytest.raises(ValueError, match="schema validation"):
+            _validate_against_schema(payload, source="Output")
+
+    @pytest.mark.parametrize(
+        "action_url",
+        [
+            "javascript:alert(document.domain)",
+            "data:text/html,owned",
+            "mailto:volunteer@example.org",
+        ],
+    )
+    def test_rejects_non_web_action_url_schemes(
+        self, action_url: str,
+    ) -> None:
+        """Only browser-safe HTTP(S) destinations may reach card hrefs."""
+        from curation.evaluate import _validate_against_schema
+
+        payload = _make_valid_evaluation()
+        payload["category_copy"] = [{
+            "slug": "volunteer",
+            "description": "Sign up",
+            "action_text": "Volunteer",
+            "action_url": action_url,
+        }]
+
+        with pytest.raises(ValueError, match="schema validation"):
+            _validate_against_schema(payload, source="Output")
+
+    @pytest.mark.parametrize(
+        "citation_url",
+        [
+            "http://127.0.0.1/internal-report",  # private IP literal
+            "sources/refs.pdf",  # partial path, not a URL
+            "https://user:pass@example.org/report",  # embedded credentials
+        ],
+    )
+    def test_rejects_unsafe_citation_url_anywhere_in_response(
+        self, citation_url: str,
+    ) -> None:
+        """Intended strictness: the ``uri`` format checker enforces
+        ``is_safe_web_url`` on *every* ``format: uri`` field, not just the
+        rendered ``action_url``. A malformed or non-public citation URL —
+        the kind a model hallucinates for an evidence source — fails the
+        whole-response validation, so an otherwise-good evaluation is
+        retried (and, if it recurs, dropped) rather than persisted with a
+        junk source link. This pins that global policy so a future
+        loosening of the checker's scope is a deliberate, visible change.
+        """
+        from curation.evaluate import _validate_against_schema
+
+        payload = _make_valid_evaluation()
+        payload["org_metadata"]["verification_sources"] = [
+            {"name": "Annual report", "url": citation_url},
+        ]
+
+        with pytest.raises(ValueError, match="schema validation"):
+            _validate_against_schema(payload, source="Output")
+
 
 class TestCategoryCopyInSchema:
     """``category_copy`` is a top-level required field. Per-category
@@ -1056,13 +1646,13 @@ class TestCategoryCopyInSchema:
         schema = _load_schema()
         assert "category_copy" in schema["required"]
 
-    def test_category_copy_item_requires_slug_description_action_text(
+    def test_category_copy_item_requires_slug_description_action_text_and_url(
         self,
     ) -> None:
         schema = _load_schema()
         item_schema = schema["properties"]["category_copy"]["items"]
         assert set(item_schema["required"]) == {
-            "slug", "description", "action_text",
+            "slug", "description", "action_text", "action_url",
         }
 
     def test_category_copy_slug_matches_canonical_categories(self) -> None:
@@ -1086,6 +1676,28 @@ class TestCategoryCopyInSchema:
             "properties"
         ]["action_text"]
         assert at_schema["maxLength"] <= 80
+
+    def test_action_url_is_required(self) -> None:
+        """Each category_copy entry must point to a specific page that
+        supports its action_text — otherwise the CTA card has nowhere
+        to send the reader."""
+        schema = _load_schema()
+        item_schema = schema["properties"]["category_copy"]["items"]
+        assert "action_url" in item_schema["required"]
+        assert "action_url" in item_schema["properties"]
+
+    def test_action_url_format_is_uri(self) -> None:
+        """Models love to return labels or partial paths — enforce
+        ``format: uri`` so schema validation catches anything that
+        isn't a fully-qualified URL."""
+        schema = _load_schema()
+        au_schema = schema["properties"]["category_copy"]["items"][
+            "properties"
+        ]["action_url"]
+        assert au_schema["type"] == "string"
+        assert au_schema["format"] == "uri"
+        assert au_schema["pattern"].endswith("://")
+        assert au_schema["maxLength"] == 500
 
     def test_prompt_instructs_model_on_category_copy(self) -> None:
         """The model has to know to produce category_copy; embedding
@@ -1188,6 +1800,132 @@ class TestCleanResponse:
         assert "year_founded" not in data["org_metadata"]
         assert "region" not in data["org_metadata"]
         assert data["org_metadata"]["name"] == "Test"
+
+    def test_donate_action_url_overridden_to_homepage(self) -> None:
+        """501(c)(3) compliance: Terramedic must not deep-link into
+        another org's donation flow because that functionally
+        constitutes solicitation. The donate slug's action_url is
+        unconditionally rewritten to the org's homepage regardless of
+        what the model returned."""
+        data: dict[str, Any] = {
+            "org_metadata": {
+                "name": "Test",
+                "website_url": "https://example.org",
+            },
+            "category_copy": [
+                {
+                    "slug": "donate",
+                    "description": "Funds X",
+                    "action_text": "Donate",
+                    "action_url": "https://example.org/donate/give-now",
+                },
+            ],
+            "evidence_of_work": [],
+        }
+        _clean_response(data)
+        assert (
+            data["category_copy"][0]["action_url"]
+            == "https://example.org"
+        )
+
+    def test_donate_action_url_set_when_model_omitted_it(self) -> None:
+        """If the model returned a donate entry without action_url,
+        the override still fills it with the homepage so the schema
+        validator post-clean doesn't reject the response."""
+        data: dict[str, Any] = {
+            "org_metadata": {
+                "name": "Test",
+                "website_url": "https://example.org",
+            },
+            "category_copy": [
+                {
+                    "slug": "donate",
+                    "description": "Funds X",
+                    "action_text": "Donate",
+                },
+            ],
+            "evidence_of_work": [],
+        }
+        _clean_response(data)
+        assert (
+            data["category_copy"][0]["action_url"]
+            == "https://example.org"
+        )
+
+    def test_non_donate_action_url_preserved(self) -> None:
+        """Volunteer/career/etc. action_urls come from the model and
+        should land on a specific subpage. Don't normalize them."""
+        data: dict[str, Any] = {
+            "org_metadata": {
+                "name": "Test",
+                "website_url": "https://example.org",
+            },
+            "category_copy": [
+                {
+                    "slug": "volunteer",
+                    "description": "Sign up",
+                    "action_text": "Volunteer",
+                    "action_url": "https://example.org/volunteer/signup",
+                },
+                {
+                    "slug": "career",
+                    "description": "Find roles",
+                    "action_text": "Browse jobs",
+                    "action_url": "https://example.org/jobs",
+                },
+            ],
+            "evidence_of_work": [],
+        }
+        _clean_response(data)
+        assert (
+            data["category_copy"][0]["action_url"]
+            == "https://example.org/volunteer/signup"
+        )
+        assert (
+            data["category_copy"][1]["action_url"]
+            == "https://example.org/jobs"
+        )
+
+    def test_donate_action_url_removed_when_homepage_missing(
+        self, caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """If no homepage is available to substitute, the model's donate
+        ``action_url`` must be dropped, not preserved: an unverified
+        third-party donation link must never survive. Removing the
+        required ``action_url`` makes schema validation reject the whole
+        response, so the pipeline fails loudly (and retries) rather than
+        publishing a deep donation link."""
+        data: dict[str, Any] = {
+            "org_metadata": {"name": "Test"},
+            "category_copy": [
+                {
+                    "slug": "donate",
+                    "description": "Funds X",
+                    "action_text": "Donate",
+                    "action_url": "https://elsewhere.example/give",
+                },
+            ],
+            "evidence_of_work": [],
+        }
+        with caplog.at_level(logging.WARNING):
+            _clean_response(data)
+        # Deep link dropped — not left in place for publication.
+        assert "action_url" not in data["category_copy"][0]
+        assert any(
+            "donate" in rec.message.lower()
+            and "homepage" in rec.message.lower()
+            for rec in caplog.records
+        )
+
+    def test_clean_response_handles_missing_category_copy(self) -> None:
+        """``category_copy`` is required by the schema, but
+        ``_clean_response`` runs *before* validation and must not
+        crash on a partial response."""
+        data: dict[str, Any] = {
+            "org_metadata": {"website_url": "https://example.org"},
+            "evidence_of_work": [],
+        }
+        _clean_response(data)  # should not raise
 
 
 class TestHtmlToText:
@@ -1350,7 +2088,8 @@ class TestUrlResolvesToPublic:
             "10.0.0.1",
             "192.168.1.1",
             "0.0.0.0",
-            "224.0.0.1",  # multicast
+            "224.0.0.1",  # IPv4 multicast
+            "ff02::1",  # IPv6 link-local multicast (is_global is True)
             "::1",
         ],
     )

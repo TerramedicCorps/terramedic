@@ -328,7 +328,10 @@ class TestPerCategoryDescriptionAndActionText:
         volunteer_entry.set_current_language("en")
         volunteer_entry.description = "Join a local lobby day."
         volunteer_entry.action_text = "Find a chapter"
+        volunteer_entry.action_url = "https://citizensclimatelobby.org/chapters/"
         volunteer_entry.save()
+        # donate_entry.action_url intentionally left blank to exercise the
+        # website_url fallback.
 
         return org
 
@@ -341,6 +344,92 @@ class TestPerCategoryDescriptionAndActionText:
         assert len(data) == 1
         assert data[0]["description"] == "Fund climate lobbying at scale."
         assert data[0]["action_text"] == "Donate to CCL"
+
+    def test_category_filter_returns_per_category_action_url(
+        self, client: Client, two_pathway_org: Organization,
+    ) -> None:
+        """A populated action_url on the matching row surfaces in the
+        response so the CTA card deep-links to the pathway-specific
+        page."""
+        response = client.get("/api/organizations/?category=volunteer")
+        data = response.json()
+        assert (
+            data[0]["action_url"]
+            == "https://citizensclimatelobby.org/chapters/"
+        )
+
+    def test_action_url_falls_back_to_website_url_when_blank(
+        self, client: Client, two_pathway_org: Organization,
+    ) -> None:
+        """A blank per-category action_url falls back to the org's
+        website_url so the card always has somewhere to send the reader.
+        For the donate slug this fallback is also the 501(c)(3)-compliant
+        homepage."""
+        response = client.get("/api/organizations/?category=donate")
+        data = response.json()
+        assert data[0]["action_url"] == "https://citizensclimatelobby.org/"
+        assert data[0]["action_url"] == two_pathway_org.website_url
+
+    def test_unsafe_stored_action_url_falls_back_to_website_url(
+        self, client: Client, two_pathway_org: Organization,
+    ) -> None:
+        """The API must not expose a script URL even if save bypassed clean."""
+        entry = OrganizationCategory.objects.get(
+            organization=two_pathway_org,
+            category_id="volunteer",
+        )
+        entry.set_current_language("en")
+        entry.action_url = "javascript:alert(document.domain)"
+        entry.save()  # Deliberately bypass full_clean to test read defense.
+
+        response = client.get("/api/organizations/?category=volunteer")
+
+        assert response.json()[0]["action_url"] == two_pathway_org.website_url
+
+    def test_cross_site_stored_action_url_falls_back_to_website_url(
+        self, client: Client, two_pathway_org: Organization,
+    ) -> None:
+        """Read defense blocks links that bypassed model ``full_clean``."""
+        entry = OrganizationCategory.objects.get(
+            organization=two_pathway_org,
+            category_id="volunteer",
+        )
+        entry.set_current_language("en")
+        entry.action_url = "https://evil.example/phish"
+        entry.save()
+
+        response = client.get("/api/organizations/?category=volunteer")
+
+        assert response.json()[0]["action_url"] == two_pathway_org.website_url
+
+    def test_same_site_deep_donate_link_falls_back_to_homepage(
+        self, client: Client, two_pathway_org: Organization,
+    ) -> None:
+        """501(c)(3) read defense: a same-site *deep* donate link that
+        bypassed model ``clean`` (raw ``save``, migration, future write
+        path) must not surface as the donate CTA. ``is_same_site_web_url``
+        ignores the path, so only slug-aware override catches this — the
+        homepage is the sole compliant donate target."""
+        entry = OrganizationCategory.objects.get(
+            organization=two_pathway_org,
+            category_id="donate",
+        )
+        entry.set_current_language("en")
+        entry.action_url = "https://citizensclimatelobby.org/donate/give-now"
+        entry.save()  # Deliberately bypass full_clean to test read defense.
+
+        response = client.get("/api/organizations/?category=donate")
+
+        assert response.json()[0]["action_url"] == two_pathway_org.website_url
+
+    def test_unfiltered_list_returns_empty_action_url(
+        self, client: Client, two_pathway_org: Organization,
+    ) -> None:
+        """Without a category filter there is no pathway context, so
+        action_url stays empty even when a through row has one."""
+        response = client.get("/api/organizations/")
+        data = response.json()
+        assert data[0]["action_url"] == ""
 
     def test_same_org_returns_different_copy_under_different_pathways(
         self, client: Client, two_pathway_org: Organization,
@@ -470,6 +559,82 @@ class TestPerCategoryDescriptionAndActionText:
         data = response.json()
         assert data[0]["description"] == "Financez notre travail."
         assert data[0]["action_text"] == "Faire un don"
+
+    def test_blank_localized_action_url_falls_back_to_english(
+        self, client: Client,
+    ) -> None:
+        """A translated label must not discard the default-language URL."""
+        org = Organization(
+            name="Bilingual Volunteer Org",
+            website_url="https://example.org/",
+        )
+        org.set_current_language("en")
+        org.description = "General."
+        org.save()
+        entry = OrganizationCategory.objects.create(
+            organization=org,
+            category=Category.objects.get(slug="volunteer"),
+        )
+        entry.set_current_language("en")
+        entry.description = "Join the team."
+        entry.action_text = "Sign up"
+        entry.action_url = "https://example.org/volunteer/signup"
+        entry.set_current_language("fr")
+        entry.description = "Rejoignez l'équipe."
+        entry.action_text = "S'inscrire"
+        entry.action_url = ""
+        entry.save()
+
+        response = client.get(
+            "/api/organizations/?category=volunteer",
+            headers={"Accept-Language": "fr"},
+        )
+
+        assert (
+            response.json()[0]["action_url"]
+            == "https://example.org/volunteer/signup"
+        )
+
+    def test_blank_localized_description_and_action_text_fall_back(
+        self, client: Client,
+    ) -> None:
+        """A present-but-blank localized field falls back to the
+        default-language per-category value — the same non-blank
+        preference that protects action_url applies to description and
+        action_text. Without it, a blank French label would blank the
+        per-category copy back to the general org description / category
+        default rather than the English pathway copy."""
+        org = Organization(
+            name="Bilingual Blank-Field Org",
+            website_url="https://example.org/",
+        )
+        org.set_current_language("en")
+        org.description = "General org blurb."
+        org.save()
+        entry = OrganizationCategory.objects.create(
+            organization=org,
+            category=Category.objects.get(slug="donate"),
+        )
+        entry.set_current_language("en")
+        entry.description = "Fund climate lobbying at scale."
+        entry.action_text = "Give today"
+        entry.set_current_language("fr")
+        entry.description = ""
+        entry.action_text = ""
+        entry.action_url = "https://example.org/fr/donner"
+        entry.save()
+
+        response = client.get(
+            "/api/organizations/?category=donate",
+            headers={"Accept-Language": "fr"},
+        )
+        data = response.json()
+        # English per-category values, not the general org description
+        # ("General org blurb.") or the category default action_text
+        # ("Learn more"), which is what a bare active-language return
+        # would surface.
+        assert data[0]["description"] == "Fund climate lobbying at scale."
+        assert data[0]["action_text"] == "Give today"
 
     def test_per_category_copy_falls_back_to_english_for_missing_lang(
         self, client: Client,

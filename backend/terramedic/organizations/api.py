@@ -12,6 +12,10 @@ from django.utils.translation import get_language
 from ninja import Query, Router
 from ninja.errors import HttpError
 
+from terramedic.core.web_urls import (
+    is_safe_web_url,
+    is_same_site_web_url,
+)
 from terramedic.organizations.models import (
     Organization,
     OrganizationCategory,
@@ -21,15 +25,20 @@ from terramedic.organizations.schemas import OrganizationOut
 router = Router()
 
 
+def _safe_web_url(value: str) -> str:
+    """Return *value* only when it is a public, credential-free web URL."""
+    return value if is_safe_web_url(value) else ""
+
+
 def _translated(
     entry: OrganizationCategory, field: str,
 ) -> str:
     """Pull a translated field off the prefetched through row.
 
-    Prefers the active language (django-parler honors
+    Prefers a non-blank value in the active language (django-parler honors
     ``Accept-Language`` via middleware); falls back to the project's
-    ``LANGUAGE_CODE`` when absent so default-language content isn't
-    silently dropped for non-matching requests. Following
+    ``LANGUAGE_CODE`` when the translation or field is absent so
+    default-language content isn't silently dropped. Following
     ``settings.LANGUAGE_CODE`` (rather than a hardcoded ``"en"``)
     means if the project's default language ever changes, this
     follows along without a code edit.
@@ -39,7 +48,9 @@ def _translated(
     translations = list(entry.translations.all())  # type: ignore[attr-defined]
     for translation in translations:
         if translation.language_code == active:
-            return str(getattr(translation, field, "") or "")
+            value = str(getattr(translation, field, "") or "")
+            if value:
+                return value
     if fallback != active:
         for translation in translations:
             if translation.language_code == fallback:
@@ -54,22 +65,32 @@ def _serialize_org(
     """Serialize an org to the public schema shape.
 
     When *category_slug* is provided, prefer the per-(org, category)
-    translated description and action_text. Effective action_text
-    precedence:
+    translated description, action_text, and action_url. Effective
+    action_text precedence:
 
       1. ``OrganizationCategory.action_text`` (translated).
       2. ``Category.default_action_text``.
       3. empty string — frontend decides.
 
+    ``action_url`` falls back to ``org.website_url`` when the
+    per-category row is blank, so cards always have somewhere to send
+    the reader. For the donate slug the homepage is forced
+    unconditionally here (not merely as a blank fallback): the
+    501(c)(3) rule is also enforced upstream in curation + admin
+    ``clean()``, but this read-path override closes the gap for any
+    stored value that bypassed those write paths.
+
     When *category_slug* is ``None`` (multi-category contexts like the
     nearby map or unfiltered listing), the general
-    ``org.description`` is returned and ``action_text`` stays empty.
+    ``org.description`` is returned and ``action_text`` /
+    ``action_url`` stay empty.
     """
     entries: list[OrganizationCategory] = list(
         org.category_entries.all(),  # type: ignore[attr-defined]
     )
     description = org.description
     action_text = ""
+    action_url = ""
     sort_order = org.sort_order
 
     if category_slug:
@@ -84,6 +105,18 @@ def _serialize_org(
             action_text = _translated(entry, "action_text")
             if not action_text:
                 action_text = entry.category.default_action_text
+            candidate_url = _translated(entry, "action_url")
+            action_url = (
+                candidate_url
+                if is_same_site_web_url(candidate_url, org.website_url)
+                else ""
+            )
+            if not action_url or category_slug == "donate":
+                # 501(c)(3): the donate CTA must always resolve to the
+                # homepage. ``is_same_site_web_url`` ignores the path, so a
+                # same-site deep link that bypassed model ``clean`` would
+                # otherwise pass; force the homepage here regardless.
+                action_url = _safe_web_url(org.website_url)
             sort_order = entry.sort_order
 
     return {
@@ -91,6 +124,7 @@ def _serialize_org(
         "name": org.name,
         "description": description,
         "action_text": action_text,
+        "action_url": action_url,
         "website_url": org.website_url,
         "image_url": org.image_url,
         "categories": sorted(e.category_id for e in entries),

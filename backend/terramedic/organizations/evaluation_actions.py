@@ -58,7 +58,8 @@ def _category_copy_index(
 ) -> dict[str, dict[str, str]]:
     """Index ``category_copy`` entries by slug.
 
-    Returns a dict ``{slug: {"description": ..., "action_text": ...}}``.
+    Returns a dict
+    ``{slug: {"description": ..., "action_text": ..., "action_url": ...}}``.
     Malformed entries (not a dict, missing/non-string slug) are
     skipped with a WARN log — the through-model row falls back to
     blank copy, but the log makes curation-pipeline bugs visible
@@ -86,6 +87,7 @@ def _category_copy_index(
         index[slug] = {
             "description": str(entry.get("description") or ""),
             "action_text": str(entry.get("action_text") or ""),
+            "action_url": str(entry.get("action_url") or ""),
         }
     return index
 
@@ -94,10 +96,19 @@ def _write_category_copy(
     through: OrganizationCategory,
     copy: dict[str, str],
 ) -> None:
-    """Populate the through row's translated copy for the default lang."""
+    """Populate the through row's translated copy for the default lang.
+
+    Runs ``full_clean`` before saving so ``OrganizationCategory.clean()``
+    enforces the 501(c)(3) donate rule on this write path too (not just
+    on admin saves): a donate ``action_url`` that isn't the org homepage
+    is rejected rather than silently persisted. The caller wraps this in
+    ``transaction.atomic``, so a rejection rolls back the whole create.
+    """
     through.set_current_language(_DEFAULT_LANGUAGE)
     through.description = copy.get("description", "")
     through.action_text = copy.get("action_text", "")
+    through.action_url = copy.get("action_url", "")
+    through.full_clean()
     through.save()
 
 

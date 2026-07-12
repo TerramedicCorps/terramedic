@@ -6,6 +6,7 @@ import pytest
 from django.contrib import admin
 from django.test import Client
 
+from terramedic.organizations.admin import OrganizationCategoryInline
 from terramedic.organizations.models import (
     SDG,
     Category,
@@ -13,6 +14,7 @@ from terramedic.organizations.models import (
     FocusArea,
     OperatingRegion,
     Organization,
+    OrganizationCategory,
     OrganizationEvaluation,
     Skill,
     Tag,
@@ -42,6 +44,34 @@ class TestAdminRegistrations:
         assert admin.site.is_registered(model), (
             f"{model.__name__} is not registered in the admin"
         )
+
+    def test_org_category_inline_exposes_action_url(self) -> None:
+        assert "action_url" in OrganizationCategoryInline.fields
+
+    def test_org_change_form_renders_action_url_field(
+        self, admin_client: Client,
+    ) -> None:
+        org = Organization(
+            name="Admin URL Org",
+            website_url="https://example.org",
+        )
+        org.set_current_language("en")
+        org.description = "General."
+        org.save()
+        entry = OrganizationCategory.objects.create(
+            organization=org,
+            category=Category.objects.get(slug="volunteer"),
+        )
+        entry.set_current_language("en")
+        entry.action_url = "https://example.org/volunteer"
+        entry.save()
+
+        response = admin_client.get(
+            f"/admin/organizations/organization/{org.pk}/change/",
+        )
+
+        assert response.status_code == 200
+        assert b"action_url" in response.content
 
 
 @pytest.mark.django_db
