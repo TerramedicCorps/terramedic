@@ -80,7 +80,8 @@
       /\.(example|home|internal|invalid|lan|local|localhost|test)$/.test(host) ||
       host === '::' ||
       host === '::1' ||
-      /^(fc|fd|fe8|fe9|fea|feb)/.test(host)
+      /^(fc|fd|fe8|fe9|fea|feb)/.test(host) ||
+      /^ff[0-9a-f]{2}:/.test(host) // ff00::/8 IPv6 multicast (is_global is True)
     ) {
       return true;
     }

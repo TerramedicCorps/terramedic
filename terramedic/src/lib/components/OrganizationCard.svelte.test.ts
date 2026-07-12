@@ -112,6 +112,26 @@ describe('OrganizationCard', () => {
     expect(link?.getAttribute('href') ?? '').toBe('');
   });
 
+  test.each([
+    'http://[ff02::1]/', // IPv6 link-local multicast
+    'http://[ff0e::1]/', // IPv6 global-scope multicast
+    'http://[ffff::1]/' // IPv6 multicast
+  ])('button rejects IPv6 multicast websiteUrl %s (matches backend)', (websiteUrl) => {
+    // is_global is True for multicast, so the mirror must reject ff00::/8
+    // explicitly like the backend's is_public_ip_address does.
+    render(OrganizationCard, { props: { ...baseProps, websiteUrl } });
+    const link = screen.queryByRole('link');
+    expect(link?.getAttribute('href') ?? '').toBe('');
+  });
+
+  test('button allows a public IPv6 unicast websiteUrl', () => {
+    render(OrganizationCard, {
+      props: { ...baseProps, websiteUrl: 'https://[2606:4700:4700::1111]/' }
+    });
+    const link = screen.getByRole('link', { name: /Visit Website/i });
+    expect(link).toHaveAttribute('href', 'https://[2606:4700:4700::1111]/');
+  });
+
   test('button allows a numeric subdomain label', () => {
     // A digit-only label is valid as long as the TLD is not all-numeric;
     // this must not be swept up by the disguised-IP rejection.
