@@ -113,23 +113,20 @@ describe('OrganizationCard', () => {
   });
 
   test.each([
-    'http://[ff02::1]/', // IPv6 link-local multicast
-    'http://[ff0e::1]/', // IPv6 global-scope multicast
-    'http://[ffff::1]/' // IPv6 multicast
-  ])('button rejects IPv6 multicast websiteUrl %s (matches backend)', (websiteUrl) => {
-    // is_global is True for multicast, so the mirror must reject ff00::/8
-    // explicitly like the backend's is_public_ip_address does.
+    'http://[ff02::1]/', // multicast ff00::/8
+    'http://[100::1]/', // discard-only 100::/64
+    'http://[64:ff9b:1::1]/', // NAT64 local-use
+    'https://[2001:db8::1]/', // documentation 2001:db8::/32
+    'http://[::ffff:127.0.0.1]/', // IPv4-mapped loopback
+    'https://[2606:4700:4700::1111]/' // public unicast — still rejected client-side
+  ])('button rejects IPv6-literal websiteUrl %s (mirror cannot classify IPv6)', (websiteUrl) => {
+    // The client cannot reliably classify IPv6 the way the backend's
+    // is_public_ip_address does, so it rejects IPv6 literals wholesale.
+    // Real org sites use domains; a genuinely public IPv6 site is still
+    // gated server-side. Being stricter here is safe (fails closed).
     render(OrganizationCard, { props: { ...baseProps, websiteUrl } });
     const link = screen.queryByRole('link');
     expect(link?.getAttribute('href') ?? '').toBe('');
-  });
-
-  test('button allows a public IPv6 unicast websiteUrl', () => {
-    render(OrganizationCard, {
-      props: { ...baseProps, websiteUrl: 'https://[2606:4700:4700::1111]/' }
-    });
-    const link = screen.getByRole('link', { name: /Visit Website/i });
-    expect(link).toHaveAttribute('href', 'https://[2606:4700:4700::1111]/');
   });
 
   test('button allows a numeric subdomain label', () => {

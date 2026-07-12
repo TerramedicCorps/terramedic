@@ -65,23 +65,20 @@
   }
 
   // Client-side mirror of backend/terramedic/core/web_urls.py
-  // (web_hostname / is_safe_web_url). This is a deliberately-approximate
+  // (web_hostname / is_public_ip_address). This is a deliberately-approximate
   // defense-in-depth layer, NOT the authority — the serializer sanitizes
   // action_url server-side, but returns website_url raw, so this is the
   // last check on that field. The reserved-IPv4 ranges below match what
-  // Python's ipaddress.is_global rejects; keep the two in sync when
-  // either changes.
+  // Python's ipaddress.is_global rejects; keep the two in sync when either
+  // changes. IPv6 literals cannot be classified this way, so isValidWebHost
+  // rejects them wholesale rather than mirror every non-global range.
   /** @param {string} hostname */
   function isLocalHostname(hostname) {
     const host = hostname.replace(/^\[|\]$/g, '').toLowerCase();
     if (
       host === 'localhost' ||
       (!host.includes('.') && !host.includes(':')) ||
-      /\.(example|home|internal|invalid|lan|local|localhost|test)$/.test(host) ||
-      host === '::' ||
-      host === '::1' ||
-      /^(fc|fd|fe8|fe9|fea|feb)/.test(host) ||
-      /^ff[0-9a-f]{2}:/.test(host) // ff00::/8 IPv6 multicast (is_global is True)
+      /\.(example|home|internal|invalid|lan|local|localhost|test)$/.test(host)
     ) {
       return true;
     }
@@ -107,14 +104,19 @@
 
   // Mirror of web_urls._is_dns_hostname: reject STD3-invalid labels
   // (underscores, edge hyphens) and all-numeric TLDs that `new URL`
-  // tolerates but the backend rejects. IP hosts are already canonicalized
-  // by `new URL` (127.1 -> 127.0.0.1) and screened by isLocalHostname, so
-  // they skip the label check.
+  // tolerates but the backend rejects. Canonical IPv4 (already normalized
+  // by `new URL`, e.g. 127.1 -> 127.0.0.1) is screened by isLocalHostname
+  // and skips the label check.
   const dnsLabel = /^(?!-)[a-z0-9-]{1,63}(?<!-)$/;
   /** @param {string} hostname */
   function isValidWebHost(hostname) {
     const host = hostname.replace(/^\[|\]$/g, '').toLowerCase();
-    if (host.includes(':') || /^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return true;
+    // IPv6 literals (bracketed, colon-bearing) can't be reliably classified
+    // client-side against the backend's is_public_ip_address, so reject them
+    // wholesale — real org sites use domains, and any public IPv6 site stays
+    // gated server-side.
+    if (host.includes(':')) return false;
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return true; // canonical IPv4
     const labels = host.split('.');
     if (labels.length < 2 || /^\d+$/.test(labels[labels.length - 1])) return false;
     return labels.every((label) => dnsLabel.test(label));
