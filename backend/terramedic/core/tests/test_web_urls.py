@@ -91,6 +91,47 @@ class TestWebHostname:
     def test_rejects_reserved_ip_literals(self, ip: str) -> None:
         assert web_hostname(f"http://{ip}/x") is None
 
+    @pytest.mark.parametrize(
+        "host",
+        [
+            "127.1",  # short-form loopback -> 127.0.0.1
+            "10.1",  # short-form private -> 10.0.0.1
+            "192.168.1",  # 3-part short form -> 192.168.0.1
+            "0x7f.0.0.1",  # hex loopback
+            "0177.0.0.1",  # octal loopback
+        ],
+    )
+    def test_rejects_disguised_short_form_ip_literals(self, host: str) -> None:
+        # Resolvers expand these to loopback/private ranges, but
+        # ipaddress.ip_address() only recognizes canonical dotted quads, so
+        # the plain "has a dot" heuristic used to let them through as domains.
+        assert web_hostname(f"http://{host}/x") is None
+
+    @pytest.mark.parametrize(
+        "host",
+        [
+            "exa mple.org",  # space
+            "exam_ple.org",  # underscore
+            "-example.org",  # leading hyphen
+            "example-.org",  # trailing hyphen
+            "ex..ample.org",  # empty label
+        ],
+    )
+    def test_rejects_malformed_dns_labels(self, host: str) -> None:
+        # Python's "idna" codec does not reject STD3-invalid ASCII labels,
+        # so these must be caught by explicit label validation.
+        assert web_hostname(f"https://{host}/p") is None
+
+    def test_accepts_numeric_and_hyphenated_labels(self) -> None:
+        # Digits and interior hyphens are valid; only an all-numeric TLD or
+        # a malformed label is rejected.
+        assert web_hostname("https://1.example.org") == "1.example.org"
+        assert web_hostname("https://web3.example.org") == "web3.example.org"
+        assert (
+            web_hostname("https://rainforest-alliance.org")
+            == "rainforest-alliance.org"
+        )
+
     def test_accepts_globally_routable_ip_literal(self) -> None:
         # The rejection above is because those ranges are non-global, not
         # because IP literals are banned outright — a public IP is a valid

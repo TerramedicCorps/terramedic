@@ -11,6 +11,7 @@ list and reserved-IP ranges in sync when either changes.
 from __future__ import annotations
 
 import ipaddress
+import re
 from urllib.parse import urlsplit
 
 _LOCAL_HOST_SUFFIXES = (
@@ -23,6 +24,25 @@ _LOCAL_HOST_SUFFIXES = (
     ".localhost",
     ".test",
 )
+
+# One LDH label: letters/digits/hyphen, 1-63 chars, no leading/trailing hyphen.
+_DNS_LABEL = re.compile(r"^(?!-)[A-Za-z0-9-]{1,63}(?<!-)$")
+
+
+def _is_dns_hostname(hostname: str) -> bool:
+    """Return whether *hostname* is a valid multi-label domain name.
+
+    Requires at least two LDH labels and a non-numeric top-level label.
+    The all-numeric-TLD rule rejects legacy short-form IPv4 addresses such
+    as ``127.1`` or ``10.1`` that resolvers expand to loopback/private
+    ranges (``ipaddress`` only recognizes canonical dotted quads); the LDH
+    rule rejects spaces, underscores, and edge hyphens that Python's
+    ``idna`` codec passes through but browsers reject.
+    """
+    labels = hostname.split(".")
+    if len(labels) < 2 or labels[-1].isdigit():
+        return False
+    return all(_DNS_LABEL.match(label) for label in labels)
 
 
 def web_hostname(value: str) -> str | None:
@@ -57,7 +77,7 @@ def web_hostname(value: str) -> str | None:
     try:
         address = ipaddress.ip_address(hostname)
     except ValueError:
-        return hostname if "." in hostname else None
+        return hostname if _is_dns_hostname(hostname) else None
     return hostname if address.is_global else None
 
 
