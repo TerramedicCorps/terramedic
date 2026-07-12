@@ -98,6 +98,30 @@ describe('OrganizationCard', () => {
     expect(link?.getAttribute('href') ?? '').toBe('');
   });
 
+  test.each([
+    'https://exam_ple.org/', // underscore is not a valid DNS label
+    'https://-example.org/', // leading hyphen
+    'https://example-.org/', // trailing hyphen
+    'https://exa mple.org/' // space in host
+  ])('button rejects malformed-host websiteUrl %s (matches backend web_hostname)', (websiteUrl) => {
+    // `new URL` tolerates underscores and edge hyphens that the backend
+    // web_hostname now rejects; the mirror must reject them too so a
+    // malformed website_url the API returns raw never becomes an href.
+    render(OrganizationCard, { props: { ...baseProps, websiteUrl } });
+    const link = screen.queryByRole('link');
+    expect(link?.getAttribute('href') ?? '').toBe('');
+  });
+
+  test('button allows a numeric subdomain label', () => {
+    // A digit-only label is valid as long as the TLD is not all-numeric;
+    // this must not be swept up by the disguised-IP rejection.
+    render(OrganizationCard, {
+      props: { ...baseProps, websiteUrl: 'https://1.example.com/' }
+    });
+    const link = screen.getByRole('link', { name: /Visit Website/i });
+    expect(link).toHaveAttribute('href', 'https://1.example.com/');
+  });
+
   test('button allows an organization-owned subdomain', () => {
     render(OrganizationCard, {
       props: {

@@ -104,6 +104,21 @@
     );
   }
 
+  // Mirror of web_urls._is_dns_hostname: reject STD3-invalid labels
+  // (underscores, edge hyphens) and all-numeric TLDs that `new URL`
+  // tolerates but the backend rejects. IP hosts are already canonicalized
+  // by `new URL` (127.1 -> 127.0.0.1) and screened by isLocalHostname, so
+  // they skip the label check.
+  const dnsLabel = /^(?!-)[a-z0-9-]{1,63}(?<!-)$/;
+  /** @param {string} hostname */
+  function isValidWebHost(hostname) {
+    const host = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+    if (host.includes(':') || /^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return true;
+    const labels = host.split('.');
+    if (labels.length < 2 || /^\d+$/.test(labels[labels.length - 1])) return false;
+    return labels.every((label) => dnsLabel.test(label));
+  }
+
   /** @param {string} value */
   function parsedSafeWebUrl(value) {
     try {
@@ -112,7 +127,8 @@
         !['http:', 'https:'].includes(parsed.protocol) ||
         parsed.username ||
         parsed.password ||
-        isLocalHostname(parsed.hostname)
+        isLocalHostname(parsed.hostname) ||
+        !isValidWebHost(parsed.hostname)
       ) {
         return null;
       }
