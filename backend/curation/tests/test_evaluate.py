@@ -1475,12 +1475,16 @@ class TestValidateAgainstSchema:
         with pytest.raises(RuntimeError, match="jsonschema"):
             _validate_against_schema({}, source="Output")
 
-    def test_rejects_non_uri_action_url_at_runtime(self) -> None:
-        """``format: uri`` must be enforced by the runtime validator,
-        not just declared in the schema text. Models love to return
-        labels or partial paths in URL fields; without an installed
-        ``uri`` format checker, jsonschema silently skips the check and
-        a bare label like "Volunteer" survives to the database."""
+    def test_rejects_unsafe_http_action_url_beyond_pattern(self) -> None:
+        """The ``action_url`` node pairs an ``^https?://`` pattern with
+        ``format: uri``. The pattern only checks the scheme prefix, so an
+        ``http(s)`` URL with a local/private host (here ``localhost``)
+        clears the pattern and must still be rejected by the runtime
+        safety validation. A bare label like ``"Volunteer"`` would fail
+        the pattern alone and so could not discriminate the safety layer;
+        the ``uri`` format checker is isolated on its own — on a
+        pattern-free ``format: uri`` field — in
+        ``test_rejects_unsafe_citation_url_anywhere_in_response``."""
         from curation.evaluate import _validate_against_schema
 
         payload = _make_valid_evaluation()
@@ -1489,7 +1493,8 @@ class TestValidateAgainstSchema:
                 "slug": "volunteer",
                 "description": "Sign up",
                 "action_text": "Volunteer",
-                "action_url": "Volunteer",  # label, not a URL
+                # Valid http(s) prefix (clears the pattern), unsafe host.
+                "action_url": "https://localhost/volunteer",
             },
         ]
 
@@ -1553,14 +1558,24 @@ class TestValidateAgainstSchema:
         with pytest.raises(ValueError, match="schema validation"):
             _validate_against_schema(payload, source="Output")
 
-    def test_rejects_invalid_datetime_without_optional_format_extra(
-        self,
-    ) -> None:
-        """Local RFC3339 checking must not depend on jsonschema extras."""
+    @pytest.mark.parametrize(
+        "evaluated_at",
+        [
+            "not-a-date-time",  # unparseable
+            "2026-04-04T12:00:00",  # parseable but timezone-naive
+        ],
+    )
+    def test_rejects_non_rfc3339_datetime(self, evaluated_at: str) -> None:
+        """The local ``date-time`` checker requires a real RFC3339 stamp
+        with an explicit UTC offset. The timezone-naive case is the
+        discriminating one: a degenerate checker that only called
+        ``fromisoformat`` (dropping the ``tzinfo is not None`` guard)
+        would wrongly accept ``2026-04-04T12:00:00`` — a stock RFC3339
+        checker or the unparseable case would not surface that gap."""
         from curation.evaluate import _validate_against_schema
 
         payload = _make_valid_evaluation()
-        payload["evaluated_at"] = "not-a-date-time"
+        payload["evaluated_at"] = evaluated_at
 
         with pytest.raises(ValueError, match="schema validation"):
             _validate_against_schema(payload, source="Output")
