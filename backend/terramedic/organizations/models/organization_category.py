@@ -105,36 +105,34 @@ class OrganizationCategory(TranslatableModel):
     def clean(self) -> None:
         """Enforce safe CTA URLs and 501(c)(3) donate compliance.
 
-        Every non-blank translated CTA URL must be an absolute, public HTTP(S)
-        destination on the organization's site. Parler's translated fields
-        are not covered by Django's normal model ``full_clean()``, so this
-        explicit check prevents script/data URLs, local hosts, unrelated
-        destinations, and overlong database values from reaching the card.
-
-        Terramedic must not deep-link into another org's donation flow,
-        because doing so functionally constitutes fundraising for them.
-        ``_normalize_donate_action_url`` in the curation layer rewrites
-        donate ``action_url`` to the homepage on every evaluation, but
-        this ``clean()`` is the second line of defense — admin saves and
+        Two responsibilities, one per helper: validate every translated
+        CTA URL as a public, same-site HTTP(S) destination, then — for
+        donate rows — require the homepage so Terramedic never deep-links
+        into another org's donation flow. This runs on admin saves and on
         the curation write path (``_write_category_copy`` calls
-        ``full_clean``) get the same enforcement, so a hand-edited deep
-        donation link can't slip past the legal check.
-
-        Blank ``action_url`` is permitted; the API serializer falls
-        back to ``organization.website_url`` (the homepage), which is
-        also compliant. A trailing-slash difference from the homepage is
-        tolerated (``https://x.org`` and ``https://x.org/`` are the same
-        page); a genuine donation deep link has a path beyond the domain
-        and is still rejected.
-
-        ``action_url`` is translated per language and the API serves
-        every translation, so *all* translations are checked — saved
-        rows and unsaved in-memory edits alike — not just the active
-        language. Otherwise a deep link in a non-active translation
-        would pass validation while still being served to
-        matching-locale clients.
+        ``full_clean``), the second line of defense behind
+        ``_normalize_donate_action_url`` in the curation layer.
         """
         super().clean()
+        translated_urls = self._validated_translated_action_urls()
+        # Without an organization there is no homepage to check;
+        # clean_fields() reports the missing FK as a normal
+        # ValidationError instead of this method crashing with
+        # RelatedObjectDoesNotExist on the dereference below.
+        if self.category_id == "donate" and self.organization_id is not None:
+            self._enforce_donate_homepage(translated_urls)
+
+    def _validated_translated_action_urls(self) -> list[tuple[str, str]]:
+        """Validate every non-blank translated CTA URL; return (lang, url).
+
+        Parler's translated fields are not covered by Django's normal
+        model ``full_clean()``, so each translation is checked explicitly —
+        saved rows and unsaved in-memory edits alike, not just the active
+        language — preventing script/data URLs, local hosts, unrelated
+        destinations, and overlong values from reaching the card. Blank
+        ``action_url`` is permitted; the API serializer falls back to
+        ``organization.website_url`` (the compliant homepage).
+        """
         if self.pk is None:
             # Querying the reverse translations manager requires a saved
             # master row. New admin forms still have their current unsaved
@@ -144,13 +142,12 @@ class OrganizationCategory(TranslatableModel):
             language_codes = self.get_available_languages(
                 include_unsaved=True,
             )
-
-        translated_urls: list[tuple[str, str]] = []
         website_url = (
             self.organization.website_url
             if self.organization_id is not None
             else None
         )
+        translated_urls: list[tuple[str, str]] = []
         for language_code in language_codes:
             action_url = (
                 self.get_translation(language_code).action_url or ""
@@ -159,13 +156,18 @@ class OrganizationCategory(TranslatableModel):
                 continue
             _validate_action_url(action_url, language_code, website_url)
             translated_urls.append((language_code, action_url))
+        return translated_urls
 
-        if self.category_id != "donate" or self.organization_id is None:
-            # Without an organization there is no homepage to check;
-            # clean_fields() reports the missing FK as a normal
-            # ValidationError instead of this method crashing with
-            # RelatedObjectDoesNotExist on the dereference below.
-            return
+    def _enforce_donate_homepage(
+        self, translated_urls: list[tuple[str, str]],
+    ) -> None:
+        """Reject any donate CTA that is not the org's homepage.
+
+        A trailing-slash difference is tolerated (``https://x.org`` and
+        ``https://x.org/`` are the same page); a genuine donation deep
+        link has a path beyond the domain and is rejected in every
+        translation, so a link in a non-active language can't slip past.
+        """
         homepage = self.organization.website_url or ""
         for language_code, action_url in translated_urls:
             if action_url.rstrip("/") != homepage.rstrip("/"):
