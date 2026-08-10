@@ -19,7 +19,7 @@
   "devDependencies": {
     "@eslint/compat": "^2.1.0",
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.62.0",
+    "@playwright/test": "^1.62.1",
     "@sveltejs/adapter-auto": "^7.0.1",
     "@sveltejs/adapter-netlify": "^5.2.4",
     "@sveltejs/kit": "^2.69.2",
@@ -30,7 +30,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/svelte": "^5.4.2",
-    "@testing-library/user-event": "^14.6.1",
+    "@testing-library/user-event": "^14.6.3",
     "@vitest/browser": "4.1.10",
     "@vitest/coverage-v8": "4.1.10",
     "autoprefixer": "^10.5.2",
